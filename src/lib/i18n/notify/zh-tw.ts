@@ -1,0 +1,60 @@
+/**
+ * 通知文字，台灣中文（推播、補貨 Email、「通知已停止」Email、Stripe 結帳頁按鈕上方那行）。輪詢主機也會送出
+ * 這些文字，所以除了型別不 import 任何東西。
+ */
+import type { NotifyText } from "./en";
+
+/** 裝置名稱是英文（iPhone）時，前後補半形空格（中英混排）。 */
+const w = (s: string) => `${/^[A-Za-z0-9]/.test(s) ? " " : ""}${s}${/[A-Za-z0-9]$/.test(s) ? " " : ""}`;
+
+export const notifyZhTW: NotifyText = {
+  pushTitle: (cfg: string) => cfg,
+  pushBody: (where: string, quote: string | null) => `${where}${quote ? ` — ${quote}` : ""}。點一下前往 apple.com 預訂。`,
+  testTitle: "ShelfSpring 通知已開啟",
+  testBody: (time: string, device: string) => `${time} · ${device}. 偵測到符合條件的庫存後發送通知；來源查詢、資料同步與通知傳送可能增加延遲。`,
+  device: {
+    iphoneApp: "iPhone（主畫面 App）",
+    iphoneSafari: "iPhone（Safari）",
+    androidApp: "Android（已安裝的 App）",
+    android: (browser: string) => `Android${browser ? `（${browser}）` : ""}`,
+    computer: (browser: string) => `電腦${browser ? `（${browser}）` : ""}`,
+    other: "這台裝置",
+  },
+  email: {
+    subject: (cfg: string, store: string, more: number) => `有現貨：${cfg}（${store}）${more > 0 ? `，另有 ${more} 則` : ""}`,
+    intro: "好消息——以下現在可以門市取貨：",
+    reserve: "預訂",
+    store: "門市",
+    tip: "門市取貨的現貨消失得很快：打開 Apple Store App 或 apple.com，選擇「取貨」，再選這家門市。",
+    manage: (url: string) => `管理或暫停這則通知：${url}`,
+    htmlTitle: "現在可門市取貨",
+    htmlReserve: "前往 apple.com 預訂",
+    htmlStorePage: "門市頁面 →",
+    htmlTip: "門市取貨的現貨消失得很快——在 Apple Store App 或 apple.com 預訂，選擇 <b>取貨</b>，再選這家門市。",
+    htmlManage: "管理或暫停這則通知",
+    cancel: (url: string) => `已經買到 iPhone 了嗎？隨時可以取消訂閱：${url}`,
+    htmlGotIt: "已經買到 iPhone 了嗎？",
+    htmlCancel: "隨時取消訂閱",
+    nudge: (url: string) => `您的帳戶尚未在手機開啟通知，目前以電子郵件接收提醒。 從主畫面開啟ShelfSpring，登入並開啟通知，即可在此裝置接收提醒。 偵測到符合條件的庫存後發送通知；來源查詢、資料同步與通知傳送可能增加延遲。 ${url}`,
+    htmlNudge: (url: string) => `您的帳戶尚未在手機開啟通知，目前以電子郵件接收提醒。 從主畫面開啟ShelfSpring，登入並開啟通知，即可在此裝置接收提醒。 偵測到符合條件的庫存後發送通知；來源查詢、資料同步與通知傳送可能增加延遲。 <a href="${url}" style="color:#0a7f3f">ShelfSpring →</a>`,
+  },
+  checkoutSubmit: (plan: string, limit: number, _fastSec: number, _checkSec: number, _alertSec: number) => { void _fastSec; void _checkSec; void _alertSec; return `${plan}：${limit} 個提醒。庫存會頻繁更新，偵測到現貨後發送通知；資料收集和送達可能有延遲。按月付費，可隨時取消。`; },
+  stopped: {
+    deviceWord: { ios: "iPhone", android: "Android 手機", desktop: "電腦", other: "裝置" },
+    subject: (device: string) => `你的${w(device)}已停止接收通知——請從主畫面打開 ShelfSpring`,
+    gone: (device: string) => `你的${w(device)}已停止接收 ShelfSpring 的通知（推播服務回報這個訂閱已失效）。`,
+    byEmail: "在你重新開啟通知之前，你的補貨通知會改寄到 Email。",
+    reopenIos: "請從主畫面（不是 Safari）打開 ShelfSpring，在「我的通知」頁點「開啟通知」。",
+    reopenOther: "打開 ShelfSpring，前往「我的通知」，點「開啟通知」。",
+    causes: "常見原因：App 被從主畫面移除、在「設定」裡關閉了通知，或手機被還原過。",
+  },
+  nudge: {
+    subject: "設定手機補貨通知",
+    intro: "您的帳戶尚未在手機開啟通知，目前以電子郵件接收提醒。 從主畫面開啟ShelfSpring，登入並開啟通知，即可在此裝置接收提醒。 偵測到符合條件的庫存後發送通知；來源查詢、資料同步與通知傳送可能增加延遲。",
+    howTitle: "不到一分鐘即可開啟：",
+    stepsIos: ["在 iPhone 的 Safari 開啟 shelfspring.com，點「分享」，再點「加入主畫面」。", "從主畫面（而不是 Safari）開啟 ShelfSpring 並登入。", "在「帳戶」頁點「開啟通知」，再點「允許」。"],
+    stepsOther: "Android 或電腦：開啟 shelfspring.com/account，點「開啟通知」。",
+    after: "在有裝置開啟通知之前，提醒會繼續以郵件寄送；之後改以通知送達，郵件即停止。",
+    cta: (url: string) => `圖文設定教學：${url}`,
+  },
+};

@@ -1,0 +1,61 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { eq, and } from "drizzle-orm";
+import { ensureUser } from "@/lib/auth";
+import { BillingPermissionError, createCheckout, changePlan, portalUrl, userPlan } from "@/lib/billing";
+import { userById } from "@/lib/auth";
+import { comparePlans, isPaidPlan } from "@/lib/plans";
+import { db, schema } from "@/lib/db";
+import { recordError, errorMessage } from "@/lib/errors";
+import { logOps } from "@/lib/ops";
+import { cookies } from "next/headers";
+import { LANG_COOKIE, nativeLocale } from "@/lib/i18n/locales";
+import { langOfUser } from "@/lib/i18n/notify";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const Body = z.object({ plan: z.enum(["plus", "pro", "max"]), watchId: z.string().min(1).optional(), confirm: z.boolean().optional(), prorationDate: z.number().int().positive().optional() });
+
+/**
+ * Pick a paid plan. No subscription yet → Stripe Checkout (card or Link; Stripe's page is the review).
+ * Already on a paid plan → switch only with `confirm: true`, after the user saw the preview
+ * (POST /api/billing/preview); a request without it gets { needsConfirm } and changes nothing. The
+ * difference is charged now; if the bank wants to confirm it, the old plan stays and the user is sent to
+ * Stripe's billing page to finish. Same plan → nothing to do.
+ */
+export async function POST(req: Request) {
+  const u = await ensureUser();
+  if (!u) return NextResponse.json({ error: "sign in first" }, { status: 401 });
+  const parsed = Body.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "bad request" }, { status: 400 });
+  const { plan, watchId } = parsed.data;
+  if (watchId) {
+    const [watch] = await db().select({ id: schema.watches.id }).from(schema.watches).where(and(eq(schema.watches.id, watchId), eq(schema.watches.userId, u.id))).limit(1);
+    if (!watch) return NextResponse.json({ error: "watch not found" }, { status: 404 });
+  }
+  try {
+    const current = await userPlan(u.id);
+    if (current.sub && isPaidPlan(current.plan.key)) {
+      if (comparePlans(plan, current.plan.key) === 0) return NextResponse.json({ alreadySubscribed: true, url: "/account" });
+      if (!parsed.data.confirm) return NextResponse.json({ needsConfirm: true, url: "/account#plan" });
+      const r = await changePlan(current.sub.id, plan, parsed.data.prorationDate);
+      if (r.pending) {
+        const row = await userById(u.id);
+        await logOps("web", "warn", `plan change ${current.plan.key} → ${plan} waits for payment`, { userId: u.id });
+        const url = row?.stripeCustomerId ? await portalUrl(row.stripeCustomerId).catch(() => null) : null;
+        return NextResponse.json({ pending: true, url, error: "Your bank needs to confirm the payment. Your plan stays as it is until it goes through." }, { status: 402 });
+      }
+      await logOps("web", "info", `plan changed ${current.plan.key} → ${plan}`, { userId: u.id });
+      return NextResponse.json({ changed: true, plan });
+    }
+    // Stripe's page in the language the person is using now (cookie), else their account's.
+    const lang = nativeLocale((await cookies()).get(LANG_COOKIE)?.value)?.lang ?? langOfUser((await userById(u.id))?.locale);
+    const url = await createCheckout(u.id, u.email, plan, watchId ?? null, lang);
+    return NextResponse.json({ url });
+  } catch (e) {
+    await recordError("web", `checkout failed: ${errorMessage(e)}`, { userId: u.id, plan });
+    if (e instanceof BillingPermissionError) return NextResponse.json({ error: "Plan changes are offline for a moment. Your current plan keeps working.", code: "billing_permission" }, { status: 503 });
+    return NextResponse.json({ error: "Checkout didn't open. Try again in a minute." }, { status: 502 });
+  }
+}

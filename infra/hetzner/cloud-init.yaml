@@ -1,0 +1,141 @@
+#cloud-config
+# ShelfSpring poller host (Hetzner Cloud, Ubuntu 24.04). Rendered by provision.sh, which fills
+# the placeholders. Routes the server's whole /64 to lo (AnyIP) so any address can be a source.
+package_update: true
+package_upgrade: true
+packages: [git, curl, ca-certificates, ufw, fail2ban, unattended-upgrades]
+users:
+  - name: poller
+    system: true
+    shell: /usr/sbin/nologin
+    homedir: /opt/shelfspring
+write_files:
+  - path: /etc/sysctl.d/90-anyip.conf
+    content: |
+      net.ipv6.ip_nonlocal_bind = 1
+  - path: /opt/shelfspring/anyip.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      # Derive this server's global /64 from its primary IPv6 address and route the whole block to lo
+      # (AnyIP), so any address inside it can be used as a source address.
+      set -euo pipefail
+      addr=$(ip -6 addr show scope global | awk '/inet6/ {print $2; exit}')
+      prefix=$(python3 -c "import ipaddress,sys; print(ipaddress.IPv6Network(sys.argv[1], strict=False).supernet(new_prefix=64))" "$addr")
+      ip -6 route replace local "$prefix" dev lo
+      echo "$prefix" > /opt/shelfspring/ipv6-prefix
+      echo "AnyIP: $prefix -> lo"
+  - path: /etc/systemd/system/shelfspring-anyip.service
+    content: |
+      [Unit]
+      Description=Route the IPv6 /64 to lo so every address is bindable
+      After=network-online.target
+      Wants=network-online.target
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/opt/shelfspring/anyip.sh
+      [Install]
+      WantedBy=multi-user.target
+  - path: /etc/systemd/system/shelfspring-poller.service
+    content: |
+      [Unit]
+      Description=ShelfSpring poller
+      After=network-online.target shelfspring-anyip.service
+      Wants=network-online.target
+      [Service]
+      User=poller
+      WorkingDirectory=/opt/shelfspring/app
+      EnvironmentFile=/opt/shelfspring/poller.env
+      ExecStart=/usr/local/bin/node --import tsx poller/main.ts
+      Restart=always
+      RestartSec=5
+      LimitNOFILE=65536
+      [Install]
+      WantedBy=multi-user.target
+  - path: /opt/shelfspring/poller.env
+    permissions: "0600"
+    owner: root:root
+    content: |
+      NODE_ENV=production
+      DATABASE_URL=__DATABASE_URL__
+      RESEND_API_KEY=__RESEND_API_KEY__
+      ALERTS_FROM="ShelfSpring <alerts@shelfspring.com>"
+      SITE_URL=https://shelfspring.com
+      POLLER_TOKEN=__POLLER_TOKEN__
+      MAIL_WORKER_URL=__MAIL_WORKER_URL__
+      MAIL_WORKER_TOKEN=__MAIL_WORKER_TOKEN__
+      OWNER_EMAIL=owner@example.com
+      IPV6_PREFIX=auto
+      CADENCE_SEC=20
+      CONCURRENCY=8
+      HOST_LABEL=hetzner-1
+  - path: /opt/shelfspring/probe.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      # External health probe of the site, every 5 minutes (systemd timer). The mail worker does the
+      # GET + owner email + down/recovery bookkeeping; this host only triggers it.
+      set -uo pipefail
+      val() { sed -n "s/^$1=//p" /opt/shelfspring/poller.env | head -1 | sed 's/^"\(.*\)"$/\1/'; }
+      URL="$(val MAIL_WORKER_URL)"; TOKEN="$(val MAIL_WORKER_TOKEN)"
+      [ -n "$URL" ] && [ -n "$TOKEN" ] || exit 0
+      curl -fsS -m 40 -X POST "${URL%/}/probe" -H "Authorization: Bearer ${TOKEN}" >/dev/null || echo "probe trigger failed"
+  - path: /etc/systemd/system/shelfspring-probe.service
+    content: |
+      [Unit]
+      Description=Trigger the external health probe (mail worker)
+      [Service]
+      Type=oneshot
+      ExecStart=/opt/shelfspring/probe.sh
+  - path: /etc/systemd/system/shelfspring-probe.timer
+    content: |
+      [Unit]
+      Description=Run the health probe every 5 minutes
+      [Timer]
+      OnBootSec=3min
+      OnUnitActiveSec=5min
+      [Install]
+      WantedBy=timers.target
+  - path: /root/.ssh/id_shelfspring
+    permissions: "0600"
+    encoding: b64
+    content: __DEPLOY_KEY_B64__
+  - path: /root/.ssh/config
+    permissions: "0600"
+    content: |
+      # Read-only deploy key for the private repo (generated per provision by provision.sh).
+      Host github.com
+        IdentityFile /root/.ssh/id_shelfspring
+        IdentitiesOnly yes
+        StrictHostKeyChecking accept-new
+  - path: /opt/shelfspring/update.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      # Pull the latest main and restart the poller (run by root; also used by the first boot).
+      set -euo pipefail
+      cd /opt/shelfspring/app
+      git fetch -q origin main && git reset -q --hard origin/main
+      /usr/local/bin/npm ci --no-audit --no-fund --omit=dev --ignore-scripts >/dev/null
+      /usr/local/bin/npm install --no-save --no-audit --no-fund tsx >/dev/null
+      chown -R poller:poller /opt/shelfspring/app
+      systemctl restart shelfspring-poller
+runcmd:
+  - sysctl --system
+  # Node 24 from the official tarball (the NodeSource apt script silently left Ubuntu's nodejs 18 without npm).
+  - curl -fsSL -o /tmp/node.tar.xz https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.xz
+  - echo "fd8e59d5a511510f6a298afb548f18c7d2b1be404d8b4a27d94fbe49f56cb2d6  /tmp/node.tar.xz" | sha256sum -c -
+  - tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 --no-same-owner && rm -f /tmp/node.tar.xz
+  - ufw default deny incoming && ufw default allow outgoing && ufw allow OpenSSH && ufw --force enable
+  - mkdir -p /opt/shelfspring && chown -R poller:poller /opt/shelfspring
+  - chmod 700 /root/.ssh
+  # update.sh runs as root on a tree owned by poller: tell git that is fine
+  - git config --global --add safe.directory /opt/shelfspring/app
+  - git clone --depth 1 -b main owner@example.com:YOUR_GITHUB_USERNAME/shelfspring_public.git /opt/shelfspring/app
+  - chown poller:poller /opt/shelfspring/poller.env && chmod 0600 /opt/shelfspring/poller.env
+  - systemctl daemon-reload
+  - systemctl enable --now shelfspring-anyip.service
+  - /opt/shelfspring/update.sh
+  - systemctl enable shelfspring-poller.service
+  - systemctl enable --now shelfspring-probe.timer

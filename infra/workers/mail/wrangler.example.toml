@@ -1,0 +1,18 @@
+# Copy to wrangler.toml and configure only resources in your own Cloudflare account.
+name = "shelfspring-mail"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+send_email = [{ name = "OWNER_MAIL", destination_address = "owner@example.com" }]
+
+[[r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "YOUR_BACKUP_BUCKET"
+
+[vars]
+APP_URL = "https://example.com"
+OWNER_EMAIL = "owner@example.com"
+
+# Set via wrangler secret put: INBOX_INGEST_SECRET, NOTIFY_TOKEN, BACKUP_TOKEN.
+# Update the source FROM and OWNER constants to your own verified addresses.
+# No account id, credential, deployed URL or cron trigger is supplied here.

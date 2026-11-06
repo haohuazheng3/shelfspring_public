@@ -1,0 +1,23 @@
+import type { Metadata } from "next";
+import { Page } from "@/components/site/Page";
+export const metadata: Metadata = { title: "Terms of Service", description: "The terms for using ShelfSpring: live stock data shown as is, alerts on paid plans, and what we can and cannot promise.", alternates: { canonical: "/terms" } };
+export default function Terms() {
+  return (
+    <Page title="Terms of Service" lead="Last updated November 6, 2026.">
+      <h2>The service</h2>
+      <p>ShelfSpring sends phone and email notifications about in-store pickup availability of selected iPhone models at supported Apple Stores, based on publicly displayed availability on apple.com. We don&apos;t sell devices, reserve them for you, or guarantee that a notification results in a purchase.</p>
+      <h2>Accounts</h2>
+      <p>You sign in with a one-time email code. Keep access to that mailbox secure; you are responsible for activity under your account.</p>
+      <h2>Subscriptions</h2>
+      <p>Browsing live stock, the map and the restock log is free. Alerts need a plan: Plus (US$5/month, 10 alerts), Pro (US$10/month, 20) or Max (US$20/month, 50), billed in advance by Stripe and renewing monthly until cancelled. Cancel anytime; alerts keep sending to the end of the paid period, then stop. Plan changes are prorated. Refunds follow the <a href="/refunds">Refund Policy</a>: within 7 days of a payment, as long as no restock alert has reached you since. Prices may change with 30 days&apos; notice.</p>
+      <h2>Acceptable use</h2>
+      <p>Personal, non-commercial use. No scraping, reselling of alerts, or automated accounts.</p>
+      <h2>Availability and accuracy</h2>
+      <p>Availability reflects observations of Apple listings. Collection, synchronization, network or device delivery may be delayed, and listings may change before you open them. Historical data can include records collected before ShelfSpring launched. The service is provided &ldquo;as is&rdquo; without warranties; our liability is limited to the fees you paid in the last 3 months.</p>
+      <h2>Changes and termination</h2>
+      <p>We may update these terms or stop the service; material changes are announced by email. We may suspend accounts that break these terms.</p>
+      <h2>Contact</h2>
+      <p>contact@shelfspring.com</p>
+    </Page>
+  );
+}

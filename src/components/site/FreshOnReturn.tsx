@@ -1,0 +1,58 @@
+"use client";
+/**
+ * Pages are rendered once, so a phone tab left in the background came back saying "last check 16m ago"
+ * over stock that had moved on — reading as if checking had stopped. The route's server components render
+ * again when the tab returns after a minute or more away, when it is restored from the back/forward cache,
+ * and every five minutes while it stays open on screen — and within seconds of a restock or sell-out in what
+ * the page shows (LiveChecked's STOCK_CHANGED), at most once every MIN_GAP_MS. Client state (an alert being
+ * set up) is kept.
+ */
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { hasLiveStockSubscribers, STOCK_CHANGED } from "./LiveChecked";
+
+const AWAY_MS = 60_000;
+const OPEN_MS = 5 * 60_000;
+// Re-render current inventory at most twice a minute. Link viewport prefetch is independently disabled.
+const MIN_GAP_MS = 30_000;
+
+export function FreshOnReturn() {
+  const router = useRouter();
+  const pathname = usePathname() ?? "/";
+  useEffect(() => {
+    let hiddenAt: number | null = document.visibilityState === "hidden" ? Date.now() : null;
+    let last = Date.now();
+    // Public text/blog/legal pages have no live inventory to refresh. Keep account, checkout and
+    // operations data fresh; inspect subscriptions at the time of each event, after children mount.
+    const privatePage = /^\/(?:account|checkout|admin)(?:\/|$)/.test(pathname);
+    const refresh = () => {
+      if (!privatePage && !hasLiveStockSubscribers()) return;
+      last = Date.now();
+      router.refresh();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
+      if (hiddenAt != null && Date.now() - hiddenAt >= AWAY_MS) refresh();
+      hiddenAt = null;
+    };
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted) refresh(); };
+    let pending: number | null = null;
+    const onStock = () => {
+      if (pending !== null) return;
+      const wait = Math.max(0, MIN_GAP_MS - (Date.now() - last));
+      pending = window.setTimeout(() => { pending = null; if (document.visibilityState === "visible") refresh(); }, wait);
+    };
+    const tick = window.setInterval(() => { if (document.visibilityState === "visible" && Date.now() - last >= OPEN_MS) refresh(); }, 30_000);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pageshow", onShow);
+    window.addEventListener(STOCK_CHANGED, onStock);
+    return () => {
+      window.clearInterval(tick);
+      if (pending !== null) window.clearTimeout(pending);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pageshow", onShow);
+      window.removeEventListener(STOCK_CHANGED, onStock);
+    };
+  }, [router, pathname]);
+  return null;
+}
