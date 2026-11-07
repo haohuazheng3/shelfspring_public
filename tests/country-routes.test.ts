@@ -95,10 +95,10 @@ describe("country routes (proxy: real 404 / 308 before the page streams)", () =>
 });
 
 describe("curated sitemap keeps functional route compatibility", () => {
-  it("publishes exactly the 322 selected canonical paths without redirects or duplicates", async () => {
+  it("publishes exactly the 323 selected canonical paths without redirects or duplicates", async () => {
     const paths = (await sitemap()).map((entry) => new URL(entry.url).pathname);
-    expect(paths).toHaveLength(322);
-    expect(new Set(paths).size).toBe(322);
+    expect(paths).toHaveLength(323);
+    expect(new Set(paths).size).toBe(323);
     expect(paths).toEqual(CURATED_PAGES.map((page) => page.path));
     for (const path of paths) {
       expect(isCuratedPath(path), path).toBe(true);

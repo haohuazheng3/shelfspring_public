@@ -19,7 +19,7 @@ const COUNTRY_COUNT = 1 + INTL_CODES.length;
 function keyFacts(f: SiteFacts): string[] {
   const intlStores = ALL_STORES.length - STORES.length;
   return [
-    "- Delivery: alerts are sent after matching availability is detected. Source checks, read-only synchronization and notification transport can add delay. A subscription increases the number of alert rules, not the source polling speed.",
+    `- Watch-speed evidence: ${BASE}/watch-speed-report reports 2,959 store checks in a ten-store eligible-target scope, median gap 5.993 s, p95 6.793 s, observed 2026-11-07 22:00–22:30 UTC. The five-second target is not a notification-delivery guarantee; see the report scope and downloadable timestamps.`,
     f.duoSellout
       ? `- Listing-duration evidence: a typical iPhone Duo restock sells out in about ${medianBand(f.duoSellout.medianSec)} (median ${f.duoSellout.medianSec} s over the last 7 days, ${n(f.duoSellout.n)} sold-out restocks). ${pct(f.duoSellout.within30)} of the completed observations disappeared within 30 seconds. Observation intervals can hide shorter listings; these figures are not a buying probability.`
       : "- Listing-duration evidence: no completed sample is available in this summary; each store page shows the observed durations when data is available.",

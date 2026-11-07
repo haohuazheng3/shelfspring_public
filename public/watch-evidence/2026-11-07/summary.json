@@ -1,0 +1,104 @@
+{
+  "publishedAt": "2026-11-07",
+  "windowStart": "2026-11-07T22:00:00Z",
+  "windowEnd": "2026-11-07T22:30:00Z",
+  "scope": "Store-level checks for the ten stores present in ShelfSpring eligible-target scope at extraction time. The historical target list was not reconstructed; this subset overlaps the shared sample.",
+  "checkCount": 2959,
+  "seriesCount": 10,
+  "intervalCount": 2949,
+  "successfulChecks": 2959,
+  "failedChecks": 0,
+  "medianSeconds": 5.993,
+  "p95Seconds": 6.793,
+  "maxSeconds": 9.18,
+  "within5Percent": 0.1,
+  "within10Percent": 100.0,
+  "distribution": [
+    {
+      "label": "\u2264 5 seconds",
+      "count": 3,
+      "percent": 0.1
+    },
+    {
+      "label": "> 5\u20136 seconds",
+      "count": 1518,
+      "percent": 51.48
+    },
+    {
+      "label": "> 6\u20137 seconds",
+      "count": 1348,
+      "percent": 45.71
+    },
+    {
+      "label": "> 7\u201310 seconds",
+      "count": 80,
+      "percent": 2.71
+    },
+    {
+      "label": "> 10 seconds",
+      "count": 0,
+      "percent": 0.0
+    }
+  ],
+  "example": [
+    {
+      "series": "S020",
+      "completedAt": "2026-11-07T22:00:01.198Z",
+      "gapSeconds": null,
+      "successful": true
+    },
+    {
+      "series": "S020",
+      "completedAt": "2026-11-07T22:00:07.342Z",
+      "gapSeconds": 6.144,
+      "successful": true
+    },
+    {
+      "series": "S020",
+      "completedAt": "2026-11-07T22:00:13.384Z",
+      "gapSeconds": 6.042,
+      "successful": true
+    },
+    {
+      "series": "S020",
+      "completedAt": "2026-11-07T22:00:19.226Z",
+      "gapSeconds": 5.842,
+      "successful": true
+    },
+    {
+      "series": "S020",
+      "completedAt": "2026-11-07T22:00:25.281Z",
+      "gapSeconds": 6.055,
+      "successful": true
+    },
+    {
+      "series": "S020",
+      "completedAt": "2026-11-07T22:00:30.952Z",
+      "gapSeconds": 5.671,
+      "successful": true
+    },
+    {
+      "series": "S020",
+      "completedAt": "2026-11-07T22:00:37.037Z",
+      "gapSeconds": 6.085,
+      "successful": true
+    },
+    {
+      "series": "S020",
+      "completedAt": "2026-11-07T22:00:42.782Z",
+      "gapSeconds": 5.745,
+      "successful": true
+    }
+  ],
+  "csvSha256": "aba9871e673067b6f937472bc752149f6f1f777b721981b1c0a2fed7b381f1a8",
+  "publisherMeasurement": true,
+  "notificationLatencyMeasured": false,
+  "timingDefinition": "Consecutive logged check-completion timestamps for the same anonymous store series; one completion per store check cycle; unsuccessful checks retained. Not network-request duration or device notification latency.",
+  "limitations": [
+    "Publisher-produced observation, not an independent audit.",
+    "A fixed 30-minute sample, not a historical uptime guarantee.",
+    "The first check in each series has no preceding interval within this window.",
+    "Unlogged or incomplete work is not reconstructable; store-level checks do not prove each SKU or every member target was checked.",
+    "No store identities, watch rules, customer data or infrastructure details are included."
+  ]
+}

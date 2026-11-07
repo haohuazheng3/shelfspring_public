@@ -49,6 +49,7 @@ export function Footer({ loc }: { loc: Locale }) {
     ...(native ? [{ href: `${p}/iphone-duo-restock-times`, label: F.restockTimes }] : []),
   ];
   const product: DirectoryLink[] = [
+    { href: "/watch-speed-report", label: native ? "Watch-speed evidence · English" : "Watch-speed field notes" },
     { href: "/pickup-planning", label: native ? "Pickup planning · English" : "Pickup planning worksheets" },
     { href: "/how-it-works", label: native ? `${F.howItWorks} · ${F.englishOnly}` : "How ShelfSpring works" },
     { href: "/pricing", label: native ? F.pricing : "Plans & alerts" },

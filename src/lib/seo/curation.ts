@@ -43,7 +43,7 @@ const PURPOSE: Record<CuratedKind, string> = {
 };
 
 function buildPages(): readonly CuratedPage[] {
-  const pages: CuratedPage[] = [];
+  const pages: CuratedPage[] = [{ path: "/watch-speed-report", kind: "guide", purpose: "Inspect a dated measurement of checks for eligible watched stores.", storeNumbers: [], updatedAt: "2026-11-07T22:30:00Z" }];
   for (const cc of ALL_CODES) {
     const stores = storesOf(cc);
     const add = (path: string, kind: CuratedKind, storeNumbers: string[]) => {
