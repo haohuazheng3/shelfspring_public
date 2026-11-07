@@ -273,7 +273,7 @@ export function AlertEditor({ catalog, account, start = {}, variant = "panel", s
   }
 
   return (
-    <div className="space-y-3">
+    <div className="alert-workbench space-y-4">
       {/* The sum, always in view: phones × stores, and how many of them send. */}
       <div className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-1 ${inner ? "" : "pane px-5 py-4 sm:px-6"}`}>
         <div className="min-w-0">
@@ -301,6 +301,7 @@ export function AlertEditor({ catalog, account, start = {}, variant = "panel", s
         <div key={refused} role="status" className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-2xl border border-warn/40 bg-bg px-4 py-3 text-sm shadow-lg sm:bottom-6">{notice}</div>
       )}
 
+      <div className="alert-workbench-selections">
       <Section id={inner ? "alert-phones" : "phones"} inner={inner} title={d.phonesTitle} badge={<Count n={set.phones.length} />} summary={phonesText(set.phones, d, lang)} defaultOpen>
         <PhoneMatrix catalog={catalog} selected={set.phones} onToggle={onPhone} initialModel={startModel ?? MODELS[0].key} disabled={mode === "account" && !loaded} />
       </Section>
@@ -308,6 +309,7 @@ export function AlertEditor({ catalog, account, start = {}, variant = "panel", s
         <StoreChooser selected={set.stores} onToggle={onStore} onPretick={!start.store && (mode === "draft" || (set.phones.length === 0 && set.stores.length === 0)) ? pretick : undefined} room={storeRoom} preferState={start.state} preferCity={start.city}
           pool={catalog.stores} country={catalog.country} known={known} switchable={variant === "page"} />
       </Section>
+      </div>
 
       {mode === "draft" && count > 0 && (
         <div className={inner ? "pane-2 p-4" : "pane p-5 sm:p-6"}>

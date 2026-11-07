@@ -2,7 +2,7 @@
 export type Theme = "light" | "dark";
 export const THEME_KEY = "shelfspring:theme";
 /** Match the quiet page background and the fixed Safari status-bar band in globals.css. */
-export const THEME_COLORS: Record<Theme, string> = { light: "#f5f4ee", dark: "#101c18" };
+export const THEME_COLORS: Record<Theme, string> = { light: "#f7f6f2", dark: "#141923" };
 
 /** Inline in <body> before anything renders so a dark reader never sees a light flash. */
 export const THEME_BOOT = `(function(){try{var t=localStorage.getItem('${THEME_KEY}');t=t==='dark'?'dark':'light';var d=document.documentElement;d.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'${THEME_COLORS.dark}':'${THEME_COLORS.light}');}catch(e){}})();`;

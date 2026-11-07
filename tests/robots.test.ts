@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
 import { INTL_CODES } from "@/lib/apple/countries";
@@ -13,9 +13,12 @@ function allowed(rules: { allow: string[]; disallow: string[] }, url: string): b
 }
 
 describe("robots.txt once the site is indexable", () => {
-  const before = process.env.NEXT_PUBLIC_INDEXABLE;
-  beforeAll(() => { process.env.NEXT_PUBLIC_INDEXABLE = "1"; });
-  afterAll(() => { process.env.NEXT_PUBLIC_INDEXABLE = before; });
+  beforeAll(() => {
+    vi.stubEnv("NEXT_PUBLIC_INDEXABLE", "1");
+    vi.stubEnv("DEPLOY_TARGET", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+  });
+  afterAll(() => vi.unstubAllEnvs());
 
   const group = (ua: string) => {
     const r = robots().rules;
@@ -41,7 +44,7 @@ describe("robots.txt once the site is indexable", () => {
 
   it("lets every country's sitemap pages be crawled too", async () => {
     const urls = (await sitemap()).map((e) => new URL(e.url).pathname).filter((u) => INTL_CODES.some((cc) => u === `/${cc}` || u.startsWith(`/${cc}/`)));
-    expect(urls.length).toBeGreaterThan(300);
+    expect(urls.length).toBeGreaterThan(60);
     for (const ua of ["*", "GPTBot", "ClaudeBot"]) {
       const g = group(ua);
       expect(urls.filter((u) => !allowed(g, u)), ua).toEqual([]);
@@ -54,5 +57,16 @@ describe("robots.txt once the site is indexable", () => {
       "/uk/stock/iphone-duo/greater-london", "/ca/stock/iphone-duo-256gb/ontario/toronto/eatoncentre", "/jp/map?model=duo", "/de/restocks?model=all", "/at/stock/iphone-duo/vienna/vienna/kaerntnerstrasse"]) {
       expect(allowed(g, u), u).toBe(false);
     }
+  });
+});
+
+describe("preview crawl protection", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  it.each(["DEPLOY_TARGET", "VERCEL_ENV"])("stays closed when %s is preview even if indexing is enabled", (key) => {
+    vi.stubEnv("NEXT_PUBLIC_INDEXABLE", "1");
+    vi.stubEnv("DEPLOY_TARGET", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv(key, "preview");
+    expect(robots()).toEqual({ rules: [{ userAgent: "*", disallow: "/" }] });
   });
 });

@@ -3,7 +3,7 @@
 import { useEffect, useOptimistic, useRef, useState, useTransition, type MouseEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { PendingLink } from "@/components/ui/PendingLink";
-import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useT } from "@/components/i18n/LangProvider";
 
 interface Filters { model: string; state: string; kind: "restock" | "all" }
@@ -59,13 +59,13 @@ export function RestockFilters({ action, initial, models, states, labels, childr
       aria-busy={busy(control)} onClick={(event) => click(event, change, control)}>{label}</PendingLink>
   );
 
-  return <><div className="mt-5 flex flex-wrap items-center gap-2 text-sm" aria-busy={pending}>
+  return <><div className="flex flex-wrap items-center gap-2 border-b border-line pb-5 text-sm" aria-busy={pending}>
     {chip(labels.allModels, { model: "all" }, "model:all", selected.model === "all")}
     {models.map((m) => chip(m.name, { model: m.key }, `model:${m.key}`, selected.model === m.key))}
     <span className="mx-1 text-ink-3">·</span>
     {chip(labels.restocks, { kind: "restock" }, "kind:restock", selected.kind === "restock")}
     {chip(labels.withSoldOut, { kind: "all" }, "kind:all", selected.kind === "all")}
-    {states.length > 1 && <form action={action} method="get" className="ms-auto flex items-center gap-1"
+    {states.length > 1 && <form action={action} method="get" className="mt-2 flex w-full items-center gap-2"
       onSubmit={(event) => {
         event.preventDefault();
         const region = new FormData(event.currentTarget).get("state");
@@ -73,7 +73,7 @@ export function RestockFilters({ action, initial, models, states, labels, childr
       }}>
       <input type="hidden" name="model" value={selected.model} />
       {selected.kind === "all" && <input type="hidden" name="kind" value="all" />}
-      <select key={initial.state} name="state" defaultValue={initial.state} className="input w-auto py-1.5 text-xs" aria-label={labels.region}>
+      <select key={initial.state} name="state" defaultValue={initial.state} className="input min-w-0 flex-1 py-2 text-sm" aria-label={labels.region}>
         <option value="">{labels.allRegions}</option>
         {states.map((s) => <option key={s.slug} value={s.slug}>{s.label}</option>)}
       </select>
@@ -84,8 +84,8 @@ export function RestockFilters({ action, initial, models, states, labels, childr
     <div className="mt-5" aria-busy={pending}>
       {pending ? <div role="status" aria-label={loading}>
         <span className="sr-only">{loading}</span>
-        <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(min(100%,15.5rem),1fr))]">
-          {Array.from({ length: 6 }, (_, i) => <SkeletonCard key={i} chips={1} lines={1} foot />)}
+        <div className="divide-y divide-line">
+          {Array.from({ length: 6 }, (_, i) => <div key={i} className="grid grid-cols-[4.5rem_1fr] gap-4 py-5"><Skeleton className="h-12 w-full" /><div className="space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /><Skeleton className="h-3 w-2/3" /></div></div>)}
         </div>
         <div className="mt-3 flex items-center justify-between"><Skeleton className="h-3 w-12" /><Skeleton className="h-6 w-20 rounded-full" /></div>
       </div> : children}

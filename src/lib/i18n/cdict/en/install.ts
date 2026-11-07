@@ -5,9 +5,9 @@
  */
 export const install = {
   hero: {
-    eyebrow: "Home Screen app · no download",
-    title: "Alerts on your lock screen.",
-    lead: "Open ShelfSpring from your Home Screen, sign in and turn on notifications to receive alerts on this device. Alerts are sent after matching availability is detected. Source checks, synchronization and notification delivery can add delay.",
+    eyebrow: "Device setup",
+    title: "Give your watchlist a way to reach you.",
+    lead: "Choose your device below and follow its setup path. ShelfSpring checks inventory on the server; this device receives a notification after a matching change is confirmed. Delivery timing varies.",
     seeSteps: "See the steps",
     sendTest: "Send a test",
     turnOn: "Turn on notifications",
@@ -22,7 +22,7 @@ export const install = {
     blocked: "Blocked in settings — see step {n}.",
   },
   steps: {
-    title: "Set up notifications",
+    title: "Follow your device’s path",
     intro: {
       ios: "On iPhone and iPad, notifications only work from the Home Screen app.",
       android: "Installing is optional on Android; Chrome can notify on its own.",
@@ -31,7 +31,7 @@ export const install = {
     tabsLabel: "Your device",
     tabs: { ios: "iPhone / iPad", android: "Android", desktop: "Computer" },
     ios: {
-      safari: { title: "Open shelfspring.com in Safari", text: "Safari only. Not Chrome or an in-app browser." },
+      safari: { title: "Open shelfspring.com in Safari", text: "This illustrated path uses Safari. If you are inside another app, open the site in your browser first." },
       share: { title: "Tap Share", text: "Bottom bar on iPhone, top on iPad." },
       choose: { title: "Choose “Add to Home Screen”", text: "Scroll down if you don't see it." },
       add: { title: "Tap Add", text: "Keep the name ShelfSpring." },
@@ -48,8 +48,8 @@ export const install = {
       allow: { title: "Tap “Turn on notifications”, then Allow", text: "Android asks once. Also works in the Chrome tab." },
     },
     desktop: {
-      allow: { title: "Tap “Turn on notifications”", text: "Chrome, Edge, Firefox, Safari 16+. The browser asks once." },
-      install: { title: "Optional: install as an app", text: "Chrome or Edge: the install icon in the address bar. Notifies even with the browser closed." },
+      allow: { title: "Tap “Turn on notifications”", text: "Use a supported browser such as Chrome, Edge, Firefox, or Safari 16.1+ on macOS Ventura or later. Check the browser’s permission prompt." },
+      install: { title: "Optional: give ShelfSpring its own window", text: "Use the install icon in Chrome or Edge. Background delivery depends on the browser and your operating system settings." },
       phone: { title: "Your phone too", text: "Sign in on your phone with the same email. Every device with notifications on gets every alert." },
     },
   },
@@ -64,12 +64,12 @@ export const install = {
     denied: "Blocked. Allow ShelfSpring in Settings, then reload.",
   },
   notes: [
-    { q: "Why Safari on iPhone?", a: "Only Safari can add a site to the Home Screen. In-app browsers can't." },
-    { q: "Battery?", a: "Nothing runs on your phone. Our servers do the checking." },
+    { q: "Why does this guide show Safari?", a: "The pictures follow Safari’s Share menu. On iOS and iPadOS 16.4 or later, other supported browsers can also offer Add to Home Screen. Open the installed Home Screen app to enable web notifications." },
+    { q: "Does my phone keep checking inventory?", a: "Inventory checks run on our servers. Your browser or Home Screen app handles notification delivery and display." },
     { q: "Email?", a: "No device with notifications on? The alert goes to your email instead." },
     { q: "Several devices?", a: "Sign in with the same email on each. Every device gets every alert." },
   ],
-  cta: { title: "No alert yet?", button: "Set up an alert" },
+  cta: { title: "A ready device needs a useful watchlist.", button: "Choose phones and pickup stores" },
 
   /** The illustrations (components/push/Mocks.tsx): the OS's own labels in that language. */
   mocks: {

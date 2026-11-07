@@ -1,4 +1,6 @@
+import { FieldCoverage,FieldIntro,FieldMethod,FieldSection,fieldGuideQuestions } from "@/components/seo/FieldGuide";
 import { PickupPattern } from "@/components/seo/PickupPattern";
+import { withCuratedMetadata } from "@/lib/seo/curation";
 /**
  * /iphone-duo-restock-times/{state} and /iphone-duo-restock-times/{state}/{city}: "When does the iPhone Duo restock in
  * Los Angeles?" answered for one US state or two-plus-store city, in the shape an answer engine quotes (project documentation
@@ -7,26 +9,23 @@ import { PickupPattern } from "@/components/seo/PickupPattern";
  * own confirmed observation over the place's stores (lib/content/restockTimes.ts, duoRestockTimesAt), compared with
  * the national figures where that says something. English only: these pages exist for the US tree.
  */
+import { RichFaq,SourceList } from "@/components/content/RichFaq";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { Breadcrumbs,LinkRow,RelatedBlock,type Crumb } from "@/components/seo/Related";
+import { PendingLink as Link } from "@/components/ui/PendingLink";
+import { Stat,StatGrid } from "@/components/ui/Viz";
+import { STATE_CODES,STORES,appleName,catalogFor,citiesWithStores,cityPath,hasStatePage,statePath,statesWithStores,storeByNumber,storePath,storeTimeZone,type Store } from "@/lib/apple/catalog";
+import { emptyFacts } from "@/lib/content/facts";
+import { busiestWindow,duoRestockTimes,duoRestockTimesAt,rangeLabel,restockTimesPath,type RestockTimes } from "@/lib/content/restockTimes";
+import { PATTERN_MIN,PATTERN_MIN_DAYS,localStamp } from "@/lib/content/siteFacts";
+import type { Faq,Source } from "@/lib/content/types";
+import { alertHref,fitTitle,plural } from "@/lib/seo/enrich";
+import { nearbyCities,neighborStates } from "@/lib/seo/links";
+import { storesStock,storesWithStockNow } from "@/lib/stock/queries";
+import { recentByConfig } from "@/lib/stock/recent";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { cache } from "react";
-import { PendingLink as Link } from "@/components/ui/PendingLink";
-import { JsonLd } from "@/components/seo/JsonLd";
-import { Breadcrumbs, LinkRow, RelatedBlock, type Crumb } from "@/components/seo/Related";
-import { Figure } from "@/components/content/Figure";
-import { RichFaq, SourceList } from "@/components/content/RichFaq";
-import { Chips, Measured, Points, Stat, StatGrid, StepStrip, Swap, type Point } from "@/components/ui/Viz";
-import { emptyFacts } from "@/lib/content/facts";
-import type { Faq, Source } from "@/lib/content/types";
-import { STATE_CODES, STORES, appleName, catalogFor, cityPath, citiesWithStores, hasStatePage, statePath, statesWithStores, storeByNumber, storePath, storeTimeZone, type Store } from "@/lib/apple/catalog";
-import { busiestWindow, duoRestockTimes, duoRestockTimesAt, hourShare, rangeLabel, restockTimesPath, type DayRow, type RestockTimes } from "@/lib/content/restockTimes";
-import { PATTERN_MIN, PATTERN_MIN_DAYS, WEEKDAYS, WEEKDAY_MIN_SPAN, hourLabel, localStamp } from "@/lib/content/siteFacts";
-import { recentByConfig } from "@/lib/stock/recent";
-import { storesStock, storesWithStockNow } from "@/lib/stock/queries";
-import { alertHref, fitTitle, plural } from "@/lib/seo/enrich";
-import { nearbyCities, neighborStates } from "@/lib/seo/links";
-import { CHECK_NOTE, PLANS } from "@/lib/plans";
-import { placePhotos } from "@/content/place-photos";
 
 const SITE = "https://shelfspring.com";
 const APPLE_PICKUP = "https://www.apple.com/shop/shipping-pickup";
@@ -123,15 +122,6 @@ function Table({ caption, head, children, min = "28rem" }: { caption: string; he
   );
 }
 
-/** Keyword lines inside the prose pane (the pane's list indent is turned off). */
-function Keys({ items, className = "my-3" }: { items: Point[]; className?: string }) {
-  return <Points items={items} className={`${className} ml-0!`} />;
-}
-
-function ChipLinks({ items }: { items: { href: string; label: string }[] }) {
-  return <div className="my-3 flex flex-wrap gap-1.5">{items.map((l) => <Link key={l.href} href={l.href} className="chip chip-sm no-underline!">{l.label}</Link>)}</div>;
-}
-
 /* ---------------------------------------------------------------- data */
 
 const load = cache(async (place: RestockPlace) => {
@@ -167,16 +157,16 @@ export async function placeRestockTimesMetadata(place: RestockPlace): Promise<Me
   const zone = zoneWord(place.stores).word;
   const q = quotable(place, t, zone);
   const description = fitTitle([q, `${q.split(";")[0].split(", and a typical")[0]}.`, `iPhone Duo restock times in ${place.name}: ${n(t.n)} confirmed restocks since ${dateLabel(t.since, false)}, by hour, day and store.`], 158);
-  return {
+  return withCuratedMetadata(place.href, {
     title: { absolute: `${title} · ShelfSpring` },
     description,
     alternates: { canonical: place.href },
     openGraph: { type: "article", siteName: "ShelfSpring", title, description, url: place.href },
-  };
+  });
 }
 
 export async function PlaceRestockTimesPage({ place }: { place: RestockPlace }) {
-  const [t, us, stockNow, recent, stock] = await load(place);
+  const [t, us, , recent, stock] = await load(place);
   const { stores } = place;
   const k = stores.length;
   const city = place.kind === "city";
@@ -185,31 +175,19 @@ export async function PlaceRestockTimesPage({ place }: { place: RestockPlace }) 
   const items = catalogFor("duo");
   const cfg = (p: string) => { const i = items.find((x) => x.partNumber === p); return i ? `${i.storage} ${i.color}` : p; };
   const w = busiestWindow(t.byHour);
-  const uw = busiestWindow(us.byHour);
   const pattern = t.peakHour != null;
-  const duoNow = stockNow.duo;
   const today = t.today;
-  const tracked = Math.max(t.daily.length, t.days, 1);
   const hours = t.byHour.map((count, hour) => ({ hour, count })).filter((h) => h.count > 0);
-  const topHours = [...hours].sort((a, b) => b.count - a.count).slice(0, 3);
-  const busiestDay = t.daily.reduce<DayRow | null>((a, d) => (d.restocks > (a?.restocks ?? 0) ? d : a), null);
-  const weekend = t.byWeekday[0] + t.byWeekday[6];
   const sell = t.sellout;
   const storeRows = t.topStores.map((r) => ({ ...r, store: storeByNumber(r.storeNumber) })).filter((r) => r.store);
   const quiet = stores.filter((s) => !t.topStores.some((r) => r.storeNumber === s.storeNumber));
-  const top = storeRows[0];
   const parts = t.byPart;
-  const topPart = parts[0];
-  const lastPart = parts.length ? parts[parts.length - 1] : undefined;
-  const latestStore = t.latest ? storeByNumber(t.latest.storeNumber) : undefined;
-  const nowAt = (s: Store) => (stock.get(s.storeNumber)?.perModel.duo.available ?? 0) > 0;
   const alert = alertHref({ model: "duo", state: place.stateSlug, city: place.citySlug });
   const stateHref = hasStatePage(place.state) ? restockTimesPath(place.state) : null;
   const share = t.n && us.n ? Math.round((t.n / us.n) * 1000) / 10 : 0;
   const lead = quotable(place, t, zone.word);
   const title = titleOf(place);
-  const h1 = `When does the iPhone Duo restock in ${place.name}?`;
-  const [photo1, photo2] = placePhotos(city ? `${place.city}, ${place.state}` : place.state);
+  const h1 = `${place.name}: a study of iPhone Duo pickup openings`;
 
   // Sideways: the state's other cities with a page, the bordering states' pages; a city's nearest other cities' pages.
   const cityPages = citiesWithStores().filter((c) => c.state === place.state && c.stores.length > 1 && c.slug !== place.citySlug).map((c) => ({ href: restockTimesPath(c.state, c.name), label: c.name, meta: String(c.stores.length) }));
@@ -217,33 +195,7 @@ export async function PlaceRestockTimesPage({ place }: { place: RestockPlace }) 
   const mid = { lat: stores.reduce((a, s) => a + s.lat, 0) / k, lng: stores.reduce((a, s) => a + s.lng, 0) / k };
   const nearPages = city ? nearbyCities(mid.lat, mid.lng, { limit: 10, maxMiles: 200 }).filter((c) => c.count > 1 && !(c.state === place.state && c.name === place.city)).slice(0, 6).map((c) => ({ href: restockTimesPath(c.state, c.name), label: `${c.name}, ${c.stateCode}`, meta: `${Math.round(c.distance)} mi` })) : [];
 
-  const sections = [
-    { id: "time-of-day", nav: "Time of day", h2: `What time of day does the iPhone Duo restock in ${place.name}?` },
-    { id: "day-by-day", nav: "Day by day", h2: `Which days has the iPhone Duo restocked in ${place.name}?` },
-    { id: "stores", nav: city ? "By store" : "By store and city", h2: `Which Apple Stores in ${place.name} restock the iPhone Duo most?` },
-    { id: "configuration", nav: "Configuration", h2: `Which iPhone Duo configuration restocks most in ${place.name}?` },
-    { id: "how-long", nav: "How long it lasts", h2: `How long does an iPhone Duo restock last in ${place.name}?` },
-    { id: "right-now", nav: "Right now", h2: `Is the iPhone Duo in stock in ${place.name} right now?` },
-    { id: "alerts", nav: "Catch the next one", h2: `How do you catch the next iPhone Duo restock in ${place.name}?` },
-    { id: "method", nav: "How we count", h2: "How does ShelfSpring count a restock?" },
-  ];
-  const h2Of = (id: string) => sections.find((s) => s.id === id)!.h2;
-
-  const faq: Faq[] = [
-    { q: `When does Apple restock the iPhone Duo in ${place.name}?`, a: t.n > 0 && pattern
-      ? `${lead} The busiest single hour has been ${rangeLabel(t.peakHour!, t.peakHour! + 1)} (${n(t.byHour[t.peakHour!])} restocks), and ${pct(hourShare(t.byHour, 8, 12))} of all restocks fell between 8 AM and noon. Apple publishes no schedule; this is the recorded pattern over the ${k} stores, updated about every five minutes.`
-      : `${lead} Apple publishes no schedule. Hour-by-hour tables fill in on this page as restocks are confirmed; the national pattern, from the most data, is on [the US page](/iphone-duo-restock-times).` },
-    { q: `Which Apple Store in ${place.name} restocks the iPhone Duo most often?`, a: top
-      ? `[${appleName(top.store!)}](${storePath(top.store!)}) — ${plural(top.restocks, "confirmed restock")} on ${plural(top.days, "day")} since ${longDate(t.since)}${top.peakHour != null ? `, usually around ${hourLabel(top.peakHour)} local time` : ""}; its last one was ${localStamp(top.lastAt, top.store!)}. ${storeRows.length > 1 ? `The table above ranks all ${plural(storeRows.length, "store")} with a restock${quiet.length ? `; ${plural(quiet.length, "store")} in ${place.name} ${quiet.length === 1 ? "has" : "have"} none yet` : ""}.` : ""}`
-      : `None of the ${k} Apple Stores in ${place.name} has a confirmed iPhone Duo restock since ${longDate(t.since)} yet; the table will reflect new recorded returns as they reach ShelfSpring.` },
-    { q: `Does the iPhone Duo restock on weekends in ${place.name}?`, a: t.n > 0
-      ? `${weekend > 0 ? "Yes so far" : "Not yet in our data"}: ${plural(weekend, "restock")} fell on a Saturday or Sunday out of ${n(t.n)} (${pct(weekend / t.n)}). ${t.peakWeekday != null ? `${WEEKDAYS[t.peakWeekday]} has been the busiest weekday.` : `Which weekday is busiest we do not state until the data spans ${WEEKDAY_MIN_SPAN} days; ours covers ${tracked}.`}`
-      : `No weekend data for ${place.name} yet; the day-by-day table on this page fills in as restocks are confirmed.` },
-    { q: `How long does an iPhone Duo restock last in ${place.name}?`, a: sell
-      ? `Half of the ${n(sell.n)} timed restocks in ${place.name} were gone within ${secs(sell.medianSec)} (the [median](${WIKI_MEDIAN})); ${pct(sell.within2min)} sold out within 2 minutes and ${pct(sell.within20min)} within 20. ${us.sellout ? `The national sample median is ${secs(us.sellout.medianSec)}.` : "The national sample is also insufficient for a median."} Each figure is the time between our check that saw the listing and the check that saw it gone, so it is an upper bound.`
-      : `Fewer than 10 restocks in ${place.name} have been timed to a sell-out, so a local median is not available. ${us.sellout ? `The national sample median is ${secs(us.sellout.medianSec)}; it is not a local forecast.` : "The national sample is also insufficient."} [Inspect listing durations](/iphone-duo-sell-out-times).` },
-    { q: `How do I get notified when the iPhone Duo restocks in ${place.name}?`, a: `Set an alert for the ${k === 1 ? "store" : "stores"} you can reach: alerts from $${PLANS.plus.priceUsd}/month, notifications are sent after matching availability is detected; source checks, synchronization and delivery can add delay. One alert is one store and one exact configuration, so [pick the stores in ${place.name}](${alert}) and the storage and color you would actually buy; [how to set it up](/iphone-duo-stock-alerts), and [how to check out in the time a restock lasts](/how-to-grab-an-iphone-duo-restock).` },
-  ];
+  const faq: Faq[] = fieldGuideQuestions({place:place.name,stores:k,kind:"study",model:"iPhone Duo"});
 
   const sources: Source[] = [
     { label: "Apple — Shipping & Pickup (how in-store pickup works)", url: APPLE_PICKUP },
@@ -275,292 +227,56 @@ export async function PlaceRestockTimesPage({ place }: { place: RestockPlace }) 
     { label: place.label },
   ];
 
-  const heroTiles: ReactNode[] = t.n > 0 && !t.unknown
-    ? [
-      <Stat key="n" value={n(t.n)} label={`confirmed restocks at ${plural(k, "store")} since ${dateLabel(t.since, false)}`} tone="accent" />,
-      pattern
-        ? <Stat key="w" value={pct(w.share)} label={`between ${rangeLabel(w.from, w.to)}, ${zone.word}`} />
-        : <Stat key="d" value={`${t.days}/${tracked}`} label="days with at least one restock" />,
-      <Stat key="now" value={`${duoNow}/${k}`} label="stores list one for pickup right now" live />,
-      today
-        ? <Stat key="today" value={n(today.restocks)} label={`today (${dateLabel(today.date)}), at ${plural(today.stores, "store")}, so far`} />
-        : sell
-          ? <Stat key="sell" value={sell.medianSec} unit="s" label="typical restock: half were gone within" tone="warn" />
-          : <Stat key="d2" value={`${t.days}/${tracked}`} label="days with at least one restock" />,
-    ]
-    : [];
-
   return (
-    <div className="mx-auto max-w-3xl px-4 pt-8">
-      <JsonLd data={ld} />
-      <Breadcrumbs items={crumbs} />
-      <h1 className="display mt-3 text-3xl sm:text-5xl">{h1}</h1>
-      <p className="mt-4 text-lg leading-relaxed text-ink-2">
-        {t.unknown || t.n === 0 ? lead : pattern ? (
-          <><b className="text-ink">{pct(w.share)} of the {n(t.n)} iPhone Duo restocks</b> recorded at the {k} Apple Stores in {place.name} since {longDate(t.since)} landed <b className="text-ink">between {rangeLabel(w.from, w.to)} {zone.word}</b>{sell ? <>, and a typical one sold out in <b className="text-ink">{about(sell.medianSec)}</b></> : null}.</>
-        ) : (
-          <>The {k} Apple Stores in {place.name} have restocked the iPhone Duo <b className="text-ink">{plural(t.n, "time")} since {longDate(t.since)}</b>, on {plural(t.days, "day")} — not yet enough to call a usual hour (we wait for {PATTERN_MIN} restocks over {PATTERN_MIN_DAYS} different days){sell ? <>; a typical one sold out in <b className="text-ink">{about(sell.medianSec)}</b></> : null}.</>
-        )}
-      </p>
-      <p className="mt-2 text-sm text-ink-3">Updated {updatedStamp(t.at, zone.tz)} · historical data from {longDate(t.since)} · {plural(k, "Apple Store")} · checked {CHECK_NOTE}</p>
-      <PickupPattern data={recent} storeCount={k} country="us" window="24h" />
-      {heroTiles.length > 0 && <StatGrid cols={4} className="mt-6">{heroTiles}</StatGrid>}
-      {!t.unknown && t.n > 0 && (
-        <Points className="mt-4" items={[
-          ...(t.latest && latestStore ? [{ text: <>Latest: <b className="text-ink">{cfg(t.latest.partNumber)}</b> at <Link href={storePath(latestStore)} className="underline underline-offset-2">{appleName(latestStore)}</Link>, {localStamp(t.latest.at, latestStore)} local time</> }] : []),
-          ...(pattern && us.peakHour != null ? [{ text: <>Nationally: <b className="text-ink">{pct(uw.share)}</b> of {n(us.n)} US restocks between {rangeLabel(uw.from, uw.to)} store local time — {place.name} {Math.abs(w.share - uw.share) < 0.03 ? "matches the US pattern" : w.share > uw.share ? "is more concentrated in its window than the US as a whole" : "is spread wider through the day than the US as a whole"}</> }] : []),
-          ...(t.peakWeekday != null ? [{ text: <>Most often on <b className="text-ink">{WEEKDAYS[t.peakWeekday]}s</b></> }] : []),
-          { text: <>Apple publishes <b className="text-ink">no restock schedule</b>; these are recorded inventory observations, updated about every five minutes</>, no: true },
-        ]} />
-      )}
-      {!t.unknown && t.n === 0 && (
-        <Points className="mt-4" items={[
-          { text: <>Right now <b className="text-ink">{duoNow} of {k}</b> stores list one for pickup</> },
-          { text: <>The tables below fill in from the first confirmed restock</>, step: true },
-          { text: <>The national pattern, from the most data: <Link href="/iphone-duo-restock-times" className="underline underline-offset-2">the US page</Link></>, step: true },
-        ]} />
-      )}
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Link href={alert} className="btn btn-primary">Alert me for {place.name} stores</Link>
-        <Link href={place.storesHref} className="btn btn-ghost">Live stock in {place.name}</Link>
-      </div>
-      <nav aria-label="On this page" className="mt-6 flex flex-wrap gap-2 text-sm">
-        {sections.map((s) => <a key={s.id} href={`#${s.id}`} className="chip px-3 py-1.5 text-xs">{s.nav}</a>)}
-      </nav>
-      <Figure id={photo1} eager />
-
-      <div className="pane prose-site mt-8 p-6 sm:p-8">
-        {/* ---------------------------------------------------------------- time of day */}
-        <section id="time-of-day" className="scroll-mt-24">
-          <h2>{h2Of("time-of-day")}</h2>
-          {pattern ? (
-            <>
-              <p>Mostly in the morning: <b className="text-ink">{pct(hourShare(t.byHour, 8, 12))}</b> of the {n(t.n)} restocks in {place.name} fell between 8 AM and noon {zone.one ? zone.word : "in each store's local time"}, and the single busiest hour has been <b className="text-ink">{rangeLabel(t.peakHour!, t.peakHour! + 1)}</b> with {n(t.byHour[t.peakHour!])}.</p>
-              <StatGrid cols={4} className="my-4">
-                <Stat value={<span className="text-2xl sm:text-3xl">{rangeLabel(t.peakHour!, t.peakHour! + 1)}</span>} label={`busiest hour · ${n(t.byHour[t.peakHour!])} restocks`} tone="accent" />
-                <Stat value={pct(hourShare(t.byHour, 8, 12))} label="8 AM – noon" />
-                <Stat value={pct(hourShare(t.byHour, 17, 24))} label="5 PM – midnight" />
-                <Stat value={pct(hourShare(t.byHour, 0, 6))} label="midnight – 6 AM" tone="muted" />
-              </StatGrid>
-              {topHours.length > 0 && <Chips className="my-3" items={topHours.map((h) => `${rangeLabel(h.hour, h.hour + 1)} · ${n(h.count)}`)} on={[0]} />}
-            </>
-          ) : (
-            <>
-              <p>Too few restocks in {place.name} to call an hour yet: {plural(t.n, "restock")} on {plural(t.days, "day")}. We state a usual hour only from {PATTERN_MIN} restocks on {PATTERN_MIN_DAYS} different days, so ten restocks in one burst never become a habit.</p>
-              <Keys items={[
-                { text: <>The table fills in by itself as restocks are confirmed</>, step: true },
-                { text: <>The US pattern, from {n(us.n)} restocks: <Link href="/iphone-duo-restock-times">{us.peakHour != null ? `${pct(uw.share)} between ${rangeLabel(uw.from, uw.to)} local time` : "the national page"}</Link></>, step: true },
-              ]} />
-            </>
-          )}
-          {hours.length > 0 && (
-            <Table caption={`iPhone Duo restocks at Apple Stores in ${place.name} by local hour, ${dateLabel(t.since, false)} – today (hours with none are left out)`} head={["Local hour", "Restocks", "Share"]} min="20rem">
-              {hours.map((h) => (
-                <tr key={h.hour} className={`border-b border-line ${pattern && h.hour >= w.from && h.hour < w.to ? "bg-accent/[0.06]" : ""}`}>
-                  <th scope="row" className={rowTh}>{rangeLabel(h.hour, h.hour + 1)}</th>
-                  <td className={td}>{n(h.count)}</td>
-                  <td className={td}>{pct(h.count / t.n)}</td>
-                </tr>
-              ))}
-            </Table>
-          )}
-          {pattern && (
-            <Keys items={[
-              { text: <>Start watching <b className="text-ink">{hourLabel(Math.max(0, w.from - 1))}</b>; most of the day&apos;s restocks have landed by {hourLabel(w.to)}</>, step: true },
-              { text: <>{pct(hourShare(t.byHour, 12, 17))} between noon and 5 PM: afternoons are {hourShare(t.byHour, 12, 17) >= 0.25 ? "a real second chance" : "quieter, not empty"}</> },
-              { text: <>Recorded hour patterns describe past returns. {sell ? <>The observed median listing is {about(sell.medianSec)}.</> : <>There is not enough local data to estimate a median listing.</>} They do not schedule the next return</>, no: true },
-            ]} />
-          )}
-        </section>
-
-        {/* ---------------------------------------------------------------- day by day */}
-        <section id="day-by-day" className="scroll-mt-24">
-          <h2>{h2Of("day-by-day")}</h2>
-          <p>{t.n > 0 ? <>Restocks in {place.name} landed on <b className="text-ink">{t.days} of the {tracked} days</b> since {longDate(t.since)}{busiestDay ? <>; the busiest day was <b className="text-ink">{dateLabel(busiestDay.date)}</b> with {n(busiestDay.restocks)} at {plural(busiestDay.stores, "store")}</> : null}.</> : <>No day with a confirmed restock in {place.name} yet since {longDate(t.since)}.</>}</p>
-          {t.n > 0 && (
-            <StatGrid cols={3} className="my-4">
-              <Stat value={`${t.days}/${tracked}`} label="days with a restock / days tracked" />
-              {busiestDay ? <Stat value={n(busiestDay.restocks)} label={`busiest day · ${dateLabel(busiestDay.date)}`} tone="accent" /> : <Stat value="–" label="busiest day" tone="muted" />}
-              <Stat value={pct(weekend / t.n)} label={`on a Saturday or Sunday (${n(weekend)})`} />
-            </StatGrid>
-          )}
-          <Table caption={`iPhone Duo restocks at Apple Stores in ${place.name}, day by day (each store's local date)`} head={["Date", "Restocks", "Stores", "Busiest hour"]} min="26rem">
-            {[...t.daily].reverse().map((d) => (
-              <tr key={d.date} className="border-b border-line">
-                <th scope="row" className={rowTh}>{dateLabel(d.date)}{today && d.date === today.date ? <span className="text-ink-3"> · so far</span> : ""}</th>
-                <td className={td}>{n(d.restocks)}</td>
-                <td className={td}>{d.stores}</td>
-                <td className={td}>{d.peakHour == null ? "–" : rangeLabel(d.peakHour, d.peakHour + 1)}</td>
-              </tr>
-            ))}
-          </Table>
-          <Keys items={[
-            { text: <>A quiet day reads as <b className="text-ink">0</b>, never as a gap: every day since {dateLabel(t.since, false)} is listed</> },
-            { text: <>The historical dataset for {place.name} begins {longDate(t.since)}; the national page shows other trackers&apos; launch-week reports as their own rows</> },
-            { text: <>Weekday patterns are stated only once the data spans {WEEKDAY_MIN_SPAN} days{t.peakWeekday != null ? <>: so far <b className="text-ink">{WEEKDAYS[t.peakWeekday]}</b> leads</> : null}</>, step: true },
-          ]} />
-        </section>
-
-        {/* ---------------------------------------------------------------- stores (and cities) */}
-        <section id="stores" className="scroll-mt-24">
-          <h2>{h2Of("stores")}</h2>
-          {top ? (
-            <p><b className="text-ink"><Link href={storePath(top.store!)}>{appleName(top.store!)}</Link></b> leads {place.name} with <b className="text-ink">{n(top.restocks)} confirmed restocks</b> on {plural(top.days, "day")}{top.peakHour != null ? <>, usually around {hourLabel(top.peakHour)}</> : null}; {storeRows.length} of the {k} stores {storeRows.length === 1 ? "has" : "have"} restocked at least once{quiet.length ? <>, {plural(quiet.length, "store")} not yet</> : null}.</p>
-          ) : (
-            <p>None of the {k} Apple Stores in {place.name} has a confirmed iPhone Duo restock since {longDate(t.since)} yet; the table fills in from the first.</p>
-          )}
-          {!city && t.byCity.length > 1 && (
-            <Table caption={`iPhone Duo restocks by city in ${place.name} since ${dateLabel(t.since, false)} (a one-store city links to its store)`} head={["City", "Restocks", "Stores", "Last restock"]} min="30rem">
-              {t.byCity.map((r) => (
-                <tr key={r.slug} className="border-b border-line">
-                  <th scope="row" className={rowTh}><Link href={r.path} className="hover:underline">{r.name}</Link></th>
-                  <td className={td}>{n(r.restocks)}</td>
-                  <td className={td}>{r.stores} of {r.storesTotal}</td>
-                  <td className="py-2 pe-3 align-top">{r.lastAt && r.lastStore && storeByNumber(r.lastStore) ? <>{localStamp(r.lastAt, storeByNumber(r.lastStore)!)} · <Link href={storePath(storeByNumber(r.lastStore)!)} className="hover:underline">{storeByNumber(r.lastStore)!.name}</Link></> : "–"}</td>
-                </tr>
-              ))}
-            </Table>
-          )}
-          <Table caption={`Every Apple Store in ${place.name}: confirmed iPhone Duo restocks since ${dateLabel(t.since, false)}, the usual hour where there is one (${PATTERN_MIN} restocks on ${PATTERN_MIN_DAYS} days), the last restock in the store's local time, and whether it lists one right now`} head={["Store", "Restocks", "Days", "Usual hour", "Last restock", "Now"]} min="38rem">
-            {storeRows.map((r) => (
-              <tr key={r.storeNumber} className="border-b border-line">
-                <th scope="row" className={rowTh}><Link href={storePath(r.store!)} className="hover:underline">{appleName(r.store!)}</Link>{!city && <span className="font-normal text-ink-3"> · {r.store!.city}</span>}</th>
-                <td className={td}>{n(r.restocks)}</td>
-                <td className={td}>{r.days}</td>
-                <td className={td}>{r.peakHour != null ? hourLabel(r.peakHour) : "–"}</td>
-                <td className="py-2 pe-3 align-top">{localStamp(r.lastAt, r.store!)}</td>
-                <td className={td}>{nowAt(r.store!) ? <span className="text-accent">in stock</span> : <span className="text-ink-3">–</span>}</td>
-              </tr>
-            ))}
-            {quiet.map((s) => (
-              <tr key={s.storeNumber} className="border-b border-line text-ink-3">
-                <th scope="row" className="py-2 pe-3 text-start font-medium"><Link href={storePath(s)} className="hover:underline">{appleName(s)}</Link>{!city && <span className="font-normal"> · {s.city}</span>}</th>
-                <td className={td}>0</td>
-                <td className={td}>0</td>
-                <td className={td}>–</td>
-                <td className="py-2 pe-3 align-top">none yet</td>
-                <td className={td}>{nowAt(s) ? <span className="text-accent">in stock</span> : "–"}</td>
-              </tr>
-            ))}
-          </Table>
-          <ol className="my-4 grid gap-3 sm:grid-cols-2">
-            <Swap no={`Watch only the nearest store in ${place.name}`} yes={`Alert every ${place.name} store you could reach in 20 minutes`} why="Stores have different recorded histories. A broader reachable shortlist adds options without predicting which store will return next." />
-            <Swap no="Drive over when a store 'usually' restocks" yes="Reserve on apple.com the second the alert lands, then drive" why="A pickup reservation holds the phone; walk-in stock for the Duo is rare." />
-          </ol>
-          <ChipLinks items={[{ href: place.storesHref, label: `Live stock at every store in ${place.name}` }, { href: "/iphone-duo-near-me", label: "iPhone Duo near me" }]} />
-          <Figure id={photo2} />
-        </section>
-
-        {/* ---------------------------------------------------------------- configuration */}
-        <section id="configuration" className="scroll-mt-24">
-          <h2>{h2Of("configuration")}</h2>
-          {topPart && topPart.restocks > 0 ? (
-            <p><b className="text-ink">{cfg(topPart.partNumber)}</b> is the configuration that comes back most in {place.name}: <b className="text-ink">{n(topPart.restocks)} of {n(t.n)} restocks</b> ({pct(topPart.restocks / t.n)}){lastPart && lastPart.partNumber !== topPart.partNumber ? <>, against {plural(lastPart.restocks, "restock")} for {cfg(lastPart.partNumber)}</> : null}. {lastPart && lastPart.restocks > 0 && topPart.restocks / lastPart.restocks >= 2 ? <> It appeared about <b className="text-ink">{Math.round(topPart.restocks / lastPart.restocks)}×</b> as often in this sample; that ratio is not a purchase probability.</> : <> Use these event counts to compare the record, and keep only configurations you would buy.</>}</p>
-          ) : (
-            <p>No configuration has a confirmed restock in {place.name} yet; all eight are listed below and fill in by themselves.</p>
-          )}
-          <Table caption={`iPhone Duo restocks in ${place.name} by storage and color since ${dateLabel(t.since, false)}`} head={["Configuration", "Restocks", "Share", "Last restock"]}>
-            {parts.map((p) => (
-              <tr key={p.partNumber} className="border-b border-line">
-                <th scope="row" className={rowTh}>{cfg(p.partNumber)}</th>
-                <td className={td}>{n(p.restocks)}</td>
-                <td className={td}>{t.n ? pct(p.restocks / t.n) : "–"}</td>
-                <td className="py-2 pe-3 align-top">{p.lastAt && p.lastStore && storeByNumber(p.lastStore) ? <>{localStamp(p.lastAt, storeByNumber(p.lastStore)!)} · <Link href={storePath(storeByNumber(p.lastStore)!)} className="hover:underline">{storeByNumber(p.lastStore)!.name}</Link></> : "–"}</td>
-              </tr>
-            ))}
-          </Table>
-          <Keys items={[
-            { text: <>One alert = one store × one exact configuration; set it on the configuration you would actually buy</> },
-            { text: <>Nationally the order is the same most of the time: <Link href="/which-iphone-duo-restocks-most">which iPhone Duo restocks most</Link></>, step: true },
-          ]} />
-        </section>
-
-        {/* ---------------------------------------------------------------- how long */}
-        <section id="how-long" className="scroll-mt-24">
-          <h2>{h2Of("how-long")}</h2>
-          {sell ? (
-            <>
-              <p>Half of the <b className="text-ink">{n(sell.n)} timed restocks</b> in {place.name} were gone within <b className="text-ink">{secs(sell.medianSec)}</b>; {pct(sell.within2min)} sold out within 2 minutes and {pct(sell.within20min)} within 20{us.sellout ? <> — {sell.medianSec < us.sellout.medianSec - 10 ? "faster than" : sell.medianSec > us.sellout.medianSec + 10 ? "slower than" : "about the same as"} the US median of {secs(us.sellout.medianSec)}</> : null}.</p>
-              <StatGrid cols={4} className="my-4">
-                <Stat value={sell.medianSec} unit="s" label="median listing (half were gone within)" tone="accent" />
-                <Stat value={pct(sell.within2min)} label="gone within 2 minutes" tone="warn" />
-                <Stat value={pct(sell.within20min)} label="gone within 20 minutes" />
-                <Stat value={sell.fastestSec} unit="s" label="fastest sell-out" />
-              </StatGrid>
-            </>
-          ) : (
-            <p>Fewer than 10 restocks in {place.name} have been timed to a sell-out, so a local median is unavailable.{us.sellout ? <> The national sample median is {secs(us.sellout.medianSec)}; it does not predict the next local listing.</> : <> The national sample is also insufficient for a median.</>}</p>
-          )}
-          <Keys items={[
-            { text: <>Each figure is the time between our check that saw the listing and the check that saw it gone: an <b className="text-ink">upper bound</b>, never rounded down</> },
-            { text: <>That is why a page you reload by hand almost always shows &ldquo;unavailable&rdquo;: <Link href="/apple-store-pickup-availability-explained">what the status means</Link></> },
-            { text: <>Restock by restock, every store in {place.name}: <Link href="/iphone-duo-sell-out-times">the sell-out times page</Link></>, step: true },
-          ]} />
-          {sell && <Measured>Lifetimes are measured between two of the inventory checks (historical source intervals can vary), so a restock that lasted 40 seconds may read as 45. Restocks still listed at the time of reading are not in these figures.</Measured>}
-        </section>
-
-        {/* ---------------------------------------------------------------- right now */}
-        <section id="right-now" className="scroll-mt-24">
-          <h2>{h2Of("right-now")}</h2>
-          <p>{recent.unknown ? <>The live read failed just now; the stores in {place.name} are still being checked and this section returns on the next load.</> : <>Right now <b className="text-ink">{duoNow} of the {k}</b> Apple Stores in {place.name} {duoNow === 1 ? "lists" : "list"} an iPhone Duo for pickup; in the last 24 hours <b className="text-ink">{plural(recent.restocks, "restock")}</b> {recent.restocks === 1 ? "was" : "were"} confirmed at {plural(recent.stores, "store")}{recent.latest && storeByNumber(recent.latest.storeNumber) ? <>, the latest {cfg(recent.latest.partNumber)} at <Link href={storePath(storeByNumber(recent.latest.storeNumber)!)}>{appleName(storeByNumber(recent.latest.storeNumber)!)}</Link>, {localStamp(recent.latest.at, storeByNumber(recent.latest.storeNumber)!)}</> : null}.</>}</p>
-          <StatGrid cols={3} className="my-4">
-            <Stat value={`${duoNow}/${k}`} label="stores listing one for pickup now" live tone={duoNow > 0 ? "accent" : "plain"} />
-            <Stat value={n(recent.restocks)} label="restocks in the last 24 hours" tone={recent.restocks > 0 ? "plain" : "muted"} />
-            <Stat value={`${recent.stores}/${k}`} label="stores with a restock in the last 24 hours" tone={recent.stores > 0 ? "plain" : "muted"} />
-          </StatGrid>
-          <Keys items={[
-            { text: <>Per store and configuration, with the time of the last check: <Link href={place.storesHref}>Apple Stores in {place.name}</Link></>, step: true },
-            { text: <>Every confirmed restock in {place.state}, newest first: <Link href={`/restocks?model=duo&state=${place.stateSlug}`}>the restock log</Link></>, step: true },
-          ]} />
-        </section>
-
-        {/* ---------------------------------------------------------------- alerts */}
-        <section id="alerts" className="scroll-mt-24">
-          <h2>{h2Of("alerts")}</h2>
-          <p>Prepare the configurations you would buy and the stores you can reach. Historical patterns in {place.name} help you compare those choices; a notification can prompt a fresh check, but only Apple can confirm the pickup order.</p>
-          <p><b className="text-ink">Alerts from ${PLANS.plus.priceUsd}/month:</b> notifications follow matching availability detected in the inventory feed. Source checks, synchronization and delivery can add delay. One alert is one store and one exact configuration; Plus covers {PLANS.plus.limit}, Pro {PLANS.pro.limit}, Max {PLANS.max.limit}.</p>
-          <StepStrip className="my-4" steps={[
-            { title: `Pick ${place.name} stores`, hint: "and the storage and color you would buy" },
-            { title: "Install the Home Screen app", hint: "iPhone alerts need it" },
-            { title: "Stage Apple's checkout", hint: "stop at the last step" },
-            { title: "Tap the alert", hint: "confirm the configuration, store and pickup option" },
-          ]} />
-          <p><Link href={alert} className="btn btn-primary">Alert me for {place.name} stores</Link></p>
-          <ChipLinks items={[{ href: "/iphone-duo-stock-alerts", label: "How the alerts work" }, { href: "/how-to-grab-an-iphone-duo-restock", label: "Prepare the pickup checkout" }, { href: "/install", label: "Install the app" }]} />
-        </section>
-
-        {/* ---------------------------------------------------------------- method */}
-        <section id="method" className="scroll-mt-24">
-          <h2>{h2Of("method")}</h2>
-          <p>A restock here is apple.com flipping a configuration from &ldquo;currently unavailable&rdquo; to available for pickup at one of the {k} stores in {place.name}, seen by two of our checks in a row.</p>
-          <Keys items={[
-            { text: <>Inventory observations from Apple Stores in {place.name}; source updates and synchronization can add delay</> },
-            { text: <>A first &ldquo;available&rdquo; is asked again <b className="text-ink">about a second later</b> before it counts</> },
-            { text: <>A listing that disappears is confirmed on the <b className="text-ink">next round</b></> },
-            { text: <>The first sighting of a store, a failed or timed-out request: <b className="text-ink">never</b> a restock, never &ldquo;out of stock&rdquo;</>, no: true },
-            { text: <>Hours and dates in each store&apos;s <b className="text-ink">local time</b>{zone.one ? <> ({zone.word} throughout {place.name})</> : <> ({place.name} spans two zones)</>}</> },
-            { text: <>Only confirmed inventory observations enter these numbers; the national page shows other trackers&apos; launch-week reports as separate rows</> },
-            { text: <>Updated about every five minutes; <Link href={`/restocks?model=duo&state=${place.stateSlug}`}>the restock log</Link> itself is live</>, step: true },
-          ]} />
-          <p className="text-sm text-ink-3">You are welcome to quote these numbers with a link to this page; ShelfSpring is independent and not affiliated with Apple, and reads the same pickup availability anyone can see on apple.com, just far more often.</p>
-        </section>
+    <div className="field-page">
+      <JsonLd data={ld} /><Breadcrumbs items={crumbs} />
+      <FieldIntro title={h1} description={`A local record is useful only when its sample is visible. This study follows ${k} Apple Stores, compares their recorded configurations and timing, and keeps the national figures separate. Read the observations before deciding which stores to watch.`}
+        actions={<><Link href={place.storesHref} className="btn btn-primary btn-sm">Open the local pickup board</Link><Link href={alert} className="btn btn-ghost btn-sm">Watch a local configuration</Link></>}>
+        <div className="pane p-5"><p className="field-kicker">Study record</p><p className="mt-4 font-mono text-4xl">{t.unknown ? "—" : n(t.n)}</p><p className="mt-1 text-sm text-ink-3">confirmed store–configuration returns</p><p className="mt-5 border-t border-line pt-4 text-xs leading-relaxed text-ink-3">From {longDate(t.since)}<br/>Snapshot {updatedStamp(t.at,zone.tz)}<br/>Hours grouped in {zone.word}</p></div>
+      </FieldIntro>
+      <div className="field-layout">
+        <div className="field-main">
+          <FieldSection id="stores" title="Start with the differences between stores" caption="01 / Local comparison">
+            <p className="text-sm leading-relaxed text-ink-2">{t.unknown ? "The history query is unavailable. We cannot describe this sample until it can be read again." : `${storeRows.length} of the ${k} stores have at least one recorded return in this window. Repeated returns at one location increase its event count, not the number of phones or your chance of buying one.`}</p>
+            {!t.unknown&&<Table caption={`Store-level observation record since ${dateLabel(t.since,false)}`} head={["Store","Returns","Days with returns","Last observed return"]} min="30rem">{storeRows.map(r=><tr key={r.storeNumber} className="border-b border-line"><th scope="row" className={rowTh}><Link href={storePath(r.store!)}>{appleName(r.store!)}</Link></th><td className={td}>{n(r.restocks)}</td><td className={td}>{r.days}</td><td className={td}>{localStamp(r.lastAt,r.store!)}</td></tr>)}{quiet.map(s=><tr key={s.storeNumber} className="border-b border-line text-ink-3"><th scope="row" className={rowTh}><Link href={storePath(s)}>{appleName(s)}</Link></th><td className={td}>0</td><td className={td}>0</td><td className={td}>No confirmed return in this window</td></tr>)}</Table>}
+          </FieldSection>
+          <FieldSection id="configuration" title="Compare configurations without predicting the next return" caption="02 / What returned">
+            <p className="text-sm leading-relaxed text-ink-2">Color and storage totals combine observations across these stores. The same configuration can appear repeatedly. Use this table to understand the sample, then choose something you would actually buy.</p>
+            <Table caption="Confirmed returns by exact configuration" head={["Configuration","Returns","Share of sample","Last return"]}>{parts.map(p=><tr key={p.partNumber} className="border-b border-line"><th scope="row" className={rowTh}>{cfg(p.partNumber)}</th><td className={td}>{n(p.restocks)}</td><td className={td}>{t.n ? pct(p.restocks/t.n) : "—"}</td><td className={td}>{p.lastAt&&p.lastStore&&storeByNumber(p.lastStore) ? localStamp(p.lastAt,storeByNumber(p.lastStore)!) : "—"}</td></tr>)}</Table>
+            <PickupPattern data={recent} storeCount={k} country="us" window="24h" />
+          </FieldSection>
+          <FieldSection id="time-of-day" title="A distribution of hours, not a delivery schedule" caption="03 / Timing">
+            <p className="text-sm leading-relaxed text-ink-2">{t.unknown ? "Hour evidence is unavailable." : pattern ? `The largest observed hour was ${rangeLabel(t.peakHour!,t.peakHour!+1)} in ${zone.word}, with ${n(t.byHour[t.peakHour!])} returns. ${pct(w.share)} fell inside the busiest two-hour window, ${rangeLabel(w.from,w.to)}. Neither figure schedules a future delivery.` : `We have ${n(t.n)} returns across ${t.days} days. The threshold for naming an hour pattern is ${PATTERN_MIN} returns over ${PATTERN_MIN_DAYS} days, so a single burst is not presented as a habit.`}</p>
+            {hours.length>0&&<Table caption={`Observed hours in ${zone.word}; hours with no events are omitted`} head={["Local hour","Returns","Share"]} min="20rem">{hours.map(h=><tr key={h.hour} className="border-b border-line"><th scope="row" className={rowTh}>{rangeLabel(h.hour,h.hour+1)}</th><td className={td}>{n(h.count)}</td><td className={td}>{t.n ? pct(h.count/t.n) : "—"}</td></tr>)}</Table>}
+            {!us.unknown&&us.n>0&&<p className="mt-5 border-t border-line pt-4 text-sm text-ink-3">For comparison, the national sample contains {n(us.n)} returns. This local sample represents {share}% of that total. <Link href="/iphone-duo-restock-times" className="underline underline-offset-4">Read the nationwide study</Link>.</p>}
+          </FieldSection>
+          <FieldSection id="day-by-day" title="Trace the sample one day at a time" caption="04 / The daily ledger">
+            <p className="text-sm leading-relaxed text-ink-2">Dates follow each store&apos;s local calendar. A zero means no confirmed return was recorded that day; it is not proof that a store received no phones. Today is an incomplete day.</p>
+            <Table caption={`Daily observations from ${longDate(t.since)}`} head={["Date","Returns","Stores","Largest observed hour"]} min="26rem">{[...t.daily].reverse().map(d=><tr key={d.date} className="border-b border-line"><th scope="row" className={rowTh}>{dateLabel(d.date)}{today?.date===d.date ? " · so far" : ""}</th><td className={td}>{n(d.restocks)}</td><td className={td}>{d.stores}</td><td className={td}>{d.peakHour==null ? "—" : rangeLabel(d.peakHour,d.peakHour+1)}</td></tr>)}</Table>
+          </FieldSection>
+          <FieldSection id="how-long" title="How long did completed pickup windows remain listed?" caption="05 / Listing duration">
+            <p className="text-sm leading-relaxed text-ink-2">{sell ? `The timing sample includes ${n(sell.n)} return-to-sellout intervals. Its median is ${secs(sell.medianSec)}: half of those measured intervals were no longer than that. Listings still open are excluded. The spacing between observations makes these upper bounds, not exact reservation deadlines.` : "Fewer than ten completed intervals are available, so this study does not publish a local median. Missing timing data is not a zero-second window."}</p>
+            {sell&&<StatGrid cols={3} className="mt-5"><Stat value={sell.medianSec} unit="s" label="median observed interval"/><Stat value={pct(sell.within2min)} label="closed within 2 minutes"/><Stat value={pct(sell.within20min)} label="closed within 20 minutes"/></StatGrid>}
+          </FieldSection>
+        </div>
+        <aside className="field-aside space-y-6"><FieldMethod /><FieldCoverage stores={stores} stock={stock}/><nav className="field-callout" aria-label="In this study">{[{id:"stores",label:"Compare the stores"},{id:"configuration",label:"Explore configurations"},{id:"time-of-day",label:"Inspect the hours"},{id:"day-by-day",label:"Read the daily ledger"},{id:"how-long",label:"Understand duration"}].map(s=><a key={s.id} href={`#${s.id}`} className="field-row text-sm">{s.label}<span aria-hidden="true">↓</span></a>)}</nav><SourceList sources={sources} facts={facts} where={`the ${k} Apple Stores in ${place.name}`} since={longDate(t.since)}/></aside>
       </div>
 
       <RelatedBlock title="Restock times elsewhere">
-        {city && stateHref && <LinkRow title={`All of ${place.state}`} links={[{ href: stateHref, label: `When does the iPhone Duo restock in ${SAID[`state:${place.state}`] ?? place.state}?` }]} />}
-        {cityPages.length > 0 && <LinkRow title={city ? `Other cities in ${place.state}` : `By city in ${place.name}`} links={cityPages} />}
-        {nearPages.length > 0 && <LinkRow title="Nearby cities" links={nearPages} />}
-        {neighborPages.length > 0 && <LinkRow title="Neighboring states" links={neighborPages} />}
-        <LinkRow title="The whole country" links={[{ href: "/iphone-duo-restock-times", label: "When does Apple restock the iPhone Duo in the US?", meta: t.n && us.n ? `${place.name} = ${share}% of US restocks` : undefined }]} />
+        {city && stateHref && <LinkRow curated title={`All of ${place.state}`} links={[{ href: stateHref, label: `When does the iPhone Duo restock in ${SAID[`state:${place.state}`] ?? place.state}?` }]} />}
+        {cityPages.length > 0 && <LinkRow curated title={city ? `Other cities in ${place.state}` : `By city in ${place.name}`} links={cityPages} />}
+        {nearPages.length > 0 && <LinkRow curated title="Nearby cities" links={nearPages} />}
+        {neighborPages.length > 0 && <LinkRow curated title="Neighboring states" links={neighborPages} />}
+        <LinkRow curated title="The whole country" links={[{ href: "/iphone-duo-restock-times", label: "When does Apple restock the iPhone Duo in the US?", meta: t.n && us.n ? `${place.name} = ${share}% of US restocks` : undefined }]} />
         <LinkRow title={`${place.name}, live`} links={[
           { href: place.storesHref, label: `Apple Stores in ${place.name}` },
           { href: `/restocks?model=duo&state=${place.stateSlug}`, label: `${place.state} restock log` },
           { href: `/map?state=${place.stateCode}&model=duo`, label: "On the map" },
           { href: "/stock/iphone-duo", label: "iPhone Duo stock, all US stores" },
         ]} />
-        <LinkRow title="More iPhone Duo questions" links={[
+        <LinkRow curated title="More iPhone Duo questions" links={[
           { href: "/iphone-duo-sell-out-times", label: "How fast does it sell out?" },
-          { href: "/iphone-duo-stock-alerts", label: "Fastest way to get notified" },
+          { href: "/iphone-duo-stock-alerts", label: "How matching alerts work" },
           { href: "/how-to-get-an-iphone-duo", label: "How to get one when it's sold out" },
           { href: "/which-iphone-duo-restocks-most", label: "Which configuration restocks most?" },
           { href: "/iphone-duo-back-in-stock", label: "Is it back in stock right now?" },
@@ -569,7 +285,6 @@ export async function PlaceRestockTimesPage({ place }: { place: RestockPlace }) 
       </RelatedBlock>
 
       <div className="mt-10"><RichFaq items={faq} facts={facts} title={`iPhone Duo restocks in ${place.name}: FAQ`} /></div>
-      <div className="mt-8"><SourceList sources={sources} facts={facts} where={`the ${k} Apple Stores in ${place.name}`} since={longDate(t.since)} /></div>
     </div>
   );
 }

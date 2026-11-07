@@ -85,38 +85,37 @@ export function NearMeFinder({ data }: { data: NearMeData }) {
             : `None lists the iPhone Duo right now (${data.asOf}) · Use my location or a ZIP sorts all ${STORES.length} US stores by distance; the nearest are the ones to watch`;
 
   return (
-    <div className="pane p-4 sm:p-5" data-tool="near-me">
-      <div className="flex gap-2">
-        <label className="sr-only" htmlFor="nm-zip">ZIP code</label>
-        <input id="nm-zip" className="input" inputMode="numeric" autoComplete="postal-code" maxLength={10} placeholder="ZIP code" value={q} onChange={(e) => setQ(e.target.value)} />
-        <button type="button" className="btn btn-ghost shrink-0 px-4" onClick={locate} aria-label="Use my location">{loc === "asking" ? "…" : "📍 Use my location"}</button>
+    <section className="pane nearby-workspace" data-tool="near-me" aria-labelledby="nearby-title">
+      <div className="nearby-heading"><div className="field-kicker">Store shortlist</div><h2 id="nearby-title">What is within reach?</h2><p>Choose a starting point to compare the ten nearest stores.</p></div>
+      <div className="nearby-controls">
+        <div><label className="contact-field-label" htmlFor="nm-zip">Start with a ZIP code</label><input id="nm-zip" className="input" inputMode="numeric" autoComplete="postal-code" maxLength={10} placeholder="e.g. 10001" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <button type="button" className="btn btn-ghost" onClick={locate} aria-label="Use my location" aria-busy={loc === "asking"}><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="10" cy="10" r="5" /><circle cx="10" cy="10" r="1.5" /><path d="M10 1v4m0 10v4M1 10h4m10 0h4" /></svg>{loc === "asking" ? "Locating…" : "Use my location"}</button>
       </div>
-      <p className="mt-3 text-sm text-ink-2" aria-live="polite">{status}</p>
+      <p className="nearby-status" aria-live="polite">{status}</p>
       {q.trim() && !digits && <p className="mt-1 text-xs text-ink-3">Type a 5-digit ZIP; letters are not matched here.</p>}
       {rows.length > 0 && (
-        <ul className="mt-3 divide-y divide-line">
-          {rows.map((s) => {
+        <ol className="nearby-results">
+          {rows.map((s, index) => {
             const configs = data.stock[s.storeNumber] ?? [];
             const k = configs.length;
             return (
-              <li key={s.storeNumber} className="flex items-start justify-between gap-3 py-2.5">
-                <div className="min-w-0">
-                  <Link href={storePath(s)} className="block truncate font-medium text-ink underline-offset-2 hover:underline">{appleName(s)}</Link>
-                  <div className="truncate text-xs text-ink-3">{cityLine(s)}{origin && s.distance >= 0 ? ` · ≈${formatRoad(s.distance)} · ${formatDrive(s.distance)} drive` : ""}</div>
-                  {k > 0 && <div className="mt-0.5 text-xs text-ink-2">{configs.join(", ")}</div>}
+              <li key={s.storeNumber}>
+                <span className="nearby-rank" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                <div className="nearby-store">
+                  <Link href={storePath(s)}>{appleName(s)} <span aria-hidden="true">↗</span></Link>
+                  <div className="nearby-location">{cityLine(s)}{origin && s.distance >= 0 ? ` · ≈${formatRoad(s.distance)} · ${formatDrive(s.distance)} drive` : ""}</div>
+                  {k > 0 && <p className="nearby-configs">{configs.join(" · ")}</p>}
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${k > 0 ? "bg-accent text-[var(--accent-ink)]" : "bg-ink/10 text-ink-2"}`}>{k > 0 ? `Duo in stock: ${k} of ${data.total} configs` : "none right now"}</span>
-                  <Link href={alertFor(s.storeNumber)} className="text-xs font-medium text-ink underline-offset-2 hover:underline">Alert me</Link>
+                <div className="nearby-action">
+                  <span className={`nearby-availability ${k > 0 ? "nearby-available" : ""}`}>{k > 0 ? `${k} / ${data.total} configurations listed` : "None listed now"}</span>
+                  <Link href={alertFor(s.storeNumber)} className="nearby-watch">Watch this store <span aria-hidden="true">→</span></Link>
                 </div>
               </li>
             );
           })}
-        </ul>
+        </ol>
       )}
-      <p className="mt-3 text-xs leading-relaxed text-ink-3">
-        Stock as of {data.asOf} · frequently synchronized stock; collection and delivery can add delay · ranked in your browser; your location never leaves this device, and a ZIP only selects a small file of ZIP centers by its first three digits
-      </p>
-    </div>
+      <p className="nearby-footnote">Snapshot: {data.asOf}. Collection and synchronization can add delay. Ranking happens in your browser; your location stays on this device. A ZIP retrieves a small file of ZIP centers using its first three digits.</p>
+    </section>
   );
 }

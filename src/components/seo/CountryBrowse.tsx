@@ -52,8 +52,8 @@ export function BrowseCountryPopular({ country: c, regions = 10, cities = 12 }: 
   const rs = regionRefs(c.cc).length > 1 ? topRegions(c.cc, regions) : [];
   return (
     <div className="space-y-5">
-      {rs.length > 0 && <LinkRow title={d.mostStores} links={rs.map((r) => ({ href: r.href, label: regionLabel(c.cc, r.name, lang), meta: String(r.count) }))} more={index?.indexable ? { href: index.path, label: d.allRegions(regionWord(c.cc, true, false, lang)) } : undefined} />}
-      <LinkRow title={rs.length ? d.bigCities : d.cities} links={topCities(c.cc, cities).map((x) => ({ href: x.href, label: cityLabel(c.cc, x.name, lang), meta: String(x.count) }))} />
+      {rs.length > 0 && <LinkRow curated title={d.mostStores} links={rs.map((r) => ({ href: r.href, label: regionLabel(c.cc, r.name, lang), meta: String(r.count) }))} more={index?.indexable ? { href: index.path, label: d.allRegions(regionWord(c.cc, true, false, lang)) } : undefined} />}
+      <LinkRow curated title={rs.length ? d.bigCities : d.cities} links={topCities(c.cc, cities).map((x) => ({ href: x.href, label: cityLabel(c.cc, x.name, lang), meta: String(x.count) }))} />
     </div>
   );
 }

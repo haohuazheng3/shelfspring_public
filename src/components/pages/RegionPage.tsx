@@ -1,57 +1,48 @@
+import { FieldCoverage,FieldIntro,FieldMethod,FieldSection,fieldGuideCopy,fieldGuideQuestions } from "@/components/seo/FieldGuide";
 import { PickupPattern } from "@/components/seo/PickupPattern";
+import { withCuratedMetadata } from "@/lib/seo/curation";
 /**
  * The page of a US state or another country's region (province, prefecture, area…): /stores/{state} or
  * /{cc}/stores/{region}. Indexed only where the region has two or more stores in two or more cities and is
  * not the whole country (placeTarget); the proxy 308s every other region URL to the page that answers it.
  */
-import type { Metadata } from "next";
-import { PendingLink as Link } from "@/components/ui/PendingLink";
-import { cache } from "react";
-import { notFound, permanentRedirect } from "next/navigation";
-import { hasStatePage, storesOf, MODELS, DEFAULT_MODEL, statesWithStores, citiesWithStores, storePath, cityPath, storeTimeZone, placeTarget, storesIndexPath, mapPath, restocksPath, distanceMiles, type ModelKey } from "@/lib/apple/catalog";
-import { prefixOf, type Country } from "@/lib/apple/countries";
-import { neighborStates } from "@/lib/seo/links";
-import { regionRefs } from "@/lib/seo/countryLinks";
-import { nearestOutsideState, centroid, alertHref, faq, peakOf, itemListJsonLd } from "@/lib/seo/enrich";
-import { Breadcrumbs, LinkRow, RelatedBlock, type Crumb } from "@/components/seo/Related";
-import { BrowseModels, BrowseStates } from "@/components/seo/Browse";
-import { BrowseCountryModels, BrowseCountryRegions } from "@/components/seo/CountryBrowse";
-import { JsonLd } from "@/components/seo/JsonLd";
-import { PlaceStatStrip } from "@/components/seo/StatStrip";
-import { ModelPlaceCards } from "@/components/seo/ModelPlaceCards";
-import { statePlace } from "@/lib/seo/products";
-import { treeOf } from "@/lib/seo/tree";
-import { Faq } from "@/components/seo/Faq";
-import { storesStock, storesStatusFull, restockFeed, restockStats, placeStats, restockReportStats } from "@/lib/stock/queries";
-import { ModelStoreMatrix } from "@/components/stores/ModelStoreMatrix";
-import { StoreBlock } from "@/components/stores/StoreBlock";
-import { NearbyStores } from "@/components/stores/NearbyStores";
-import { RestockFeed } from "@/components/restocks/RestockFeed";
-import { RestockClock } from "@/components/restocks/RestockClock";
-import { restockTimesPath } from "@/lib/content/restockTimes";
-import { SellOutTimes } from "@/components/restocks/SellOutTimes";
-import { sellouts } from "@/lib/stock/sellouts";
-import { DailyBars } from "@/components/restocks/DailyBars";
-import { RestocksByConfig } from "@/components/restocks/RestocksByConfig";
-import { Last24Hours } from "@/components/restocks/Last24Hours";
-import { recentByConfig } from "@/lib/stock/recent";
-import { placeTitle, placeDescription, placeIntro, placeSections, taxFaq, type PlaceCopyInput } from "@/lib/seo/placeCopy";
-import { type IntlPlaceInput } from "@/lib/seo/countryCopy";
-import { KeywordSections } from "@/components/content/KeywordSections";
-import { Inline } from "@/components/content/Inline";
-import { Figure } from "@/components/content/Figure";
-import { SourceList } from "@/components/content/RichFaq";
-import { emptyFacts } from "@/lib/content/facts";
-import { SALES_TAX_SOURCE } from "@/content/sales-tax";
-import { pickupHelp } from "@/content/country-tax";
-import { placePhotos } from "@/content/place-photos";
-import { INTL_PLACE_PHOTOS } from "@/content/place-photos-intl";
 import { AlertPanelFor } from "@/components/alerts/AlertPanelServer";
-import { alternatesIn } from "./shared";
-import { englishLocale, type Locale } from "@/lib/i18n/locales";
-import { dict } from "@/lib/i18n/dict";
-import { pageLocale, t } from "@/lib/i18n/server";
+import { SourceList } from "@/components/content/RichFaq";
+import { DailyBars } from "@/components/restocks/DailyBars";
+import { Last24Hours } from "@/components/restocks/Last24Hours";
+import { RestockClock } from "@/components/restocks/RestockClock";
+import { RestockFeed } from "@/components/restocks/RestockFeed";
+import { RestocksByConfig } from "@/components/restocks/RestocksByConfig";
+import { SellOutTimes } from "@/components/restocks/SellOutTimes";
+import { BrowseModels,BrowseStates } from "@/components/seo/Browse";
+import { BrowseCountryModels,BrowseCountryRegions } from "@/components/seo/CountryBrowse";
+import { Faq } from "@/components/seo/Faq";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { Breadcrumbs,LinkRow,RelatedBlock,type Crumb } from "@/components/seo/Related";
+import { ModelStoreMatrix } from "@/components/stores/ModelStoreMatrix";
+import { NearbyStores } from "@/components/stores/NearbyStores";
+import { PendingLink as Link } from "@/components/ui/PendingLink";
+import { pickupHelp } from "@/content/country-tax";
+import { SALES_TAX_SOURCE } from "@/content/sales-tax";
+import { DEFAULT_MODEL,MODELS,citiesWithStores,cityPath,distanceMiles,hasStatePage,mapPath,placeTarget,restocksPath,statesWithStores,storePath,storeTimeZone,storesIndexPath,storesOf,type ModelKey } from "@/lib/apple/catalog";
+import { prefixOf,type Country } from "@/lib/apple/countries";
+import { emptyFacts } from "@/lib/content/facts";
+import { restockTimesPath } from "@/lib/content/restockTimes";
+import { englishLocale,type Locale } from "@/lib/i18n/locales";
 import { namesFor } from "@/lib/i18n/names";
+import { pageLocale,t } from "@/lib/i18n/server";
+import { type IntlPlaceInput } from "@/lib/seo/countryCopy";
+import { regionRefs } from "@/lib/seo/countryLinks";
+import { alertHref,centroid,itemListJsonLd,nearestOutsideState } from "@/lib/seo/enrich";
+import { neighborStates } from "@/lib/seo/links";
+import { taxFaq,type PlaceCopyInput } from "@/lib/seo/placeCopy";
+import { placeStats,restockFeed,restockReportStats,restockStats,storesStatusFull,storesStock } from "@/lib/stock/queries";
+import { recentByConfig } from "@/lib/stock/recent";
+import { sellouts } from "@/lib/stock/sellouts";
+import type { Metadata } from "next";
+import { notFound,permanentRedirect } from "next/navigation";
+import { cache } from "react";
+import { alternatesIn } from "./shared";
 
 /** States with this many stores or fewer render every store in full (a complete landing page even with zero events). */
 const THIN = 2;
@@ -94,12 +85,13 @@ export async function regionMetadata(c: Country, p: { state: string }, loc: Loca
   const d = await load(c.cc, p.state);
   if (!d) return {};
   const { s } = d;
-  const P = dict(loc.lang).place;
-  const title = d.intl ? P.placeTitle(d.intl) : placeTitle(d.copy);
-  const description = d.intl ? P.placeDescription(d.intl) : placeDescription(d.copy);
+  const F = fieldGuideCopy(loc.lang);
+  const N = namesFor(loc.lang, c.cc);
+  const title = loc.lang === "en" ? `${s.name} iPhone pickup: a regional field guide` : `${N.region(s.name)} · ${F.next}`;
+  const description = loc.lang === "en" ? `Compare ${d.stores.length} Apple Stores in ${s.name} by city and configuration. Explore the observation record and build a reachable pickup shortlist.`.slice(0,160) : `${N.region(s.name)} · ${F.lead}`.slice(0,160);
   const en = `${prefixOf(c.cc)}/stores/${s.slug}`;
   const alt = alternatesIn(en, loc);
-  return { title, description, alternates: c.cc === "us" ? { canonical: en } : alt, openGraph: { type: "website", siteName: "ShelfSpring", title, description, url: alt.canonical } };
+  return withCuratedMetadata(alt.canonical, { title, description, alternates: c.cc === "us" ? { canonical: en } : alt, openGraph: { type: "website", siteName: "ShelfSpring", title, description, url: alt.canonical } });
 }
 
 export async function RegionPage({ country: c, params: p }: { country: Country; params: { state: string } }) {
@@ -125,99 +117,49 @@ export async function RegionPage({ country: c, params: p }: { country: Country; 
   const alert = alertHref({ model: DEFAULT_MODEL, state: s.slug, country: cc });
   // Five questions: the "how long does stock last" answer now lives in the iPhone Duo section, the tax question takes its place.
   const tq = us ? taxFaq(d.copy) : P.taxFaq(cc, name, cc === "ca" ? s.name : undefined);
-  const questions = faq({ kind: "state", place: name, stores, stockNow: d.stockNow, duoStores: d.duoStores, stats: d.pstats, peak: peakOf(d.stats, lang), nearest: d.outside, omit: ["lasts"] }, lang);
+  const questions = fieldGuideQuestions({place:name,stores:stores.length,kind:"region",lang});
   if (tq) questions.splice(2, 0, tq);
   const facts = lang === "en" ? emptyFacts(cc) : { ...emptyFacts(cc), lang };
-  const [photo1, photo2] = us ? placePhotos(s.name) : [INTL_PLACE_PHOTOS[`${cc}:${s.name}`] ?? INTL_PLACE_PHOTOS[cc] ?? "phone-map", "apple-store-pickup-counter"];
   const index = placeTarget(cc);
   const crumbs: Crumb[] = us
     ? [{ href: "/stores", label: "Apple Stores" }, { label: s.name }]
     : [{ href: prefixOf(cc), label: N.countryShort() }, ...(index?.indexable ? [{ href: storesIndexPath(cc), label: G.appleStores }] : []), { label: name }];
-  const title = d.intl ? P.placeTitle(d.intl) : placeTitle(d.copy);
   const mapHref = `${mapPath(cc)}?state=${us ? s.code : encodeURIComponent(s.code)}&model=${DEFAULT_MODEL}`;
   const restocksHere = `${restocksPath(cc)}?model=all&state=${s.slug}`;
+  const F = fieldGuideCopy(lang);
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-8">
-      <JsonLd data={itemListJsonLd(G.itemList(us ? s.name : P.placeLabel(cc, name)), stores, lang)} />
+    <div className="field-page">
+      <JsonLd data={itemListJsonLd(G.itemList(us ? s.name : P.placeLabel(cc,name)),stores,lang)} />
       <Breadcrumbs items={crumbs} />
-      <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="display text-3xl sm:text-5xl">{title}</h1>
-          <p className="mt-3 max-w-3xl text-lg leading-relaxed text-ink-2"><Inline text={d.intl ? P.placeIntro(d.intl) : placeIntro(d.copy)} facts={facts} /></p>
-          <p className="mt-1 text-sm text-ink-3">{R.counts(stores.length, cities.length)}</p>
-          <div className="mt-3 flex flex-wrap gap-1.5">{cities.map((x) => <Link key={x.slug} href={cityPath(x.state, x.name, cc)} className="chip px-3 py-1.5 text-xs">{N.city(x.name)}<span className="text-ink-3"> · {x.stores.length}</span></Link>)}</div>
+      <FieldIntro title={lang === "en" ? `${name}: plan an iPhone pickup route` : `${name} · ${F.next}`} description={lang === "en" ? `A useful search starts with a travel boundary. This guide connects ${cities.length} ${cities.length === 1 ? "city" : "cities"} and ${stores.length} Apple Stores in ${name}, so you can compare configurations without mistaking a regional total for a phone waiting at your nearest store.` : F.lead}
+        actions={<><Link href={mapHref} className="btn btn-ghost btn-sm">{G.showOnMap}</Link><Link href={alert} className="btn btn-primary btn-sm">{G.alertIn(name)}</Link></>}>
+        <FieldCoverage stores={stores} stock={d.stock} />
+      </FieldIntro>
+      <div className="field-layout">
+        <div className="field-main">
+          <FieldSection id="compare" title={F.compare} caption={R.counts(stores.length,cities.length)}>
+            <nav className="field-index mb-6">{cities.map(x => <Link key={x.slug} href={cityPath(x.state,x.name,cc)} className="field-row"><span>{N.city(x.name)}</span><span className="font-mono text-sm">{x.stores.length} ↗</span></Link>)}</nav>
+            {cities.map(x => <article key={x.slug} className="mb-7"><div className="mb-3 flex items-baseline justify-between gap-3"><h3 className="text-xl font-semibold">{N.city(x.name)}</h3><Link href={cityPath(x.state,x.name,cc)} className="text-sm underline underline-offset-4">{x.stores.length > 1 || us ? G.cityPage : G.storePage}</Link></div><div className="pane p-4 sm:p-5"><ModelStoreMatrix stores={[...x.stores].sort((a,b) => a.name.localeCompare(b.name))} stock={d.stock} showCity={false} /></div></article>)}
+          </FieldSection>
+          <FieldSection id="recent" title={F.history} caption="24h"><Last24Hours data={d.recent} label={G.inPlace(name)} stores={stores} country={cc} stock={d.stock} lastBefore={d.copy.duo.lastRestock} alert={alert} /><PickupPattern data={d.recent} storeCount={stores.length} country={cc} window="24h" /></FieldSection>
+          <FieldSection id="timing" title={G.whenRestock(name)} caption={`${d.pstats.days}d`}><RestockClock stats={d.stats} label={G.inPlace(name)} reports={d.reports} />{us && <p className="mt-4"><Link href={restockTimesPath(s.name)} className="text-sm underline underline-offset-4">Read the {s.name} restock study →</Link></p>}</FieldSection>
+          <FieldSection title={G.howFast(name)}><SellOutTimes data={d.sell} label={G.inPlace(name)} showStore /></FieldSection>
+          <FieldSection title={G.lastDays(d.pstats.days)}><DailyBars stats={d.pstats} label={G.inPlace(name)} /></FieldSection>
+          <FieldSection title={G.restocksBy}><RestocksByConfig stats={d.pstats} label={G.inPlace(name)} country={us ? undefined : cc} /></FieldSection>
+          <FieldSection title={G.latestIn(name)} action={<Link href={restocksHere} className="text-sm underline underline-offset-4">{G.fullLog}</Link>}><RestockFeed rows={d.feed} showModel emptyText={G.noneIn(name)} /></FieldSection>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href={mapHref} className="btn btn-ghost btn-sm">{G.showOnMap}</Link>
-          <Link href={alert} className="btn btn-primary btn-sm">{G.alertIn(us ? s.code : name)}</Link>
-        </div>
+        <aside className="field-aside space-y-6">
+          <FieldMethod />
+          <AlertPanelFor href={alert} summary={G.panelPick(name)} country={cc} />
+          <NearbyStores title={F.alternatives} stores={d.outside} stock={d.stock} hint={R.nearbyHint(name)} />
+          <SourceList sources={[...stores.slice(0,3).filter(x => x.url).map(x => ({label:G.appleStorePage(N.store(x)),url:x.url!})), us ? pickupHelp(cc) : P.sources(cc as Exclude<typeof cc,"us">).pickupHelp, us ? SALES_TAX_SOURCE : P.sources(cc as Exclude<typeof cc,"us">).tax]} facts={facts} />
+        </aside>
       </div>
-      <AlertPanelFor href={alert} summary={G.panelPick(name)} country={cc} />
-
-      {/* The answer to "has the Duo restocked anywhere in {state} in the last 24 hours, and which configuration?" comes before the matrix. */}
-      <div className="mt-6"><Last24Hours data={d.recent} label={G.inPlace(name)} stores={stores} country={cc} stock={d.stock} lastBefore={d.copy.duo.lastRestock} alert={alert} /></div>
-      <PickupPattern data={d.recent} storeCount={stores.length} country={cc} window="24h" />
-
-      <div className="mt-6"><ModelPlaceCards place={us ? statePlace(s.name)! : treeOf(cc).regionPlace(s.name)!} stockNow={d.stockNow} of={stores.length} unit={G.storesWithIt} /></div>
-      <div className="mt-3"><PlaceStatStrip stores={stores.length} cities={cities.length} stockNow={d.stockNow} stats={d.pstats} /></div>
-
-      {d.thin ? (
-        <div className="mt-8 space-y-10">
-          {stores.map((st) => <StoreBlock key={st.storeNumber} store={st} summary={d.stock.get(st.storeNumber)} rows={d.full.get(st.storeNumber) ?? []} stock={d.stock} />)}
-        </div>
-      ) : (
-        <section className="mt-8" aria-label={G.matrixLabel}>
-          <h2 className="text-xl font-semibold">{G.matrixH2}</h2>
-          <p className="mt-1 text-sm text-ink-3">{G.matrixHint}</p>
-          {cities.map((x) => (
-            <div key={x.slug} className="mt-5">
-              <div className="flex items-baseline justify-between gap-3"><h3 className="text-lg font-semibold"><Link href={cityPath(x.state, x.name, cc)} className="hover:underline">{N.city(x.name)}</Link> <span className="text-sm font-normal text-ink-3">· {x.stores.length}</span></h3><Link href={cityPath(x.state, x.name, cc)} className="text-xs text-ink-3 hover:text-ink">{x.stores.length > 1 || us ? G.cityPage : G.storePage}</Link></div>
-              <div className="mt-2"><ModelStoreMatrix stores={[...x.stores].sort((a, b) => a.name.localeCompare(b.name))} stock={d.stock} showCity={false} /></div>
-            </div>
-          ))}
-        </section>
-      )}
-
-      <div className="mx-auto mt-10 max-w-3xl">
-        <Figure id={photo1} />
-        <KeywordSections sections={d.intl ? P.placeSections(d.intl) : placeSections(d.copy)} facts={facts} />
-        <Figure id={photo2} />
-      </div>
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <section className="pane p-5">
-          <h2 className="text-xl font-semibold">{G.whenRestock(name)}</h2>
-          <div className="mt-3"><RestockClock stats={d.stats} label={G.inPlace(name)} reports={d.reports} /></div>
-          {us && <p className="mt-3 text-sm"><Link href={restockTimesPath(s.name)} className="font-medium text-ink underline-offset-2 hover:underline">When does the iPhone Duo restock in {s.name}? Hour by hour, every store →</Link></p>}
-        </section>
-        <section className="pane p-5">
-          <h2 className="text-xl font-semibold">{G.howFast(name)}</h2>
-          <div className="mt-3"><SellOutTimes data={d.sell} label={G.inPlace(name)} showStore /></div>
-        </section>
-        <section className="pane p-5">
-          <h2 className="text-xl font-semibold">{G.lastDays(d.pstats.days)}</h2>
-          <div className="mt-3"><DailyBars stats={d.pstats} label={G.inPlace(name)} /></div>
-        </section>
-        <section className="pane p-5">
-          <h2 className="text-xl font-semibold">{G.restocksBy}</h2>
-          <div className="mt-3"><RestocksByConfig stats={d.pstats} label={G.inPlace(name)} country={us ? undefined : cc} /></div>
-        </section>
-        <section className="min-w-0">
-          <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-semibold">{G.latestIn(name)}</h2><Link href={restocksHere} className="text-sm text-ink-3 hover:text-ink">{G.fullLog}</Link></div>
-          <RestockFeed rows={d.feed} showModel emptyText={G.noneIn(name)} />
-        </section>
-      </div>
-
-      {!d.thin && <div className="mt-6"><NearbyStores title={R.nearbyOutside(name)} stores={d.outside} stock={d.stock} hint={R.nearbyHint(name)} /></div>}
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Faq items={questions} title={G.faqTitle(name)} />
-        <div className="pane p-5 sm:p-6"><SourceList sources={[...stores.slice(0, 3).filter((x) => x.url).map((x) => ({ label: G.appleStorePage(N.store(x)), url: x.url! })), us ? pickupHelp(cc) : P.sources(cc as Exclude<typeof cc, "us">).pickupHelp, us ? SALES_TAX_SOURCE : P.sources(cc as Exclude<typeof cc, "us">).tax]} facts={facts} {...(us ? {} : { where: G.sourcesWhere(storesOf(cc).length, cc), since: G.since })} /></div>
-      </div>
+      <div className="field-section"><Faq items={questions} title={G.faqTitle(name)} /></div>
 
       <RelatedBlock title={R.beyond(name)}>
         <LinkRow title={R.everyStore(name)} links={stores.map((x) => ({ href: storePath(x), label: G.storeAndCity(N.store(x), N.city(x.city)) }))} />
-        {neighbors.length > 0 && <LinkRow title={us ? G.neighboringStates : R.nearestRegions(cc)} links={neighbors.map((n) => ({ href: n.href, label: us ? n.name : N.region(n.name), meta: String(n.count) }))} />}
+        {neighbors.length > 0 && <LinkRow curated title={us ? G.neighboringStates : R.nearestRegions(cc)} links={neighbors.map((n) => ({ href: n.href, label: us ? n.name : N.region(n.name), meta: String(n.count) }))} />}
         {us ? <BrowseModels /> : <BrowseCountryModels country={c} />}
         <LinkRow title={G.restockLogs} links={[{ href: restocksHere, label: G.regionRestocks(name) }, { href: restocksPath(cc), label: us ? G.allUsRestocks : G.allRestocksIn(cc) }, { href: mapHref, label: G.onTheMap(name) }]} />
         {us ? <BrowseStates current={s.name} /> : <BrowseCountryRegions country={c} current={s.name} />}

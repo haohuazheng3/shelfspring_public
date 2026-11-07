@@ -37,9 +37,10 @@ export default function RouteError({ error, retry }: { error: Error & { digest?:
   }, [tries]);
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-16">
-      <div className="pane p-6 sm:p-8" role="alert" aria-live="polite">
-        <h1 className="display text-2xl">{d.title}</h1>
+    <div className="field-page route-recovery">
+      <div className="pane route-recovery-card" role="alert" aria-live="polite">
+        <div className="route-recovery-mark" aria-hidden="true">↻</div>
+        <h1 className="display text-3xl sm:text-4xl">{d.title}</h1>
         <p className="mt-2 text-ink-2">{d.body}</p>
         <p className="mt-4 text-sm text-ink-3 tabular-nums">{tries > 0 ? plural(lang, tries, d.tried) : ""}{fill(d.next, { s: left })}</p>
         <div className="mt-5 flex flex-wrap gap-2">

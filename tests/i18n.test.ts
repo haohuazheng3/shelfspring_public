@@ -60,19 +60,17 @@ describe("language versions and paths (project documentation §6)", () => {
     // Every store page of every version answers.
     for (const l of NATIVE_LOCALES) for (const s of storesOf(l.cc)) expect(publicRouteCheck(pathInLocale(storePath(s), l)), `${l.id} ${s.slug}`).toBeNull();
   });
-  it("hreflang: English pages keep theirs exactly; native versions point at each other", () => {
-    // English pages (they carry the search and AI traffic) are untouched: no alternates on single-country pages.
+  it("hreflang connects every selected language version and omits unselected pages", () => {
     expect(versionsOf("/ch/stores/zurich/zurich/rennweg")).toEqual({});
+    expect(versionsOf("/de-ch/stores/zurich/zurich/rennweg")).toEqual({});
     expect(versionsOf("/stores/michigan")).toEqual({});
-    // Switzerland's two native versions name each other; a country with one native version names none.
-    expect(versionsOf("/de-ch/stores/zurich/zurich/rennweg")).toEqual({ "de-CH": "/de-ch/stores/zurich/zurich/rennweg", "fr-CH": "/fr-ch/stores/zurich/zurich/rennweg" });
+    const geneva = { "en-CH": "/ch/stores/geneva/geneva/ruederive", "de-CH": "/de-ch/stores/geneva/geneva/ruederive", "fr-CH": "/fr-ch/stores/geneva/geneva/ruederive" };
+    for (const path of Object.values(geneva)) expect(versionsOf(path)).toEqual(geneva);
     expect(versionsOf("/ja-jp/stores")).toEqual({});
     const en = hreflangFor("home");
-    for (const l of NATIVE_LOCALES) expect(en[l.tag]).toBeUndefined();
+    for (const l of NATIVE_LOCALES) expect(en[l.tag]).toBe(`/${l.id}`);
     expect(en["x-default"]).toBe("/");
-    const native = hreflangFor("home", NATIVE_LOCALES[0]);
-    for (const l of NATIVE_LOCALES) expect(native[l.tag]).toBe(`/${l.id}`);
-    expect(native["en-US"]).toBeUndefined();
+    expect(hreflangFor("home", NATIVE_LOCALES[0])).toEqual(en);
   });
   it("offers a native version to a browser that prefers it, never on native or US pages", () => {
     expect(offerFor("/jp/stores", ["ja-JP", "en"])?.id).toBe("ja-jp");

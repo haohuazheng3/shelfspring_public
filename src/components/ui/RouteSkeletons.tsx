@@ -39,23 +39,23 @@ export function RouteSkeleton({ kind }: { kind: SkeletonKind }) {
   }
 }
 
-/** Home: eyebrow, h1, intro, then the two panes (stacked on phones). */
+/** Home: editorial title and a broad inventory workspace beside the compact reading brief. */
 function HomeSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl px-4" aria-busy="true" aria-label={useLoading()}>
-      <section className="pt-6 sm:pt-10">
+    <div className="field-page" aria-busy="true" aria-label={useLoading()}>
+      <section className="py-10 sm:py-16">
         <Skeleton className="h-3 w-72 max-w-full" />
         <Skeleton className="mt-4 h-9 w-11/12 max-w-3xl sm:h-12" />
         <Skeleton className="mt-3 h-4 w-4/5 max-w-2xl" />
       </section>
-      <section className="mt-6 grid items-start gap-6 lg:grid-cols-[1fr_1fr]">
+      <section className="mt-6 grid items-start gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div className="pane p-5 sm:p-6"><BoardSkeleton /></div>
         <div className="pane p-5 sm:p-7">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="mt-3 h-7 w-3/4 max-w-sm" />
           <Skeleton className="mt-2 h-4 w-11/12" />
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
+          <div className="mt-5 grid gap-3">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12" />)}
           </div>
           <Skeleton className="mt-5 h-12 w-full rounded-full" />
         </div>
@@ -70,7 +70,7 @@ function HomeSkeleton() {
 /** Stores hub: head, model cards, then the grid of states. */
 function HubSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-8" aria-busy="true" aria-label={useLoading()}>
+    <div className="field-page pt-10" aria-busy="true" aria-label={useLoading()}>
       <PageHeadSkeleton lines={2} actions={3} />
       <div className="mt-6 grid gap-3 md:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} chips={0} lines={1} />)}
@@ -85,7 +85,7 @@ function HubSkeleton() {
 /** State page: breadcrumb, head with city chips and two buttons, store cards grouped by city, clock + feed. */
 function StateSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-8" aria-busy="true" aria-label={useLoading()}>
+    <div className="field-page pt-10" aria-busy="true" aria-label={useLoading()}>
       <PageHeadSkeleton crumbs chips={4} actions={2} />
       {[2, 1].map((n, g) => (
         <section key={g} className="mt-6">
@@ -106,7 +106,7 @@ function StateSkeleton() {
 /** City page: breadcrumb, head with two buttons, the store cards, clock + feed. */
 function CitySkeleton() {
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-8" aria-busy="true" aria-label={useLoading()}>
+    <div className="field-page pt-10" aria-busy="true" aria-label={useLoading()}>
       <PageHeadSkeleton crumbs actions={2} />
       <section className="mt-6 grid gap-3 md:grid-cols-2">
         {Array.from({ length: 2 }).map((_, i) => <StoreCardSkeleton key={i} />)}
@@ -122,7 +122,7 @@ function CitySkeleton() {
 /** Store page: breadcrumb, head, three per-model cards, then clock + history beside the map/hours/nearby column. */
 function StoreSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-8" aria-busy="true" aria-label={useLoading()}>
+    <div className="field-page pt-10" aria-busy="true" aria-label={useLoading()}>
       <PageHeadSkeleton crumbs lines={2} actions={2} />
       <section className="mt-6">
         <Skeleton className="h-6 w-52" />
@@ -156,7 +156,7 @@ function StoreSkeleton() {
 /** Product page: model tabs, h1, intro, filter chips, then the board pane beside the alerts/recent column. */
 function ProductSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-8" aria-busy="true" aria-label={useLoading()}>
+    <div className="field-page pt-10" aria-busy="true" aria-label={useLoading()}>
       <nav className="mb-4 flex flex-wrap gap-2" aria-hidden>
         {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-9 w-32 rounded-full" />)}
       </nav>

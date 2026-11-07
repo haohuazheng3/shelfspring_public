@@ -3,7 +3,7 @@
  * Phones: a tab per model and, under it, every exact configuration as a grid — storage down the side,
  * colour across the top. Ticking a cell adds that phone (to every chosen store), unticking removes it.
  */
-import { useState } from "react";
+import { useId, useState } from "react";
 import { COLOR_META, MODELS, STORAGE_ORDER, type ModelKey } from "@/lib/apple/catalog-us";
 import { COUNTRIES, formatPrice, type CountryCode } from "@/lib/apple/countries";
 import type { GeoStore } from "@/lib/geo";
@@ -12,6 +12,7 @@ import { useLang, useT } from "@/components/i18n/LangProvider";
 import { fill, price, bidi } from "@/lib/i18n/format";
 import { colorLabel } from "@/lib/i18n/places";
 import type { Lang } from "@/lib/i18n/locales";
+import "@/components/pages/Workspace.css";
 
 /**
  * A store as the picker of another country's page receives it (no hours or addresses: they stay on the server).
@@ -34,6 +35,7 @@ export function PhoneMatrix({ catalog, selected, onToggle, initialModel, disable
   catalog: PhoneCatalog; selected: Phone[]; onToggle: (p: Phone) => void; initialModel?: ModelKey; disabled?: boolean;
 }) {
   const d = useT().alerts.matrix;
+  const tabsId = useId();
   const lang = useLang();
   const firstPicked = selected[0]?.model as ModelKey | undefined;
   const [model, setModel] = useState<ModelKey>(initialModel ?? firstPicked ?? MODELS[0].key);
@@ -46,55 +48,38 @@ export function PhoneMatrix({ catalog, selected, onToggle, initialModel, disable
   const priceOf = (cfg: (typeof configs)[number]) => (lang !== "en" ? cfg.priceLabel ?? price(lang, COUNTRIES[catalog.country ?? "us"], cfg.price)
     : catalog.country && catalog.country !== "us" ? formatPrice(COUNTRIES[catalog.country], cfg.price) : `$${cfg.price.toLocaleString("en-US")}`);
   return (
-    <div>
-      <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]" role="tablist" aria-label={d.model}>
+    <div className="phone-choice-workspace">
+      <div className="phone-model-tabs" role="tablist" aria-label={d.model}>
         {MODELS.map((m) => {
           const n = countFor(m.key);
-          return (
-            // Colour inline: the global `button { color: inherit }` outranks a text-* utility.
-            <button key={m.key} type="button" role="tab" aria-selected={model === m.key} onClick={() => setModel(m.key)} style={{ color: model === m.key ? "var(--on-ink)" : "var(--ink-2)" }}
-              className={`flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition ${model === m.key ? "border-ink bg-ink" : "border-line-2 hover:border-ink/30"}`}>
-              {m.name}{n > 0 && <span className={`rounded-full px-1.5 text-[11px] font-semibold tabular-nums ${model === m.key ? "bg-on-ink/20" : "bg-accent/15 text-accent"}`}>{n}</span>}
-            </button>
-          );
+          return <button key={m.key} id={`${tabsId}-${m.key}`} type="button" role="tab" tabIndex={model === m.key ? 0 : -1} aria-selected={model === m.key} aria-controls={`${tabsId}-panel`} onClick={() => setModel(m.key)} onKeyDown={(event) => {
+            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+            event.preventDefault();
+            const at = MODELS.findIndex((entry) => entry.key === m.key);
+            const delta = (event.key === "ArrowRight" ? 1 : -1) * (lang === "ar" ? -1 : 1);
+            const index = event.key === "Home" ? 0 : event.key === "End" ? MODELS.length - 1 : (at + delta + MODELS.length) % MODELS.length;
+            setModel(MODELS[index].key);
+            event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[index]?.focus();
+          }} className="phone-model-tab"><span>{m.name}</span>{n > 0 && <span className="phone-choice-count">{n}</span>}</button>;
         })}
       </div>
-      <div className="mt-4 max-w-2xl overflow-x-auto">
-        <table className="w-full min-w-[18rem] border-separate border-spacing-1.5 text-sm" aria-label={fill(d.configs, { model: `${MODELS.find((m) => m.key === model)?.name}` })}>
-          <thead>
-            <tr>
-              <th className="w-16" />
-              {colors.map((c) => (
-                <th key={c} scope="col" className="pb-1 text-center align-bottom text-xs font-medium text-ink-2">
-                  <span className="mx-auto mb-1 block h-4 w-4 rounded-full border border-ink/15" style={{ background: COLOR_META[c]?.hex ?? "#888" }} aria-hidden />
-                  {colorName(c)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {storages.map((s) => (
-              <tr key={s}>
-                <th scope="row" className="pe-1 text-start text-xs font-semibold text-ink-2">{s}</th>
-                {colors.map((c) => {
-                  const cfg = configs.find((x) => x.storage === s && x.color === c);
-                  if (!cfg) return <td key={c} />;
-                  const p = { model, storage: s, color: c };
-                  const on = picked.has(phoneKey(p));
-                  return (
-                    <td key={c} className="p-0">
-                      <button type="button" role="checkbox" aria-checked={on} aria-label={`${s} ${colorName(c)}`} disabled={disabled} onClick={() => onToggle(p)} style={{ color: on ? "var(--ink)" : "var(--ink-3)" }}
-                        className={`flex h-12 w-full flex-col items-center justify-center gap-0.5 rounded-xl border text-xs transition disabled:opacity-50 ${on ? "border-accent bg-accent/10" : "border-line-2 hover:border-ink/30"}`}>
-                        <span className={`flex h-4 w-4 items-center justify-center rounded-[5px] border text-[10px] font-bold ${on ? "border-accent bg-accent" : "border-ink/25"}`} style={on ? { color: "var(--accent-ink)" } : undefined} aria-hidden>{on ? "✓" : ""}</span>
-                        <span className="tabular-nums">{priceOf(cfg)}</span>
-                      </button>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div id={`${tabsId}-panel`} role="tabpanel" aria-labelledby={`${tabsId}-${model}`} className="mt-5 space-y-5" aria-label={fill(d.configs, { model: MODELS.find((m) => m.key === model)?.name ?? model })}>
+        {storages.map((storage) => <fieldset key={storage} className="border-t border-line pt-3">
+          <legend className="pe-3 font-mono text-xs font-semibold text-ink-2">{storage}</legend>
+          <div className="phone-choice-grid">
+            {colors.map((color) => {
+              const cfg = configs.find((x) => x.storage === storage && x.color === color);
+              if (!cfg) return null;
+              const phone = { model, storage, color };
+              const on = picked.has(phoneKey(phone));
+              return <button key={color} type="button" role="checkbox" aria-checked={on} aria-label={`${storage} ${colorName(color)}`} disabled={disabled} onClick={() => onToggle(phone)} className="phone-choice" data-selected={on}>
+                <span className="phone-choice-swatch" style={{ background: COLOR_META[color]?.hex ?? "#888" }} aria-hidden />
+                <span className="min-w-0"><span className="block text-xs font-semibold">{colorName(color)}</span><span className="mt-1 block font-mono text-[11px] text-ink-3">{priceOf(cfg)}</span></span>
+                <span className="phone-choice-tick" aria-hidden>{on ? "✓" : "+"}</span>
+              </button>;
+            })}
+          </div>
+        </fieldset>)}
       </div>
     </div>
   );

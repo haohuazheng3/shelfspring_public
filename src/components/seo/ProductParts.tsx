@@ -10,7 +10,7 @@ import { COUNTRIES, formatDistance, formatPrice } from "@/lib/apple/countries";
 import { productPath, storePlace, type Place, type Product } from "@/lib/seo/products";
 import type { Facet, Facets, GridCell, PlaceCount, StoreLine } from "@/lib/seo/productData";
 import { driveMinutes, formatDrive, formatMiles, roadMiles } from "@/lib/geo";
-import { fmtPrice } from "@/lib/seo/enrich";
+import { countIn, fmtPrice } from "@/lib/seo/enrich";
 import { Swatch } from "@/components/stores/ConfigTable";
 import { Dot } from "@/components/stock/StatusBits";
 import { LiveAgo } from "@/components/site/LiveAgo";
@@ -129,10 +129,14 @@ export function ProductGrid({ grid, place, current }: { grid: { storages: string
               if (!cell) return <span key={s} className="text-center text-xs text-ink-3">—</span>;
               const on = atStore ? cell.status?.status === "available" : cell.count > 0;
               const here = cell.product.slug === current.slug;
+              const availability = atStore
+                ? on ? d.inStock : cell.status ? d.notAvailable : d.notCheckedYet
+                : `${num(lang, cell.count)} ${countIn(lang, cell.count, t().content.statStrip.storesWithStock)}`;
               // Outline the row / column a storage or color page covers; a model page covers everything, so nothing.
               const scoped = cell.inScope && (current.kind === "storage" || current.kind === "color");
               return (
                 <Link key={s} href={productPath(cell.product, place)} scroll={false} title={lang === "en" ? `${cell.product.name} · ${place.country && place.country !== "us" ? formatPrice(COUNTRIES[place.country], cell.item.price) : fmtPrice(cell.item.price)}` : `${cell.item.model} ${configLabel(cell.item, lang)} · ${price(lang, COUNTRIES[place.country ?? "us"], cell.item.price)}`}
+                  aria-label={`${bidi(cell.item.model, lang)} ${configLabel(cell.item, lang)} · ${availability}`}
                   className={`inline-flex h-8 items-center justify-center gap-1 rounded-full text-sm tabular-nums ${on ? "bg-accent/15 font-semibold text-accent" : "text-ink-3"} ${here ? "ring-2 ring-ink" : scoped ? "ring-1 ring-ink/25" : ""}`}>
                   {atStore ? (on ? "✓" : "–") : <><Dot state={on ? "ok" : "idle"} live={on} />{cell.count}</>}
                 </Link>

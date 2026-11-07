@@ -1,12 +1,12 @@
 import sourcePaths from "./fixtures/source-sitemap-paths.json";
 import { BLOG_CATEGORIES } from "@/content/blog/categories";
-import { publishedPosts } from "@/content/blog/catalog";
 import { NATIVE_LOCALES } from "@/lib/i18n/locales";
 import { describe, expect, it } from "vitest";
 import { publicRouteCheck } from "@/lib/seo/routes";
-import { storesOf, storePath, placeTarget, statesWithStores, citiesWithStores, hasStatePage } from "@/lib/apple/catalog";
+import { storesOf, storePath, placeTarget } from "@/lib/apple/catalog";
 import { INTL_CODES } from "@/lib/apple/countries";
-import sitemap, { countryEntries } from "@/app/sitemap";
+import sitemap from "@/app/sitemap";
+import { CURATED_PAGES, isCuratedPath } from "@/lib/seo/curation";
 import { switchHref, type SwitchCountry } from "@/components/site/CountrySwitcher";
 import { hreflangFor } from "@/components/pages/shared";
 import { liveKey, parseLiveKey } from "@/lib/liveScope";
@@ -94,72 +94,42 @@ describe("country routes (proxy: real 404 / 308 before the page streams)", () =>
   });
 });
 
-describe("sitemap: every indexable country page, once, and nothing else", () => {
-  const base = "https://shelfspring.com";
-  const now = new Date();
-  const per = Object.fromEntries(INTL_CODES.map((cc) => [cc, countryEntries(cc, base, now, () => now).map((e) => e.url)]));
-  it("counts per country (home + index + region/city pages + stores + 3 models + log + map + restock times)", () => {
-    const counts = Object.fromEntries(INTL_CODES.map((cc) => [cc, per[cc].length]));
-    expect(counts).toEqual({ ca: 44, uk: 56, au: 33, de: 31, fr: 33, it: 30, es: 23, jp: 21, kr: 16, hk: 14, sg: 11, ae: 16, ch: 13, nl: 12, se: 11, tw: 10, at: 8, be: 8 });
-    for (const cc of INTL_CODES) expect(per[cc]).toContain(`${base}/${cc}/iphone-duo-restock-times`);
-  });
-  it("lists no URL the proxy would redirect or reject, and every store", () => {
-    for (const cc of INTL_CODES) {
-      for (const url of per[cc]) {
-        const u = new URL(url);
-        expect(publicRouteCheck(u.pathname, u.search), url).toBeNull();
-        // Product pages: the three model pages only (everything else is noindex).
-        if (u.pathname.includes("/stock/")) expect(u.pathname).toMatch(new RegExp(`^/${cc}/stock/iphone-(duo|18-pro|18-pro-max)$`));
-      }
-      for (const s of storesOf(cc)) expect(per[cc]).toContain(`${base}${storePath(s)}`);
+describe("curated sitemap keeps functional route compatibility", () => {
+  it("publishes exactly the 317 selected canonical paths without redirects or duplicates", async () => {
+    const paths = (await sitemap()).map((entry) => new URL(entry.url).pathname);
+    expect(paths).toHaveLength(317);
+    expect(new Set(paths).size).toBe(317);
+    expect(paths).toEqual(CURATED_PAGES.map((page) => page.path));
+    for (const path of paths) {
+      expect(isCuratedPath(path), path).toBe(true);
+      expect(publicRouteCheck(path), path).toBeNull();
     }
   });
-  it("has no duplicates, keeps the US part as it was, and has every country after it", async () => {
-    const all = (await sitemap()).map((e) => e.url);
-    expect(new Set(all).size).toBe(all.length);
-    const prefixes = [...INTL_CODES, ...NATIVE_LOCALES.map((l) => l.id)];
-    const us = all.filter((u) => !prefixes.some((p) => u === `${base}/${p}` || u.startsWith(`${base}/${p}/`)));
-    // 356 US pages of project documentation §10–11, the eight iPhone Duo question pages of §13, the three phrasing pages and the
-    // state (32) and city (26) restock-times pages of project documentation §8.3.
-    const placePages = statesWithStores().filter((s) => hasStatePage(s.name)).length + citiesWithStores().filter((c) => c.stores.length > 1).length;
-    expect(placePages).toBe(58);
-    expect(us).toHaveLength(356 + 8 + 3 + placePages + 1 + BLOG_CATEGORIES.length + publishedPosts().length);
+  it("preserves all original 1126 functional routes even when they leave the sitemap", () => {
     expect(sourcePaths).toHaveLength(1126);
-    for (const path of sourcePaths) expect(all, path).toContain(`${base}${path === "/" ? "" : path}`);
-    for (const p of ["/iphone-duo-restock-times", "/iphone-duo-sell-out-times", "/iphone-duo-stock-alerts", "/iphone-duo-near-me", "/how-to-get-an-iphone-duo", "/which-iphone-duo-restocks-most", "/apple-store-pickup-availability-explained", "/how-to-grab-an-iphone-duo-restock", "/iphone-duo-back-in-stock", "/iphone-duo-stock-checker", "/where-to-buy-iphone-duo", "/iphone-duo-restock-times/california", "/iphone-duo-restock-times/california/los-angeles", "/iphone-duo-restock-times/hawaii/honolulu"]) expect(us).toContain(`${base}${p}`);
-    expect(us).not.toContain(`${base}/iphone-duo-restock-times/hawaii`);
-    expect(us).not.toContain(`${base}/iphone-duo-restock-times/delaware`);
-    // Every country's pages once in English and once per language it also has (project documentation §6).
-    const natives = NATIVE_LOCALES.reduce((a, l) => a + per[l.cc as keyof typeof per].length, 0);
-    expect(all.length).toBe(us.length + Object.values(per).reduce((a, l) => a + l.length, 0) + natives);
-    for (const l of NATIVE_LOCALES) {
-      const mine = all.filter((u) => u === `${base}/${l.id}` || u.startsWith(`${base}/${l.id}/`));
-      expect(mine.length, l.id).toBe(per[l.cc as keyof typeof per].length);
-      for (const url of mine) { const u = new URL(url); expect(publicRouteCheck(u.pathname, u.search), url).toBeNull(); }
+    for (const path of sourcePaths) expect(publicRouteCheck(path), path).toBeNull();
+    for (const path of ["/blog", ...BLOG_CATEGORIES.map((category) => `/blog/${category.slug}`)]) {
+      expect(publicRouteCheck(path), path).toBeNull();
+      expect(isCuratedPath(path), path).toBe(false);
     }
+    expect(isCuratedPath("/iphone-duo-restock-times/california")).toBe(false);
+    expect(isCuratedPath("/stores/california")).toBe(true);
   });
 });
 
-describe("hreflang between equivalent pages", () => {
-  it("homes, store indexes and model pages point at each other; x-default is the US", () => {
+describe("curated reciprocal hreflang between equivalent pages", () => {
+  it("connects selected English and native homes/models while omitting auxiliary pages", () => {
     const home = hreflangFor("home");
     expect(home["en-US"]).toBe("/");
     expect(home["en-GB"]).toBe("/uk");
+    expect(home["ja-JP"]).toBe("/ja-jp");
     expect(home["x-default"]).toBe("/");
-    // English pages keep exactly the cluster they had (pages with traffic are not touched): 19 trees + x-default.
-    expect(home["ja-JP"]).toBeUndefined();
-    expect(Object.keys(home)).toHaveLength(20);
-    const stores = hreflangFor("stores");
-    // Austria's and Belgium's /stores is their only store: no equivalent index.
-    expect(stores["en-AT"]).toBeUndefined();
-    expect(stores["en-BE"]).toBeUndefined();
-    expect(stores["de-DE"]).toBeUndefined();
-    expect(stores["en-CA"]).toBe("/ca/stores");
+    expect(Object.keys(home)).toHaveLength(37);
+    expect(hreflangFor("home", NATIVE_LOCALES[0])).toEqual(home);
+    expect(hreflangFor("stores")).toEqual({ "en-US": "/stores", "x-default": "/stores" });
     expect(hreflangFor({ model: "iphone-duo" })["en-JP"]).toBe("/jp/stock/iphone-duo");
-    const times = hreflangFor("restock-times");
-    expect(times["x-default"]).toBe("/iphone-duo-restock-times");
-    expect(times["en-AU"]).toBe("/au/iphone-duo-restock-times");
-    expect(Object.keys(times)).toHaveLength(20);
+    expect(hreflangFor({ model: "iphone-duo" })["ja-JP"]).toBe("/ja-jp/stock/iphone-duo");
+    expect(hreflangFor("restock-times")).toEqual({ "en-US": "/iphone-duo-restock-times", "x-default": "/iphone-duo-restock-times" });
   });
 });
 
@@ -194,6 +164,14 @@ describe("live scopes with a country", () => {
 });
 
 describe("alert links on another country's pages go to that country's home", () => {
+  it("keeps the native market on app pages without changing a public page's scope", () => {
+    const japanese = NATIVE_LOCALES.find((loc) => loc.id === "ja-jp")!;
+    expect(barHref("/pricing", japanese)).toBe("/ja-jp#notify");
+    expect(barHref("/install", japanese)).toBe("/ja-jp#notify");
+    expect(barHref("/pricing")).toBe("/#notify");
+    expect(barHref("/stock/iphone-duo", japanese)).toBe("/?model=duo#notify");
+    expect(barHref("/uk/stores", japanese)).toBe("/uk#notify");
+  });
   it("builds /{cc}?…#notify and keeps the US form", () => {
     expect(alertHref({ model: "duo", store: "R092", country: "uk" })).toBe("/uk?model=duo&store=R092#notify");
     expect(alertHref({ model: "duo", store: "R095" })).toBe("/?model=duo&store=R095#notify");

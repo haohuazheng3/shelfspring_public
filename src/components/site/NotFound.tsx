@@ -22,9 +22,11 @@ export default function NotFound({ locale }: { locale?: Locale } = {}) {
   const F = COPY[loc.lang as keyof typeof COPY] ?? COPY[baseLang(loc.lang) as keyof typeof COPY] ?? en.notFound;
   const p = loc.native ? `/${loc.id}` : "";
   const cls = "underline decoration-line-2 hover:text-ink";
-  return <div className="mx-auto max-w-2xl px-4 pt-24 text-center">
-    <div className="eyebrow">404</div><h1 className="display mt-2 text-3xl sm:text-5xl">{F.title}</h1>
-    <p className="mt-4 text-ink-2">{F.body(<Link href={`${p}/stores`} className={cls}>{F.stores}</Link>, <Link href={`${p}/map`} className={cls}>{F.map}</Link>)}</p>
-    <Link href={p || "/"} className="btn btn-primary mt-6">{F.home}</Link>
+  return <div className="field-page route-recovery">
+    <div className="not-found-workspace pane"><div className="not-found-number" aria-hidden="true">404</div><div>
+      <div className="eyebrow">404</div><h1 className="display mt-3 text-3xl sm:text-5xl">{F.title}</h1>
+      <p className="mt-4 text-ink-2">{F.body(<Link href={`${p}/stores`} className={cls}>{F.stores}</Link>, <Link href={`${p}/map`} className={cls}>{F.map}</Link>)}</p>
+      <Link href={p || "/"} className="btn btn-primary mt-6">{F.home}</Link>
+    </div></div>
   </div>;
 }

@@ -17,7 +17,7 @@ import { FastCheckoutCard } from "@/components/account/FastCheckoutCard";
 import { RefreshOnAlertsChange } from "@/components/account/RefreshOnAlertsChange";
 import { LanguageSection } from "@/components/account/LanguageSection";
 import { AlertEditor } from "@/components/alerts/AlertEditor";
-import { Section } from "@/components/alerts/Section";
+import { Section, SectionJump } from "@/components/alerts/Section";
 import { CancelPlanLink, PlanPanel } from "@/components/alerts/PlanPanel";
 import { HydrationProbe } from "@/components/account/HydrationProbe";
 import { buildPhoneCatalog, pickerStoresFor } from "@/components/alerts/catalog";
@@ -26,6 +26,8 @@ import { pageLocale, requestLocale, setPageLocale, t } from "@/lib/i18n/server";
 import { dict } from "@/lib/i18n/dict";
 import { ago, day } from "@/lib/i18n/format";
 import { appleStoreLabel, configLabel } from "@/lib/i18n/places";
+import { fieldCopy } from "@/content/field-guide";
+import "@/components/pages/Workspace.css";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -41,6 +43,7 @@ export default async function Account() {
   setPageLocale(await requestLocale());
   const d = t().account;
   const lang = pageLocale().lang;
+  const F = fieldCopy(lang);
   const u = await ensureUser();
   if (!u) return null; // proxy redirects signed-out users
   const [watches, subs, sent, devices] = await Promise.all([
@@ -63,26 +66,34 @@ export default async function Account() {
   for (const s of chosen) counts.set(s.country, (counts.get(s.country) ?? 0) + 1);
   const home = [...counts.entries()].sort((a, b) => b[1] - a[1] || (a[0] === "us" ? -1 : b[0] === "us" ? 1 : 0))[0]?.[0] ?? "us";
   return (
-    <div id="account-root" className="mx-auto max-w-5xl space-y-4 px-4 pt-8">
+    <div id="account-root" className="field-page">
       <HydrationProbe />
       <Identify userRef={u.id} email={u.email} />
       <RefreshOnAlertsChange />
-      <div className="flex flex-wrap items-end justify-between gap-4 pb-2">
+      <section className="field-intro">
         <div>
-          <div className="eyebrow">{d.signedInAs(u.email)}</div>
-          <h1 className="display mt-1 text-3xl sm:text-4xl">{d.title}</h1>
+          <p className="field-kicker">ShelfSpring / {F.alert}</p>
+          <h1 className="field-title">{d.title}</h1>
+          <div className="mt-5 flex flex-wrap items-center gap-4"><p className="break-all text-sm text-ink-3">{d.signedInAs(u.email)}</p><SignOutButton /></div>
         </div>
-        <SignOutButton />
-      </div>
+        <aside className="field-callout"><p className="field-kicker">{d.plan.title}</p><p className="display mt-3 text-3xl">{PLANS[plan.key].name}</p><p className="mt-3 text-sm text-ink-2">{plan.key === "free" ? d.plan.none : d.plan.summary(PLANS[plan.key].name, Math.min(active, plan.limit), plan.limit)}</p>{renews && <p className="mt-2 text-xs text-ink-3">{sub?.cancelAtPeriodEnd ? d.plan.ends(renews) : d.plan.renews(renews)}</p>}</aside>
+      </section>
 
-      {/* First thing on the dashboard (owner 2026-11-05): are phone notifications on? If not, the one button that turns them on. */}
+      <nav className="mb-6 flex flex-wrap gap-2" aria-label={d.title}><SectionJump id="phones">{F.alert} ↓</SectionJump><SectionJump id="plan">{d.plan.title} ↓</SectionJump><SectionJump id="sent">{d.sent.title} ↓</SectionJump></nav>
+      <div className="account-workspace">
+
+      {/* Device readiness stays first on a phone; on desktop it is a separate utility rail. */}
+      <aside className="account-rail lg:order-2">
       <div>
         <PushSetup vapidPublicKey={env.vapidPublicKey()} account={deviceInfo} />
         {devices.length > 0 && (
           <DeviceList devices={devices.map((x) => ({ id: x.id, platform: x.platform, standalone: x.standalone, added: ago(lang, x.createdAt), lastAlert: x.lastSentAt ? ago(lang, x.lastSentAt) : null, disabledAt: x.disabledAt?.toISOString() ?? null, lastError: x.lastError }))} />
         )}
       </div>
+      <LanguageSection saved={row[0]?.locale ?? null} />
+      </aside>
 
+      <div className="min-w-0 space-y-5 lg:order-1">
       <AlertEditor variant="page" catalog={buildPhoneCatalog(home, lang)} known={chosen} account={{ set, plan: { key: plan.key, limit: plan.limit, used: active } }} />
 
       <Section id="plan" title={d.plan.title} defaultOpen={plan.key === "free"}
@@ -100,8 +111,6 @@ export default async function Account() {
         <RestockTimes watches={watches} />
       </Suspense>
 
-      <LanguageSection saved={row[0]?.locale ?? null} />
-
       <Section id="sent" title={d.sent.title} defaultOpen={false} summary={sent.length ? d.sent.last(ago(lang, sent[0].createdAt)) : d.sent.none}>
         {sent.length === 0 ? <p className="text-sm text-ink-3">{d.sent.empty}</p> : (
           <ul className="divide-y divide-line text-sm">
@@ -115,6 +124,8 @@ export default async function Account() {
           </ul>
         )}
       </Section>
+      </div>
+      </div>
     </div>
   );
 }

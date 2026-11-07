@@ -3,19 +3,18 @@ import { PendingLink as Link } from "@/components/ui/PendingLink";
 import { Breadcrumbs } from "@/components/seo/Related";
 import { BLOG_CATEGORIES } from "@/content/blog/categories";
 import { postPath, publishedPosts } from "@/content/blog/catalog";
+import { withCuratedMetadata } from "@/lib/seo/curation";
 
 export const revalidate = 3600;
-export const metadata: Metadata = { title: "Pickup notes & stock insights", description: "ShelfSpring's guide to making sense of pickup availability, restock patterns and useful alerts. Browse the editorial collections and live tools.", alternates: { canonical: "/blog" } };
+export const metadata: Metadata = withCuratedMetadata("/blog", { title: "Pickup notes & stock insights", description: "ShelfSpring's guide to making sense of pickup availability, restock patterns and useful alerts. Browse the editorial collections and live tools." });
 export default function BlogHome() {
   const featured = publishedPosts().filter((p) => p.featured).slice(0, 3);
-  return <div className="site-content mx-auto max-w-6xl px-4 py-8">
+  return <div className="field-page journal-page">
     <Breadcrumbs items={[{ href: "/", label: "ShelfSpring" }, { label: "Journal" }]} />
-    <p className="eyebrow mt-8">The ShelfSpring journal</p>
-    <h1 className="display mt-3 text-4xl sm:text-5xl">Make the next pickup easier.</h1>
-    <p className="mt-4 max-w-2xl text-lg text-ink-2">Clear explanations, grounded in the inventory record. Choose a collection to explore its live tools and future guides.</p>
-    <div className="mt-8 grid gap-5 md:grid-cols-3">{BLOG_CATEGORIES.map((c, i) => <Link key={c.slug} href={`/blog/${c.slug}`} className="pane block p-6 transition-transform hover:-translate-y-1">
-      <span className="font-mono text-xs text-ink-3">0{i + 1}</span><h2 className="mt-8 text-xl font-semibold">{c.name}</h2><p className="mt-3 text-sm leading-relaxed text-ink-2">{c.description}</p><span className="mt-6 inline-block text-sm font-medium">Explore collection →</span>
+    <header className="field-intro"><div><div className="field-kicker">The ShelfSpring journal</div><h1 className="field-title mt-5">A place for the longer view.</h1></div><p className="field-lead">The stock board answers what is listed. These collections make room for the questions around it: how to plan a pickup, interpret a pattern and make useful alerts.</p></header>
+    <div className="journal-shelves">{BLOG_CATEGORIES.map((c, i) => <Link key={c.slug} href={`/blog/${c.slug}`} className="journal-shelf">
+      <span className="journal-shelf-number" aria-hidden="true">0{i + 1}</span><div><span className="eyebrow">Collection</span><h2>{c.name}</h2></div><p>{c.description}</p><span className="journal-shelf-arrow" aria-hidden="true">↗</span>
     </Link>)}</div>
-    {featured.length > 0 && <section className="mt-12"><h2 className="text-2xl font-semibold">Selected notes</h2><div className="mt-5 grid gap-5 md:grid-cols-3">{featured.map((p) => <Link className="pane p-6" key={p.slug} href={postPath(p)}><time className="text-xs text-ink-3" dateTime={p.publishedAt}>{p.publishedAt}</time><h3 className="mt-3 text-xl font-semibold">{p.title}</h3><p className="mt-2 text-sm text-ink-2">{p.description}</p></Link>)}</div></section>}
+    {featured.length > 0 && <section className="field-section"><div className="field-section-head"><h2>From the notebook</h2></div><div className="journal-posts">{featured.map((p) => <Link className="journal-post" key={p.slug} href={postPath(p)}><time dateTime={p.publishedAt}>{p.publishedAt}</time><h3>{p.title}</h3><p>{p.description}</p><span aria-hidden="true">↗</span></Link>)}</div></section>}
   </div>;
 }

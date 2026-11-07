@@ -8,14 +8,14 @@ const s = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : 
 
 export const account = {
   loading: "Loading",
-  meta: { title: "My alerts" },
+  meta: { title: "My Watchlist" },
   signedInAs: (email: string) => `Signed in as ${email}`,
-  title: "My alerts",
+  title: "Your watchlist, in one place.",
   /** Short units under the big numbers. */
   units: { s: "s", min: "min", taps: "taps" },
 
   plan: {
-    title: "Plan",
+    title: "Membership & billing",
     none: "No plan yet: alerts are off",
     /** "Plus · 3 of 10 alerts on", then " · renews Dec 1" or " · ends Dec 1" ({date} arrives formatted). */
     summary: (plan: string, on: number, limit: number) => `${plan} · ${on} of ${limit} alerts on`,
@@ -24,10 +24,10 @@ export const account = {
   },
 
   sent: {
-    title: "Sent alerts",
+    title: "Your notification record",
     last: (ago: string) => `Last one ${ago}`,
     none: "Nothing sent yet",
-    empty: "Nothing sent yet.",
+    empty: "No matching restock has been sent to this account yet. Saved rules start delivering when a paid plan is active and a matching change is confirmed.",
     channel: { push: "notification", email: "email" } as Record<string, string>,
     status: { sent: "sent", failed: "failed", skipped: "skipped" } as Record<string, string>,
   },
@@ -35,16 +35,16 @@ export const account = {
   /** "Reserve it in 20 seconds" (FastCheckoutCard). */
   fast: {
     title: "Prepare your pickup order",
-    sub: "do everything but the last four taps now",
-    lasts: "a typical Duo listing lasts",
+    sub: "a short checklist before the next useful listing",
+    lasts: "median recorded Duo listing duration",
     push: "delivery timing varies; confirm stock with Apple",
     tapsLeft: "left for you once the push lands",
     steps: [
-      { title: "Find your window", hint: "your stores' hours, below · staged 10 min early" },
-      { title: "Stage Apple's checkout", hint: "exact storage + colour → Delivery & Pickup" },
-      { title: "Tick terms · or go unlocked", hint: "unlocked, paid in full: no box at all" },
-      { title: "Keep it awake", hint: "Auto-Lock → Never · touch it every 10–15 min" },
-      { title: "Alert: read, don't tap", hint: "Pickup → the store named → first slot → Apple Pay" },
+      { title: "Check your travel range", hint: "Keep only stores you could reach for a confirmed collection." },
+      { title: "Know the exact configuration", hint: "Have the model, capacity and color ready before opening Apple." },
+      { title: "Review your buying options", hint: "Read Apple’s payment and carrier choices before placing an order." },
+      { title: "Check the listing again", hint: "A past observation or notification cannot hold a phone for you." },
+      { title: "Wait for the pickup confirmation", hint: "Travel after Apple confirms that the order is ready to collect." },
     ],
     guide: "The 2-minute guide",
     window: "Your restock window",
@@ -113,15 +113,16 @@ export const account = {
 
   /** /pricing. Plan names and dollar amounts are not translated (billing is in USD everywhere). */
   pricing: {
-    metaTitle: "Pricing — 10 alerts $5, 20 for $10, 50 for $20",
-    metaDescription: "Alerts are sent after matching availability is detected. Source checks, synchronization and notification delivery can add delay.",
-    title: "Pricing",
-    lead: "**One alert = one store × one exact iPhone.** Browsing is free.",
-    chips: ["All 269 US Apple Stores", "Cancel anytime", "Card or Link"],
-    fastest: "Frequent inventory updates",
+    metaTitle: "Watchlist Plans: Choose 10, 20 or 50 Alert Rules",
+    metaDescription: "Keep a shortlist of iPhone configurations and reachable stores. ShelfSpring plans start at $5 a month; inventory, maps and recorded changes stay free to browse.",
+    title: "A membership for your shortlist.",
+    lead: "Keep browsing free. Subscribe when you want the next matching change to come to you. **One rule watches one exact iPhone at one store.**",
+    chips: ["Public stock and history stay free", "Same inventory feed on every plan", "Monthly billing in US dollars", "Cancel renewal in your account"],
+    fastest: "What a subscription does",
     everyFast: "Alerts are sent after matching availability is detected. Source checks, synchronization and notification delivery can add delay.",
     /** {band} is "60–80 seconds" or "about a minute". */
-    sellsOut: (band: string) => `A typical iPhone Duo restock sells out in **${band}**, some in 20–30 seconds`,
+    historySample: "All tracked countries · last 7 days · {n} completed pickup windows",
+    sellsOut: (band: string) => `The observed median iPhone Duo listing lasted **${band}**. This describes the recorded sample, not your next opportunity.`,
     band: (range: string) => `${range} seconds`,
     aboutMinute: "about a minute",
     sameSpeed: "Frequent inventory updates",
@@ -131,7 +132,7 @@ export const account = {
     note: { plus: "1 iPhone × 10 stores", pro: "2 iPhones × 10 stores", max: "5 iPhones × 10 stores" } as Record<string, string>,
     month: "/ month",
     alerts: (n: number) => `${n} alerts`,
-    perks: ["Frequent inventory updates", "Alerts are sent after matching availability is detected. Source checks, synchronization and notification delivery can add delay."],
+    perks: ["Choose exact storage and color combinations", "Edit your reachable stores as plans change", "Browser push with email fallback"],
     cancel: "Cancel anytime",
     get: (plan: string) => `Get ${plan}`,
     billing: "Stripe billing · card or Link · plan changes prorated",

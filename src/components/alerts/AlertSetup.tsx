@@ -11,6 +11,7 @@ import { Section } from "./Section";
 import type { PhoneCatalog } from "./PhoneMatrix";
 import { startFrom, startFromPool, type AlertStart } from "@/lib/alertStart";
 import { useT } from "@/components/i18n/LangProvider";
+import "@/components/pages/Workspace.css";
 
 
 
@@ -31,7 +32,7 @@ export function HomeAlertSetup({ catalog, start, signInOnly, next }: { catalog: 
   useAnnounce();
   const d = useT().alerts.setup;
   return (
-    <div id="notify" className={`pane relative min-w-0 scroll-mt-28 p-4 sm:p-7 ${signInOnly ? "order-first lg:order-none" : ""}`}>
+    <div id="notify" className={`pane alert-setup-workspace relative min-w-0 scroll-mt-28 p-5 sm:p-7 ${signInOnly ? "order-first lg:order-none" : ""}`}>
       {!signInOnly && (
         <div className="mb-4">
           <h2 className="display text-2xl sm:text-3xl">{d.title}</h2>

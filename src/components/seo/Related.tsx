@@ -1,6 +1,7 @@
 import { PendingLink as Link } from "@/components/ui/PendingLink";
 import { t, pageLocale } from "@/lib/i18n/server";
 import { localizePath } from "@/lib/i18n/locales";
+import { curatedRecommendations, isCuratedPath } from "@/lib/seo/curation";
 
 export interface Crumb { href?: string; label: string }
 
@@ -25,7 +26,10 @@ export function Breadcrumbs({ items, base = "https://shelfspring.com" }: { items
 export interface RelatedLink { href: string; label: string; meta?: string }
 
 /** A titled row of link chips, with an optional "more" link. */
-export function LinkRow({ title, links, more, className = "" }: { title: string; links: RelatedLink[]; more?: RelatedLink; className?: string }) {
+export function LinkRow({ title, links: input, more: moreInput, curated = false, className = "" }: { title: string; links: RelatedLink[]; more?: RelatedLink; curated?: boolean; className?: string }) {
+  const lang = pageLocale().lang;
+  const links = curated ? curatedRecommendations(input.map((link) => ({ ...link, href: localizePath(link.href, lang) }))) : input;
+  const more = !curated || moreInput && isCuratedPath(localizePath(moreInput.href, lang)) ? moreInput : undefined;
   if (links.length === 0) return null;
   return (
     <div className={className}>

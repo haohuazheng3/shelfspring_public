@@ -10,6 +10,15 @@ export function openSection(id: string) {
   window.dispatchEvent(new CustomEvent("pc:open-section", { detail: id }));
 }
 
+/** Same-page navigation must also unfold a section, including repeated clicks on the same target. */
+export function SectionJump({ id, children }: { id: string; children: ReactNode }) {
+  return <a className="btn btn-ghost btn-sm" href={`#${id}`} onClick={(event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    openSection(id);
+  }}>{children}</a>;
+}
+
 export function Section({ id, title, summary, badge, foot, defaultOpen = true, inner = false, onOpen, children }: {
   id: string; title: ReactNode; summary?: ReactNode; badge?: ReactNode; defaultOpen?: boolean;
   /** A line under the header, outside the fold, shown open or folded (the plan's "Cancel subscription"). */

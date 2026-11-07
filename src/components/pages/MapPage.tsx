@@ -10,22 +10,23 @@ import { englishLocale, pathInLocale, type Locale } from "@/lib/i18n/locales";
 import { dict } from "@/lib/i18n/dict";
 import { pageLocale, t } from "@/lib/i18n/server";
 import { cityLabel, regionLabel, storeLabel } from "@/lib/i18n/places";
+import { withCuratedMetadata } from "@/lib/seo/curation";
 
 export function mapMetadata(c: Country, loc: Locale = englishLocale(c.cc)): Metadata {
   if (c.cc === "us") {
-    return {
-      title: "iPhone Duo pickup stock map — every US Apple Store, live",
-      description: "Live map of all 269 US Apple Stores with iPhone Duo, 18 Pro and Pro Max in-store pickup stock right now, by storage and color.",
+    return withCuratedMetadata("/map", {
+      title: "Pickup Atlas: Compare iPhone Stock Across Stores",
+      description: "Explore reachable Apple Stores, narrow your iPhone configuration and compare current pickup options on the ShelfSpring atlas.",
       alternates: { canonical: "/map" },
-    };
+    });
   }
   const V = dict(loc.lang).views.map;
   const n = storesOf(c.cc).length;
-  return {
+  return withCuratedMetadata(loc.native ? pathInLocale(mapPath(c.cc), loc) : mapPath(c.cc), {
     title: V.metaTitle(c, n),
     description: V.metaDescription(c, n),
     alternates: { canonical: loc.native ? pathInLocale(mapPath(c.cc), loc) : mapPath(c.cc) },
-  };
+  });
 }
 
 export async function MapPage({ country: c, searchParams: sp }: { country: Country; searchParams: Record<string, string | string[] | undefined> }) {

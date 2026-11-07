@@ -3,22 +3,25 @@
  * /install — the illustrated "put ShelfSpring on your Home Screen" guide. Picks the platform
  * from the device, lets the reader switch, and keeps the live notification switch next to the steps.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { PendingLink as Link } from "@/components/ui/PendingLink";
 import { Rich } from "@/components/i18n/Rich";
-import { useAppLocale, useT } from "@/components/i18n/LangProvider";
+import { useAppLocale, useLang, useT } from "@/components/i18n/LangProvider";
 import { fill } from "@/lib/i18n/format";
 import { signInHome } from "@/lib/i18n/locales";
 import { fetchMe } from "@/lib/me";
 import { usePush, type PushState } from "./usePush";
 import { B } from "./PushSetup";
 import {
-  LockScreenMock, SafariUrlMock, SafariShareMock, ShareSheetMock, AddDialogMock, HomeScreenMock, IosPermissionMock,
+  SafariUrlMock, SafariShareMock, ShareSheetMock, AddDialogMock, HomeScreenMock, IosPermissionMock,
   ChromeMenuMock, ChromeInstallMock, AndroidPermissionMock, DesktopPermissionMock, DesktopInstallMock,
 } from "./Mocks";
 import type { Platform } from "@/lib/push/platform";
+import { fieldCopy } from "@/content/field-guide";
+import "@/components/pages/Workspace.css";
 
 type Tab = "ios" | "android" | "desktop";
+const TABS: Tab[] = ["ios", "android", "desktop"];
 type T = ReturnType<typeof useT>["install"];
 
 interface Step { title: string; text: React.ReactNode; art: React.ReactNode; action?: "notify" | "install" }
@@ -26,6 +29,7 @@ interface Step { title: string; text: React.ReactNode; art: React.ReactNode; act
 export function InstallGuide({ vapidPublicKey }: { vapidPublicKey: string }) {
   const p = usePush(vapidPublicKey);
   const d = useT().install;
+  const lang = useLang(), F = fieldCopy(lang), tabsId = useId();
   // Sign-in and "Set up an alert" go to the home page of the person's language ("/" in English).
   const home = signInHome(useAppLocale() ?? undefined);
   const [picked, setTab] = useState<Tab | null>(null);
@@ -45,58 +49,70 @@ export function InstallGuide({ vapidPublicKey }: { vapidPublicKey: string }) {
   }, [signedIn]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-8 sm:pt-12">
+    <div className="field-page">
       {/* hero */}
-      <section className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+      <section className="field-intro">
         <div>
-          <div className="eyebrow mb-4">{d.hero.eyebrow}</div>
-          <h1 className="display text-4xl sm:text-6xl">{d.hero.title}</h1>
-          <p className="mt-5 max-w-xl text-lg text-ink-2">{d.hero.lead}</p>
+          <div className="field-kicker">{F.guide} / {d.hero.eyebrow}</div>
+          <h1 className="field-title">{d.hero.title}</h1>
+          <p className="field-lead">{d.hero.lead}</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#steps" className="btn btn-primary btn-lg">{d.hero.seeSteps}</a>
-            {on ? <button type="button" className="btn btn-ghost btn-lg" disabled={p.busy} onClick={() => void p.sendTest()}>{d.hero.sendTest}</button>
+            {on ? <button type="button" className="btn btn-ghost btn-lg" disabled={p.busy} aria-busy={p.busy} onClick={() => void p.sendTest()}>{p.busy && <span className="spinner" aria-hidden />}{d.hero.sendTest}</button>
               : p.status === "ready" && signedIn ? <button type="button" className="btn btn-ghost btn-lg" disabled={p.busy} onClick={() => void p.turnOn()}>{p.busy && <span className="spinner" />}{d.hero.turnOn}</button>
               : null}
           </div>
+          {p.notice && <p role="status" className="mt-4 text-sm text-accent">{p.notice}</p>}
+          {p.error && <p role="alert" className="mt-4 text-sm text-bad">{p.error}</p>}
+        </div>
+        <aside className="pane p-6"><p className="field-kicker">{F.alert}</p><p className="mt-3 text-sm leading-relaxed text-ink-2">{F.alertNote}</p>
           {already && !on ? (
             <p className="mt-8 rounded-2xl bg-accent/10 px-4 py-3 text-sm text-ink-2">
               <Rich text={d.hero.already} b="text-accent" vars={{ label: already, link: <Link href="/account" className="underline">{d.hero.myAlerts}</Link> }} />
             </p>
           ) : <Progress installed={installed} signedIn={signedIn} on={on} platform={p.platform} status={p.status} d={d} />}
-        </div>
-        <LockScreenMock t={d.mocks} />
+        </aside>
       </section>
 
       {/* steps */}
-      <section id="steps" className="mt-20 scroll-mt-24">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+      <section id="steps" className="install-workspace field-section scroll-mt-28">
+        <div className="install-platform-dock">
           <div>
             <h2 className="display text-2xl sm:text-4xl">{d.steps.title}</h2>
             <p className="mt-2 text-ink-2">{d.steps.intro[tab]}</p>
           </div>
-          <div className="seg" role="tablist" aria-label={d.steps.tabsLabel}>
-            {(["ios", "android", "desktop"] as Tab[]).map((t) => (
-              <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{d.steps.tabs[t]}</button>
+          <div className="seg mt-5 flex-wrap" role="tablist" aria-label={d.steps.tabsLabel}>
+            {TABS.map((t, at) => (
+              <button key={t} id={`${tabsId}-${t}`} type="button" role="tab" tabIndex={tab === t ? 0 : -1} aria-selected={tab === t} aria-controls={`${tabsId}-panel`} onClick={() => setTab(t)} onKeyDown={(event) => {
+                if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+                event.preventDefault();
+                const delta = (event.key === "ArrowRight" ? 1 : -1) * (lang === "ar" ? -1 : 1);
+                const index = event.key === "Home" ? 0 : event.key === "End" ? TABS.length - 1 : (at + delta + TABS.length) % TABS.length;
+                setTab(TABS[index]);
+                event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[index]?.focus();
+              }}>{d.steps.tabs[t]}</button>
             ))}
           </div>
         </div>
 
-        <ol className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <ol id={`${tabsId}-panel`} role="tabpanel" aria-labelledby={`${tabsId}-${tab}`} className="space-y-6">
           {steps.map((s, i) => (
-            <li key={i} className="pane flex flex-col p-5 sm:p-6">
-              <div className="flex items-center gap-3"><span className="step-num">{i + 1}</span><h3 className="text-lg font-semibold">{s.title}</h3></div>
+            <li key={i} className="pane install-step p-5 sm:p-7">
+              <div><p className="field-kicker" aria-hidden>0{i + 1}</p><h3 className="display mt-3 text-2xl">{s.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-ink-2">{s.text}</p>
-              <div className="mt-5 flex flex-1 items-end justify-center pt-6">{s.art}</div>
               {s.action && <StepAction kind={s.action} p={p} d={d} home={home} />}
+              {s.action === "notify" && p.notice && <p className="mt-3 text-sm text-accent">{p.notice}</p>}
+              {s.action === "notify" && p.error && <p className="mt-3 text-sm text-bad">{p.error}</p>}
+              </div><div className="install-step-art">{s.art}</div>
             </li>
           ))}
         </ol>
       </section>
 
       {/* notes */}
-      <section className="mt-16 grid gap-3 md:grid-cols-2">
+      <section className="field-section mx-auto max-w-3xl divide-y divide-line">
         {d.notes.map(({ q, a }) => (
-          <div key={q} className="pane-2 p-5"><h3 className="font-semibold">{q}</h3><p className="mt-2 text-sm leading-relaxed text-ink-2">{a}</p></div>
+          <details key={q} className="py-5"><summary className="cursor-pointer font-semibold">{q}</summary><p className="mt-3 text-sm leading-relaxed text-ink-2">{a}</p></details>
         ))}
       </section>
 

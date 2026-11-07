@@ -1,41 +1,38 @@
-/**
- * /iphone-duo-near-me: "Which Apple Stores have the iPhone Duo near me right now?" The finder does the work; the
- * sections under it keep one quotable answer sentence per question and show the rest as tiles, steps, swap cards,
- * tables and keyword lines. Every number is live and ShelfSpring's own.
- */
+import { withCuratedMetadata } from "@/lib/seo/curation";
+import { GuideLayout } from "@/components/guides/GuideLayout";
+/** A geographic planning guide: choose a realistic journey, inspect the exact listing, and interpret distance and history separately. */
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { PendingLink as Link } from "@/components/ui/PendingLink";
-import { Figure } from "@/components/content/Figure";
 import { RichFaq, SourceList } from "@/components/content/RichFaq";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { NearMeFinder, type NearMeData } from "@/components/content/NearMeFinder";
 import { Measured, Points, Stat, StatGrid, Swap, type Point } from "@/components/ui/Viz";
 import { getFacts, tokenValue } from "@/lib/content/facts";
 import type { Faq, Source } from "@/lib/content/types";
-import { PART_INDEX, STORES, appleName, catalogFor, cityLine, stateCodeOf, statePath, storeByNumber, storePath, type Store } from "@/lib/apple/catalog";
+import { PART_INDEX, STORES, appleName, catalogFor, cityLine, statePath, storeByNumber, storePath, type Store } from "@/lib/apple/catalog";
 import { INTL_CODES } from "@/lib/apple/countries";
 import { TRACKING_SINCE_US, hourLabel, localStamp } from "@/lib/content/siteFacts";
 import { busiestWindow, duoRestockTimes } from "@/lib/content/restockTimes";
 import { medianBand } from "@/lib/stock/sellouts";
 import { recentByConfig } from "@/lib/stock/recent";
 import { stockByStore } from "@/lib/stock/queries";
-import { alertHref, itemListJsonLd, listWords, plural } from "@/lib/seo/enrich";
+import { alertHref, itemListJsonLd } from "@/lib/seo/enrich";
 
 export const revalidate = 3600;
 
-const TITLE = "iPhone Duo Pickup Near You: Compare Reachable Apple Stores";
-const DESCRIPTION = `Compare iPhone Duo pickup listings at ${STORES.length} US Apple Stores, sorted from your location or ZIP. Review configurations, observation times and recent returns.`;
+const TITLE = "iPhone Duo Near You: Build a Reachable Store Shortlist";
+const DESCRIPTION = `Plan a practical iPhone Duo pickup: rank ${STORES.length} US stores from a ZIP or location, check exact listings, and compare travel estimates with recorded history.`;
 const APPLE_STORES = "https://www.apple.com/retail/storelist/";
 const CENSUS_GAZETTEER = "https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html";
 const APPLE_PICKUP = "https://www.apple.com/shop/shipping-pickup";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withCuratedMetadata("/iphone-duo-near-me", {
   title: { absolute: `${TITLE} · ShelfSpring` },
   description: DESCRIPTION,
   alternates: { canonical: "/iphone-duo-near-me" },
   openGraph: { type: "article", siteName: "ShelfSpring", title: TITLE, description: DESCRIPTION, url: "/iphone-duo-near-me" },
-};
+});
 
 const n = (x: number) => x.toLocaleString("en-US");
 /** Whole-percent shares; a share under half a percent reads "<1%", never a misleading "0%". */
@@ -112,7 +109,7 @@ export default async function NearMePage() {
   const latest = recent.latest ? { ...recent.latest, store: storeByNumber(recent.latest.storeNumber) } : null;
   const sell = rt.sellout;
   /** "about 60–80 seconds" from the timed sell-outs, or a wording that claims no number while there are none. */
-  const lasts = sell ? `about ${medianBand(sell.medianSec)}` : "seconds to a few minutes";
+  const lasts = sell ? `about ${medianBand(sell.medianSec)}` : "unavailable";
   const alert = alertHref({ model: "duo" });
 
   const data: NearMeData = {
@@ -123,200 +120,96 @@ export default async function NearMePage() {
   };
 
   const sections = [
-    { id: "now", nav: "Stores with it now", h2: "Which Apple Stores have the iPhone Duo right now?" },
-    { id: "find", nav: "Find the nearest", h2: "How do I find the nearest Apple Store with iPhone Duo stock?" },
-    { id: "best", nav: "Nearest vs busiest", h2: "Is the nearest store the best one to watch?" },
-    { id: "ai", nav: "Any state", h2: "Does \"near me\" work when an AI assistant reads this page?" },
-    { id: "distance", nav: "What distance means", h2: "What does the distance mean?" },
+    { id: "find", nav: "Set your travel boundary" },
+    { id: "now", nav: "Read the current shortlist" },
+    { id: "best", nav: "Compare nearby alternatives" },
+    { id: "distance", nav: "Check the travel estimate" },
+    { id: "ai", nav: "Browse without a location" },
   ];
-
   const faq: Faq[] = [
-    { q: "Why does my nearest store never show stock?", a: sell
-      ? `Because an iPhone Duo listing lasts about ${medianBand(sell.medianSec)}: half of the ${n(sell.n)} restocks we timed were gone within ${sell.medianSec} seconds, so the page you refresh is almost always between restocks. [How fast the iPhone Duo sells out](/iphone-duo-sell-out-times) has the full numbers; an alert replaces the refreshing.`
-      : "Because an iPhone Duo listing lasts seconds to a few minutes, so the page you refresh is almost always between restocks. [How fast the iPhone Duo sells out](/iphone-duo-sell-out-times) measures each one; an alert replaces the refreshing." },
-    { q: "Can I search by ZIP without sharing my location?", a: "Yes: type a 5-digit ZIP and the stores are ranked from its Census center; the browser only fetches a small file of ZIP centers chosen by the first three digits, and nothing about you is sent or stored. If you do use your location, it stays on your device, rounded to about a kilometer, so the next page can use it without asking again." },
-    { q: "Does the page show stores outside the US?", a: `No, this page ranks the ${STORES.length} US Apple Stores. The ${INTL_CODES.length} other countries ShelfSpring tracks each have their own home page with live iPhone Duo stock and the same store pages: [Canada](/ca), [the UK](/uk), [Australia](/au), [Japan](/jp), [Germany](/de), [France](/fr) and the rest from the country switch in the header.` },
-    { q: "How current are the listings?", a: `This snapshot was rendered at ${asOf}. Its inventory comes from source observations synchronized to ShelfSpring; collection, synchronization or network failures can delay updates. Reload to request a newer snapshot, then confirm the pickup option on Apple’s site.` },
-    { q: "Can ShelfSpring reserve the iPhone Duo for me?", a: `No. ShelfSpring helps you identify a store and configuration to check. Complete the order with Apple and wait for its pickup confirmation before travelling ([Apple pickup help](${APPLE_PICKUP})).` },
+    { q: "Does the nearest store have the best chance of stock?", a: "Distance and availability answer different questions. The finder orders stores geographically; the inventory badge describes the latest recorded configurations. Keep only locations whose pickup journey works for you, then compare their current listings and history." },
+    { q: "Can I use a ZIP instead of device location?", a: "Enter a five-digit US ZIP to use its approximate area center. That is useful for planning from home, work or a destination without granting the browser location permission. It is less precise than your actual starting point." },
+    { q: "What should I do when every nearby store shows zero?", a: sell
+      ? `A zero describes the snapshot, not the store’s future supply. The historical sample contains ${n(sell.n)} timed listings with a median of ${sell.medianSec} seconds, but that does not explain why any particular store is empty. Compare recent returns or save a watch for acceptable configurations.`
+      : "Keep a shortlist that fits your journey and check its observation times. There is not enough timed listing data here to estimate how long a future listing may remain available. You can inspect recent returns or save a matching watch without treating either as a forecast." },
+    { q: "Should I travel as soon as a store appears in the results?", a: `First open Apple’s order page and verify the exact model, storage, color and pickup store. A ShelfSpring result is not an order or a hold. Follow Apple’s collection instructions after ordering ([pickup help](${APPLE_PICKUP})).` },
+    { q: "Can I plan a pickup in another country?", a: `This finder is scoped to US stores. Use the country switch for the ${INTL_CODES.length} other supported markets; their store pages use the local catalog and observation history. A US listing does not establish availability abroad.` },
   ];
   const sources: Source[] = [
-    { label: "Apple: Find a store (the list of Apple Store locations)", url: APPLE_STORES },
-    { label: "US Census Bureau: Gazetteer files, ZIP Code Tabulation Areas (ZIP centers)", url: CENSUS_GAZETTEER },
-    { label: "Apple: Delivery and Pickup (how in-store pickup works)", url: APPLE_PICKUP },
+    { label: "Apple store directory: locations", url: APPLE_STORES },
+    { label: "Census Gazetteer: ZIP-area reference data", url: CENSUS_GAZETTEER },
+    { label: "Apple pickup instructions", url: APPLE_PICKUP },
   ];
-
   const site = "https://shelfspring.com";
   const ld = [
     { "@context": "https://schema.org", "@type": "WebPage", "@id": `${site}/iphone-duo-near-me`, url: `${site}/iphone-duo-near-me`, name: TITLE, description: DESCRIPTION, isPartOf: { "@id": `${site}/#website` }, about: { "@id": `${site}/#organization` }, dateModified: facts.at },
-    ...(count > 0 ? [itemListJsonLd(`Apple Stores with the iPhone Duo in stock for pickup right now (${asOf})`, now.map((x) => x.store))] : []),
+    ...(count > 0 ? [itemListJsonLd(`US Apple Stores with a recorded iPhone Duo pickup listing (${asOf})`, now.map((x) => x.store))] : []),
   ];
-
   return (
-    <div className="mx-auto max-w-3xl px-4 pt-10">
+    <GuideLayout guide="iphone-duo-near-me" contents={sections.map((item) => ({ id: item.id, label: item.nav }))}>
       <JsonLd data={ld} />
-      <h1 className="display text-3xl sm:text-5xl">Which Apple Stores have the iPhone Duo in stock near me right now?</h1>
-      <p className="mt-4 text-lg text-ink-2">
-        {unknown
-          ? <>Live stock could not be read at this moment; the finder below still ranks all <b className="text-ink">{STORES.length}</b> US Apple Stores by distance from you or your ZIP.</>
-          : count > 0
-            ? <>Right now <b className="text-ink">{count} of the {STORES.length}</b> US Apple Stores list an iPhone Duo for pickup (as of {asOf}): {listWords(now.map((x) => `${appleName(x.store)} (${stateCodeOf(x.store)})`), 5)}.</>
-            : <>Right now <b className="text-ink">none of the {STORES.length}</b> US Apple Stores lists an iPhone Duo for pickup (as of {asOf}), so the nearest ones are the ones to watch.</>}
-      </p>
-      <StatGrid cols={3} className="mt-6">
-        <Stat value={unknown ? "–" : count} label={`of ${STORES.length} US Apple Stores list a Duo for pickup (${asOf})`} tone={count > 0 ? "accent" : "plain"} live={!unknown} />
-        <Stat value={recent.restocks} label={`iPhone Duo restocks in the last 24 hours, at ${plural(recent.stores, "store")}`} />
-        {hasPattern
-          ? <Stat value={pct(win.share)} label={`of ${n(rt.n)} restocks since ${longDate(rt.since)} fell between ${winLabel} local time`} />
-          : sell
-            ? <Stat value={sell.medianSec} unit="s" label="typical listing before it sells out" tone="warn" />
-            : <Stat value="–" label="usual restock hour: too few restocks yet" tone="muted" />}
-      </StatGrid>
-      <div className="mt-6"><NearMeFinder data={data} /></div>
-      <div className="mt-4 flex flex-wrap gap-3">
-        <Link href={alert} className="btn btn-primary">Alert me when a store near me restocks</Link>
-        <Link href="/map" className="btn btn-ghost">Live map</Link>
-      </div>
-      <nav aria-label="On this page" className="mt-6 flex flex-wrap gap-2 text-sm">
-        {sections.map((x) => <a key={x.id} href={`#${x.id}`} className="chip px-3 py-1.5 text-xs">{x.nav}</a>)}
-      </nav>
-
-      <div className="pane prose-site mt-8 p-6 sm:p-8">
-        {/* ---------------------------------------------------------------- right now */}
-        <section id="now" className="scroll-mt-24">
-          <h2>{sections[0].h2}</h2>
-          <p><b>{unknown
-            ? "The live list could not be read just now; the store pages linked from the finder above are unaffected."
-            : count > 0
-              ? `${plural(count, "store")} in ${plural(states.length, "state")} as of ${asOf}, listed by state with the configurations each one shows.`
-              : `None at the last check (${asOf}); ${recent.restocks > 0 && latest ? `the latest restock was a ${cfg(latest.partNumber)} at ${latest.store ? appleName(latest.store) : "an Apple Store"}, ${localStamp(latest.at, latest.store ?? STORES[0])} local time` : "no store restocked it in the last 24 hours either"}.`}</b></p>
-          {count > 0 && states.map((st) => (
-            <div key={st}>
-              <h3><Link href={statePath(st)}>{st}</Link></h3>
-              <ul>
-                {byState.get(st)!.map((x) => (
-                  <li key={x.store.storeNumber}>
-                    <Link href={storePath(x.store)}>{appleName(x.store)}</Link>, {cityLine(x.store)}: {x.parts.map(cfg).join(", ")}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-          {!unknown && count > 0 && (
-            <Keys items={[
-              { text: <>Each store page: all <b className="text-ink">{items.length} configurations</b> live, plus its usual restock hour</> },
-              { text: <>A listing lasts <b className="text-ink">{lasts}</b>: it can be gone before you arrive</>, no: true },
-              { text: <>So the finder gives an <b className="text-ink">alert per store</b>, not a list to refresh</>, step: true },
-            ]} />
-          )}
-          {!unknown && count === 0 && (
-            <>
-              <Keys items={[
-                { text: <>Sold out everywhere is the <b className="text-ink">normal state</b> of this page, not a fault</> },
-                { text: <>A listing lasts <b className="text-ink">{lasts}</b>, then reads unavailable all day</>, no: true },
-                ...(hasPattern ? [{ text: <><b className="text-ink">{pct(win.share)}</b> of {n(rt.n)} restocks since {longDate(rt.since)}: <b className="text-ink">{winLabel}</b> local time</>, step: true }] : []),
-              ]} />
-              <ChipLinks items={[{ href: "/iphone-duo-restock-times", label: "When Apple restocks the iPhone Duo" }, { href: "/restocks", label: "The restock log, live" }]} />
-            </>
-          )}
-        </section>
-
-        {/* ---------------------------------------------------------------- find */}
-        <section id="find" className="scroll-mt-24">
-          <h2>{sections[1].h2}</h2>
-          <p><b>Use the finder at the top of this page: it ranks all {STORES.length} US Apple Stores by distance from your location or your ZIP, in your browser, and shows which of the ten nearest list the iPhone Duo at this moment.</b></p>
+      <div className="guide-chapters">
+        <section id="find" className="guide-chapter">
+          <h2>Begin with a journey you would actually make</h2>
+          <p className="mb-5 mt-3 text-ink-2">Choose your starting point before choosing a store. A location near work may be practical on a weekday; a shorter trip from home may suit a different pickup slot. The finder ranks {STORES.length} US Apple Stores and presents the ten nearest so you can make that first cut.</p>
+          <NearMeFinder data={data} />
           <Steps steps={[
-            { title: "Use my location, or type a ZIP", hint: "Ranked in your browser; your location never leaves your device, and a ZIP only selects a small file of ZIP centers by its first three digits." },
-            { title: "Read the badge", hint: `"Duo in stock: 3 of ${items.length} configs" lists what the store shows right now; "none right now" is the usual state, sold out.` },
-            { title: "Save two or three reachable stores", hint: "Notifications follow matching returns after synchronization; timing varies. Confirm current availability and order with Apple." },
+            { title: "Choose a starting point", hint: "Use a ZIP for an approximate area, or let the browser request your location." },
+            { title: "Check your exact version", hint: `A store may list only part of the ${items.length}-configuration range. Read the storage and color alongside its badge.` },
+            { title: "Keep a realistic shortlist", hint: "Allow for the offered pickup time, opening hours and the actual route. Save watches only for combinations you would buy." },
           ]} />
-          <ChipLinks items={[
-            { href: "/stores", label: "Apple Stores by state" },
-            { href: "/map", label: `Live map of all ${STORES.length} stores` },
-            { href: "/stock/iphone-duo", label: "Every store with the Duo now" },
-          ]} />
-          <Figure id="navigation-app-street" />
+          <ChipLinks items={[{ href: "/map", label: "See the geographic picture" }, { href: "/stores", label: "Browse the store directory" }, { href: "/stock/iphone-duo", label: "Compare exact configurations" }]} />
         </section>
-
-        {/* ---------------------------------------------------------------- nearest vs busiest */}
-        <section id="best" className="scroll-mt-24">
-          <h2>{sections[2].h2}</h2>
-          <p><b>{hasPattern
-            ? `Not necessarily: the right set is the two or three stores you could reach by ${hourLabel(win.from)} local time, because ${pct(win.share)} of the ${n(rt.n)} iPhone Duo restocks since ${longDate(rt.since)} landed between ${winLabel}.`
-            : "Not necessarily: the right set is the two or three stores you could actually reach on a weekday morning, not the one store with the most restocks."}</b></p>
+        <section id="now" className="guide-chapter prose-site">
+          <h2>Turn a result into a specific pickup check</h2>
+          <p>{unknown ? <>Current inventory was unavailable when this page was prepared. Distance results still help with planning, but they do not establish which stores have a phone.</> : count > 0 ? <>The snapshot contains an iPhone Duo listing at {count} stores across {states.length} states. Its page timestamp is {asOf}; open a store to inspect the configuration and its observation time before checking Apple.</> : <>This snapshot contains no available iPhone Duo configuration at the tracked US stores. That is a current reading, not evidence that a store will remain empty or that a return is due.</>}</p>
+          <StatGrid cols={3} className="my-4">
+            <Stat value={unknown ? "—" : count} label="stores with a recorded available configuration" tone={count > 0 ? "accent" : "muted"} />
+            <Stat value={recent.unknown ? "—" : n(recent.restocks)} label="returns recorded during the past 24 hours" />
+            <Stat value={sell ? lasts : "—"} label={sell ? `median duration in ${n(sell.n)} timed listings` : "listing duration not yet established"} />
+          </StatGrid>
+          {count > 0 && states.map((st) => (
+            <div key={st}><h3><Link href={statePath(st)}>{st}</Link></h3><ul>{byState.get(st)!.map((x) => <li key={x.store.storeNumber}><Link href={storePath(x.store)}>{appleName(x.store)}</Link>, {cityLine(x.store)}: {x.parts.map(cfg).join(", ")}</li>)}</ul></div>
+          ))}
+          {latest && <p className="text-sm text-ink-3">For historical context, the most recent recorded return was {cfg(latest.partNumber)} at {latest.store ? appleName(latest.store) : "a tracked store"}, {localStamp(latest.at, latest.store ?? STORES[0])} local time. It may already have disappeared.</p>}
+          <Measured>A count is a count of stores with observed listings, not a count of phones. A positive result cannot reserve inventory. Collection and synchronization can also leave a gap between the source observation and what you see here.</Measured>
+        </section>
+        <section id="best" className="guide-chapter prose-site">
+          <h2>Use history to compare alternatives within reach</h2>
+          <p>Once travel works, history can help distinguish a quiet store from one with more recorded returns. It cannot tell you how many shoppers are waiting, how many units arrived or which location will have the next listing. A distant leader is not automatically a useful choice.</p>
           <ol className="my-4 grid gap-3 sm:grid-cols-2">
-            <Swap no="The store with the most restocks, three hours away" yes="Two or three stores within reach" why="A pickup order is collected at that store, in person, usually the same day." />
-            <Swap no="Choose solely by distance" yes="Compare reachable stores and acceptable configurations" why="Recent return counts help you compare the record; they do not predict where the next phone will appear." />
+            <Swap no="Choose a distant store solely because it tops a ranking" yes="Compare locations you can collect from" why="Travel is a constraint you know now; the next stock return is uncertain." />
+            <Swap no="Treat the busiest hour as a pickup appointment" yes="Read the store’s actual pickup offer" why="Historical hours describe earlier changes. Apple supplies the available collection options when you order." />
           </ol>
+          {hasPattern && <p>The national sample places {pct(win.share)} of {n(rt.n)} recorded returns between {winLabel}, using each store’s local time, from {longDate(rt.since)}. Check the store-specific pattern before applying that national summary to your shortlist.</p>}
+          {top.length > 0 && <KeyTable head={["Historical comparison", "Recorded returns"]} rows={top.map((entry) => [<><Link href={storePath(entry.store)}>{appleName(entry.store)}</Link>, {cityLine(entry.store)}</>, n(entry.restocks)])} />}
+          <ChipLinks items={[{ href: "/which-iphone-duo-restocks-most", label: "Compare configuration history" }, { href: "/iphone-duo-restock-times", label: "Inspect local-hour patterns" }, { href: "/iphone-duo-stock-alerts", label: "Understand saved watches" }, { href: "/install", label: "Set up phone notifications" }]} />
+        </section>
+        <section id="distance" className="guide-chapter prose-site">
+          <h2>Keep the distance estimate separate from your route</h2>
+          <p>The finder provides a rough planning distance and drive time. It does not calculate a traffic-aware route. A bridge, transit connection, parking restriction or your actual position within a ZIP area can change the trip substantially.</p>
+          <KeyTable head={["Input or estimate", "How to interpret it"]} rows={[
+            ["Road distance", <>The straight-line distance is multiplied by 1.2–1.35 to approximate a road journey; this is not a measured route.</>],
+            ["Drive time", <>The estimate includes about five minutes for departure and parking, then a modeled speed rising from 22 to 60 mph as distance increases. It does not include current traffic.</>],
+            ["ZIP starting point", <>The finder uses a reference center for the ZIP area from <a href={CENSUS_GAZETTEER} target="_blank" rel="noopener">Census data</a>, rather than your street address.</>],
+            ["Store destination", <>Coordinates identify the {STORES.length} locations in the <a href={APPLE_STORES} target="_blank" rel="noopener">Apple store directory</a>; open the store page for its address.</>],
+          ]} />
+          <Measured>Before committing to a collection slot, check directions in a mapping service and compare the journey with Apple’s instructions. The estimate here is intended to narrow a search, not to promise an arrival time.</Measured>
+        </section>
+        <section id="ai" className="guide-chapter prose-site">
+          <h2>Build the same shortlist without sharing a location</h2>
+          <p>A state or city is enough to start. The directory exposes the same store pages as the finder, so you can compare places manually or follow a link supplied by another person. Each store page retains its own configurations and observation history.</p>
+          {unknown ? <p>Current counts are unavailable in this response; treat the directory as a planning aid until you can read a fresh observation.</p> : states.length > 0 ? <><p>These states contain at least one available listing in this snapshot:</p><ChipLinks items={states.map((st) => ({ href: statePath(st), label: st }))} /></> : <p>No state contains an available listing in this snapshot. You can still inspect the store histories and choose where a future watch would be useful.</p>}
           <Keys items={[
-            { text: <><b className="text-ink">Distance</b> decides what you can do with an alert</> },
-            { text: <><b className="text-ink">Restock count</b> decides only how often you get one</> },
+            { text: <>Start with <Link href="/stores">the US directory</Link>, or go straight to <Link href={statePath("Texas")}>Texas</Link> or <Link href={statePath("California")}>California</Link>.</> },
+            { text: <>City pages group nearby locations; the individual store page is the place to verify the exact configuration.</> },
+            { text: <>ShelfSpring is independent of Apple. Follow Apple’s order and collection instructions for any purchase.</> },
           ]} />
-          {hasPattern && top.length > 0 && (
-            <div className="my-4 overflow-x-auto">
-              <table className="w-full min-w-[20rem] text-sm">
-                <caption className="mb-2 text-start text-xs text-ink-3">The stores with the most iPhone Duo restocks since {longDate(rt.since)}: listed because people ask, not because you should drive to them</caption>
-                <thead><tr className="text-start text-xs uppercase tracking-wide text-ink-3"><th className="pb-2 pe-3 font-semibold">Store</th><th className="pb-2 font-semibold">Restocks</th></tr></thead>
-                <tbody>
-                  {top.map((t) => (
-                    <tr key={t.store.storeNumber} className="border-t border-line">
-                      <td className="py-2 pe-3 font-medium text-ink"><Link href={storePath(t.store)}>{appleName(t.store)}</Link>, {cityLine(t.store)}</td>
-                      <td className="py-2 tabular-nums">{n(t.restocks)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <ChipLinks items={[
-            { href: "/which-iphone-duo-restocks-most", label: "Which iPhone Duo restocks most" },
-            { href: "/iphone-duo-restock-times", label: "The hour, store by store" },
-            { href: "/iphone-duo-stock-alerts", label: "What one alert covers" },
-            { href: "/install", label: "The Home Screen app" },
-          ]} />
+          <p><Link href={alert} className="btn btn-primary">Save a watch for your shortlist</Link></p>
         </section>
-
-        {/* ---------------------------------------------------------------- any state */}
-        <section id="ai" className="scroll-mt-24">
-          <h2>{sections[3].h2}</h2>
-          <p><b>Yes, in a plain way: this page covers all {STORES.length} US Apple Stores, the list above names every store with the iPhone Duo right now, and every state has its own page, so a reader in any state can start from that state&apos;s page.</b></p>
-          {unknown
-            ? <p>The live list is unavailable at this moment; the state pages carry their own.</p>
-            : count > 0
-              ? (
-                <>
-                  <p className="text-sm text-ink-3">States with at least one Apple Store listing the iPhone Duo right now ({asOf}):</p>
-                  <ChipLinks items={states.map((st) => ({ href: statePath(st), label: st }))} />
-                </>
-              )
-              : <p>No state has a store listing the iPhone Duo at this moment ({asOf}); every state page shows the hour its stores usually restock.</p>}
-          <Keys items={[
-            { text: <>Every state: a page under <Link href="/stores">/stores</Link> with <b className="text-ink">live stock</b> and restock hours</> },
-            { text: <>Cities with more than one store: their own page</> },
-            { text: <>Start from your state: <Link href={statePath("Texas")}>Texas</Link>, <Link href={statePath("California")}>California</Link>, or any other</>, step: true },
-            { text: <>ShelfSpring is independent of Apple; stock tables reflect the displayed source observations</> },
-          ]} />
-          <Figure id="phone-map" />
-        </section>
-
-        {/* ---------------------------------------------------------------- distance */}
-        <section id="distance" className="scroll-mt-24">
-          <h2>{sections[4].h2}</h2>
-          <p><b>An estimate of road miles and door-to-door driving time from your location or your ZIP&apos;s center, not a straight line and not a turn-by-turn route.</b></p>
-          <KeyTable head={["Figure", "How it is made"]} rows={[
-            ["Road miles", <>Straight line × <b className="text-ink">1.2–1.35</b>: roads wind, and short trips wind more</>],
-            ["Drive time", <>About <b className="text-ink">5 minutes</b> to get going and park, then <b className="text-ink">22 mph</b> in city traffic rising to <b className="text-ink">60 mph</b> on the highway as the trip gets longer; rush hour is not modeled</>],
-            ["Your ZIP", <>The population-weighted center of its ZIP Code Tabulation Area, from the <a href={CENSUS_GAZETTEER} target="_blank" rel="noopener">US Census Bureau&apos;s gazetteer files</a></>],
-            ["The stores", <>All <b className="text-ink">{STORES.length}</b> US Apple Stores with their coordinates, from <a href={APPLE_STORES} target="_blank" rel="noopener">Apple&apos;s own store list</a></>],
-          ]} />
-          <Measured>
-            A 2-mile estimate can be a 10-minute drive or a 25-minute one depending on the hour. Use the number to choose which stores to watch, and the store page&apos;s address and map for real directions.
-          </Measured>
-          <Figure id="apple-store-entrance-busy" />
-        </section>
-        <p><Link href={alert} className="btn btn-primary">Alert me when a store near me restocks</Link></p>
       </div>
-      <div className="mt-10"><RichFaq items={faq} facts={facts} title="Questions" /></div>
+      <div className="mt-10"><RichFaq items={faq} facts={facts} title="Planning questions" /></div>
       <div className="mt-8"><SourceList sources={sources} facts={facts} where={`all ${STORES.length} US Apple Stores`} since={longDate(TRACKING_SINCE_US)} /></div>
-    </div>
+    </GuideLayout>
   );
 }

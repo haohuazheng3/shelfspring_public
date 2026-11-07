@@ -1,37 +1,36 @@
+import { fieldGuideCopy,fieldGuideQuestions,FieldIntro,FieldMethod,FieldSection } from "@/components/seo/FieldGuide";
+import { countryLabel } from "@/lib/i18n/places";
+import { withCuratedMetadata } from "@/lib/seo/curation";
 /**
  * A country's store index: /stores (the US, "list of apple stores") and /{cc}/stores ("apple stores in
  * {country}", project documentation §12; body in StoresIndexIntl.tsx). Same skeleton — live cards, how many stores and where,
  * every region, restock charts, FAQ, sources — with the US keeping its sales-tax angle and other countries
  * their own tax rule. Austria and Belgium have one store each: their /stores is that store's page (308).
  */
-import type { Metadata } from "next";
-import { PendingLink as Link } from "@/components/ui/PendingLink";
-import { cache } from "react";
-import { citiesWithStores, cityPath, statePath, statesWithStores, storesOf, DEFAULT_MODEL, MODELS } from "@/lib/apple/catalog";
-import { prefixOf, type Country } from "@/lib/apple/countries";
-import { alertHref, faq, peakOf, itemListJsonLd } from "@/lib/seo/enrich";
-import { storesWithStockNow, storesStock, placeStats, restockStats, restockReportStats } from "@/lib/stock/queries";
-import { BrowseModels, BrowsePopular } from "@/components/seo/Browse";
-import { LinkRow, RelatedBlock } from "@/components/seo/Related";
-import { JsonLd } from "@/components/seo/JsonLd";
-import { PlaceStatStrip } from "@/components/seo/StatStrip";
-import { ModelPlaceCards } from "@/components/seo/ModelPlaceCards";
-import { US as US_PLACE } from "@/lib/seo/products";
-import { Faq } from "@/components/seo/Faq";
+import { SourceList } from "@/components/content/RichFaq";
 import { DailyBars } from "@/components/restocks/DailyBars";
 import { RestockClock } from "@/components/restocks/RestockClock";
 import { SellOutTimes } from "@/components/restocks/SellOutTimes";
-import { sellouts } from "@/lib/stock/sellouts";
-import { Figure } from "@/components/content/Figure";
-import { SourceList } from "@/components/content/RichFaq";
+import { BrowseModels,BrowsePopular } from "@/components/seo/Browse";
+import { Faq } from "@/components/seo/Faq";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { ModelPlaceCards } from "@/components/seo/ModelPlaceCards";
+import { LinkRow,RelatedBlock } from "@/components/seo/Related";
+import { PendingLink as Link } from "@/components/ui/PendingLink";
+import { SALES_TAX,SALES_TAX_SOURCE } from "@/content/sales-tax";
+import { citiesWithStores,cityPath,DEFAULT_MODEL,MODELS,statePath,statesWithStores,storesOf } from "@/lib/apple/catalog";
+import { prefixOf,type Country } from "@/lib/apple/countries";
 import { emptyFacts } from "@/lib/content/facts";
-import { SALES_TAX, SALES_TAX_SOURCE } from "@/content/sales-tax";
-import { hubFaq } from "@/lib/seo/placeCopy";
+import { englishLocale,pathInLocale,type Locale } from "@/lib/i18n/locales";
 import { storesIndexTitle } from "@/lib/seo/countryCopy";
+import { alertHref,itemListJsonLd } from "@/lib/seo/enrich";
+import { US as US_PLACE } from "@/lib/seo/products";
 import { treeOf } from "@/lib/seo/tree";
+import { placeStats,restockReportStats,restockStats,storesStock,storesWithStockNow } from "@/lib/stock/queries";
+import { sellouts } from "@/lib/stock/sellouts";
+import type { Metadata } from "next";
+import { cache } from "react";
 import { hreflangFor } from "./shared";
-import { englishLocale, pathInLocale, type Locale } from "@/lib/i18n/locales";
-import { dict } from "@/lib/i18n/dict";
 
 /**
  * Bound keywords (DataForSEO, project documentation §10): "list of apple stores" 210/mo, KD 0 (title and H1); "how many
@@ -62,89 +61,50 @@ export const loadIndex = cache(async (cc: Country["cc"]) => {
 });
 
 export async function storesIndexMetadata(c: Country, loc: Locale = englishLocale(c.cc)): Promise<Metadata> {
-  const d = await loadIndex(c.cc);
-  const D = dict(loc.lang);
-  const title = c.cc === "us" ? hubTitle(c) : D.place.storesIndexTitle(c.cc);
+  const F = fieldGuideCopy(loc.lang);
+  const title = c.cc === "us" ? hubTitle(c) : `${countryLabel(c.cc,loc.lang)} · ${F.next}`;
   const n = storesOf(c.cc).length;
   const description = c.cc === "us"
-    ? `Find a reachable iPhone pickup store: ${d.stockNow.duo} of ${n} US Apple Stores list the Duo now. Compare locations, configurations and recorded returns.`.slice(0, 160)
-    : D.views.storesIndex.metaDescription(c, n, statesWithStores(c.cc).length, citiesWithStores(c.cc).length, d.stockNow.duo, d.stockNow["18-pro-max"]).slice(0, 160);
+    ? `Find a practical iPhone pickup route through ${n} US Apple Stores. Browse cities, compare configurations and use the observation history to build a shortlist.`.slice(0, 160)
+    : `${countryLabel(c.cc,loc.lang)} · ${F.lead}`.slice(0,160);
   const url = loc.native ? pathInLocale(`${prefixOf(c.cc)}/stores`, loc) : `${prefixOf(c.cc)}/stores`;
-  return { title, description, alternates: { canonical: url, languages: hreflangFor("stores", loc) }, openGraph: { type: "website", siteName: "ShelfSpring", title, description, url } };
+  return withCuratedMetadata(url, { title, description, alternates: { canonical: url, languages: hreflangFor("stores", loc) }, openGraph: { type: "website", siteName: "ShelfSpring", title, description, url } });
 }
 
 /** The US index. Another country's is StoresIndexIntl.tsx (a module of its own, so the US page loads none of its client code). */
 export async function StoresIndexPage({ country: c }: { country: Country }) {
-  const STORES = storesOf("us");
+  const STORES = storesOf(c.cc);
   const d = await loadIndex("us");
   const states = statesWithStores();
   const cities = citiesWithStores();
   const alert = alertHref({ model: DEFAULT_MODEL });
-  // Four questions; "how many Apple Stores" has its own section above, so it is not repeated here.
-  const hub = hubFaq();
-  const duoNow = { q: "Which stores currently list the iPhone Duo?", a: d.stockNow.duo === 0 ? `None of the ${STORES.length} stores at the latest recorded observation. Compare recent returns to build a watchlist; only Apple can confirm a current pickup order.` : `${d.stockNow.duo} of ${STORES.length} stores at the latest recorded observation. The iPhone Duo stock page lists configurations and observation times; confirm the pickup option with Apple.` };
-  const questions = [duoNow, ...faq({ kind: "state", place: "the US", stores: STORES, stockNow: d.stockNow, stats: d.pstats, peak: peakOf(d.stats) }).filter((q) => !q.q.startsWith("How many Apple Stores are there") && !q.q.startsWith("Which Apple Stores in")), hub.taxFree];
+  const questions = fieldGuideQuestions({place:"the United States",stores:STORES.length,kind:"country"});
   const top = [...states].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)).slice(0, 10);
   const thin = states.filter((s) => s.count <= 2).map((s) => s.name);
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-8">
-      <JsonLd data={itemListJsonLd("Apple Stores in the US", STORES)} />
-      <h1 className="display text-3xl sm:text-5xl">{hubTitle(c)}</h1>
-      <p className="mt-3 max-w-3xl text-lg leading-relaxed text-ink-2">Start your pickup shortlist with <b className="text-ink">{STORES.length} Apple Stores</b> in the US, in {cities.length} cities across {states.length - 1} states and Washington, D.C. Right now <b className="text-ink">{d.stockNow.duo}</b> of them list an iPhone Duo for pickup, <b className="text-ink">{d.stockNow["18-pro-max"]}</b> the iPhone 18 Pro Max and <b className="text-ink">{d.stockNow["18-pro"]}</b> the 18 Pro. Choose a state, compare configurations and open the store details before you travel. Tax-free states are marked to help estimate the pickup cost.</p>
-      <div className="mt-6 flex flex-wrap gap-2"><Link href={`/map?model=${DEFAULT_MODEL}`} className="btn btn-ghost btn-sm">Live map</Link><Link href="/restocks" className="btn btn-ghost btn-sm">Restock log</Link><Link href={alert} className="btn btn-primary btn-sm">Alert me</Link></div>
-
-      <div className="mt-6"><ModelPlaceCards place={US_PLACE} stockNow={d.stockNow} of={STORES.length} unit="stores with it" /></div>
-      <div className="mt-3"><PlaceStatStrip stores={STORES.length} cities={cities.length} stockNow={d.stockNow} stats={d.pstats} /></div>
-
-      <section className="mt-10 max-w-3xl" aria-labelledby="how-many">
-        <h2 id="how-many" className="text-2xl font-semibold">How many Apple Stores are there in the US?</h2>
-        <p className="mt-2 leading-relaxed text-ink-2">{hub.count.a}</p>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
-            <caption className="mb-2 text-start text-xs text-ink-3">The ten states with the most Apple Stores (Apple retail store list, as tracked here)</caption>
-            <thead><tr className="text-start text-ink-3"><th className="py-1.5 pe-4 font-medium">State</th><th className="py-1.5 pe-4 font-medium">Apple Stores</th><th className="py-1.5 font-medium">Cities</th></tr></thead>
-            <tbody className="divide-y divide-line">
-              {top.map((s) => <tr key={s.slug}><td className="py-1.5 pe-4"><Link href={statePath(s.name)} className="hover:underline">{s.name}</Link></td><td className="py-1.5 pe-4 tabular-nums">{s.count}</td><td className="py-1.5 tabular-nums">{cities.filter((x) => x.state === s.name).length}</td></tr>)}
-            </tbody>
-          </table>
+    <div className="field-page">
+      <JsonLd data={itemListJsonLd("US Apple Store pickup directory",STORES)} />
+      <FieldIntro title="Find your next pickup stop." description="An iPhone search gets more useful when it becomes local. Choose a state, find the cities you can reach, and compare exact configurations at individual stores. This directory separates that practical route from the historical data behind it."
+        actions={<><Link href={`/map?model=${DEFAULT_MODEL}`} className="btn btn-primary btn-sm">Explore the pickup map</Link><Link href="/stock/iphone-duo" className="btn btn-ghost btn-sm">Compare iPhone Duo</Link></>}>
+        <dl className="field-metrics"><div className="field-metric"><dt className="field-label">Apple Stores in this directory</dt><dd className="field-value">{STORES.length}</dd></div><div className="field-metric"><dt className="field-label">Cities to explore</dt><dd className="field-value">{cities.length}</dd></div><div className="field-metric"><dt className="field-label">States & Washington, D.C.</dt><dd className="field-value">{states.length}</dd></div></dl>
+      </FieldIntro>
+      <div className="field-layout">
+        <div className="field-main">
+          <FieldSection id="regions" title="Choose a travel boundary" caption="01 / The directory">
+            <div className="field-index">{states.map(s => {
+              const mine=cities.filter(x=>x.state===s.name);
+              return <article key={s.slug} className="border-t border-line py-4"><Link href={statePath(s.name)} className="flex items-start justify-between gap-3 text-xl font-semibold"><span>{s.name}</span><span className="font-mono text-sm font-normal text-ink-3">{s.count} ↗</span></Link><p className="mt-2 text-xs text-ink-3">{mine.length} {mine.length===1 ? "city" : "cities"}{SALES_TAX[s.name]?.combined===0 ? " · no state or local sales tax in the tracked estimate" : ""}</p><div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-sm">{mine.map(x=><Link key={x.slug} href={cityPath(x.state,x.name)} className="text-ink-2 underline-offset-4 hover:underline">{x.name}</Link>)}</div></article>;
+            })}</div>
+          </FieldSection>
+          <FieldSection id="models" title="Three model searches, one local decision" caption="02 / Configuration first"><ModelPlaceCards place={US_PLACE} stockNow={d.stockNow} of={STORES.length} unit="stores at the recorded observation" /></FieldSection>
+          <FieldSection id="geography" title="Where the directory is densest" caption="03 / Store geography"><p className="max-w-2xl text-sm leading-relaxed text-ink-2">Store count describes the number of places you could compare. It does not measure the number of phones or the probability of finding your chosen configuration.</p><div className="mt-5 overflow-x-auto"><table className="w-full text-start text-sm"><caption className="mb-3 text-start text-xs text-ink-3">Ten states with the most listed Apple Stores</caption><thead><tr className="border-b border-line text-ink-3"><th className="py-3 text-start">State</th><th className="py-3 text-end">Stores</th><th className="py-3 text-end">Cities</th></tr></thead><tbody>{top.map(s=><tr key={s.slug} className="border-b border-line"><td className="py-3"><Link href={statePath(s.name)}>{s.name}</Link></td><td className="text-end font-mono">{s.count}</td><td className="text-end font-mono">{cities.filter(x=>x.state===s.name).length}</td></tr>)}</tbody></table></div></FieldSection>
+          <FieldSection title="The recorded return pattern" caption="04 / Historical evidence"><RestockClock stats={d.stats} label="across the US" reports={d.reports} /></FieldSection>
+          <FieldSection title="How long observed pickup windows lasted"><SellOutTimes data={d.sell} label="across the US" showStore /></FieldSection>
+          <FieldSection title={`A day-by-day record: ${d.pstats.days} days`}><DailyBars stats={d.pstats} label="across the US" /></FieldSection>
         </div>
-      </section>
-
-      <h2 className="mt-10 text-2xl font-semibold">Apple Store locations by state</h2>
-      <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {states.map((s) => {
-          const mine = cities.filter((x) => x.state === s.name);
-          return (
-            <li key={s.slug} className="pane-2 min-w-0 p-4">
-              <Link href={statePath(s.name)} className="flex items-center justify-between gap-2 font-semibold hover:underline"><span>{s.name}</span><span className="shrink-0 text-sm font-normal text-ink-3">{s.count} store{s.count > 1 ? "s" : ""}{SALES_TAX[s.name] ? (SALES_TAX[s.name].combined === 0 ? " · no sales tax" : ` · ${SALES_TAX[s.name].combined}% tax`) : ""}</span></Link>
-              <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs">
-                {mine.map((x) => <Link key={x.slug} href={cityPath(x.state, x.name)} className="text-ink-2 hover:text-ink hover:underline">{x.name}{x.stores.length > 1 ? ` (${x.stores.length})` : ""}</Link>)}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <section className="pane p-5">
-          <h2 className="text-xl font-semibold">When do stores restock?</h2>
-          <div className="mt-3"><RestockClock stats={d.stats} label="across the US" reports={d.reports} /></div>
-        </section>
-        <section className="pane p-5">
-          <h2 className="text-xl font-semibold">How fast do restocks sell out across the US?</h2>
-          <div className="mt-3"><SellOutTimes data={d.sell} label="across the US" showStore /></div>
-        </section>
-        <section className="pane p-5">
-          <h2 className="text-xl font-semibold">Last {d.pstats.days} days</h2>
-          <div className="mt-3"><DailyBars stats={d.pstats} label="across the US" /></div>
-        </section>
-        <Faq items={questions} title="FAQ" />
-        <div className="space-y-4">
-          <Figure id="apple-store-glass-canopy" className="my-0" />
-          <Figure id="phone-map" className="my-0" />
-          <div className="pane p-5"><SourceList sources={[{ label: "Apple: Retail store list", url: "https://www.apple.com/retail/storelist/" }, SALES_TAX_SOURCE]} facts={emptyFacts()} /></div>
-        </div>
+        <aside className="field-aside space-y-6"><FieldMethod /><div className="pane p-5"><p className="field-kicker">Your shortlist</p><h2 className="mt-2 text-xl font-semibold">Watch a choice you would actually buy.</h2><p className="mt-3 text-sm leading-relaxed text-ink-2">One alert is one exact model, storage and color at one store. Choose the configuration first; a national total cannot make that decision for you.</p><Link href={alert} className="btn btn-primary mt-5">Set up a pickup alert</Link></div><SourceList sources={[{label:"Apple retail store directory",url:"https://www.apple.com/retail/storelist/"},SALES_TAX_SOURCE]} facts={emptyFacts()} /></aside>
       </div>
+      <div className="field-section"><Faq items={questions} title="Planning questions" /></div>
 
       <RelatedBlock>
         <BrowsePopular />

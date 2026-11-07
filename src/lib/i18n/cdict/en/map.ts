@@ -3,11 +3,11 @@
  * translated; {in} is "in Japan" (English: the site's own "in the US", "in the UK"; other languages fill `inCountry`).
  */
 export const map = {
-  title: "Pickup stock map",
-  leadUs: "All {n} US Apple Stores",
+  title: "The pickup atlas.",
+  leadUs: "Explore {n} US Apple Stores",
   leadOne: "The Apple Store {in}",
   leadAll: "All {n} Apple Stores {in}",
-  leadTail: ", live. Bigger dot = more {model} configurations in stock.",
+  leadTail: ". Narrow the {model} configuration, then choose a location. Larger markers represent more listed configurations.",
   inCountry: "in {country}",
   /** "Updated 7s ago": {ago} is the live counter. */
   updated: "Updated {ago}",
@@ -34,19 +34,19 @@ export const map = {
   regions: { "Lower 48": "Lower 48", Alaska: "Alaska", Hawaii: "Hawaii", "Puerto Rico": "Puerto Rico" } as Record<string, string>,
   allOf: "All of {country}",
   legend: { inStock: "in stock", none: "none", unchecked: "not checked yet" },
-  rightNow: "Right now",
+  rightNow: "Your selection, across the map",
   ofStores: "of {n} stores",
   configs: { one: "{n} {model} configuration in stock", other: "{n} {model} configurations in stock" },
   noneListed: "No store lists this configuration right now.",
   firstSweep: "First sweep in progress.",
-  selected: "Selected store",
+  selected: "Location in focus",
   close: "Close",
   /** {ago} is the live counter. */
   checked: "{city}, {region} · checked {ago}",
   openStore: "Open store page →",
   alertHere: "Alert me here",
-  withStock: "Stores with stock",
-  tapDot: "Tap a dot for details.",
+  withStock: "Places with a matching listing",
+  tapDot: "Choose a marker to read that store’s current options.",
   nothingMatching: "Nothing matching your filter right now.",
   /** The tooltip over a dot. */
   popupCount: "{n} in stock",

@@ -19,6 +19,9 @@ import { Rich } from "@/components/i18n/Rich";
 import { fill, num, plural, bidi } from "@/lib/i18n/format";
 import { cityLabel, colorLabel, countryLabel, regionLabel, storeLabel } from "@/lib/i18n/places";
 import type { CountryCode } from "@/lib/apple/countries";
+import { fieldCopy } from "@/content/field-guide";
+import { Skeleton } from "@/components/ui/Skeleton";
+import "@/components/pages/Workspace.css";
 
 export interface MapStore { n: string; name: string; city: string; state: string; code: string; path: string; cityHref: string; stateHref: string; lat: number; lng: number }
 function dotColor(t: Theme) { const ink = MAP_INK[t]; return ["match", ["get", "state"], "ok", ink.ok, "unknown", ink.unknown, ink.none] as unknown as string; }
@@ -55,6 +58,7 @@ function boundsOf(pts: { lat: number; lng: number }[], pad = 0.5): Bounds | null
 export function StockMap({ stores, initial, focus, country }: { stores: MapStore[]; initial: MapSnapshot; focus: MapFocus; country?: MapCountry }) {
   const d = useT().map;
   const lang = useLang();
+  const F = fieldCopy(lang);
   // Names in the page's language: English keeps the data's own; another language reads Apple's names in it.
   const en = lang === "en";
   const cc = (country?.cc ?? "us") as CountryCode;
@@ -84,6 +88,7 @@ export function StockMap({ stores, initial, focus, country }: { stores: MapStore
   const [tick, setTick] = useState(0);
   const [ready, setReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const mapCanvas = useRef<HTMLDivElement>(null);
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const libRef = useRef<typeof maplibregl | null>(null);
@@ -224,6 +229,16 @@ export function StockMap({ stores, initial, focus, country }: { stores: MapStore
   }, [geojson, ready]);
 
   const flyTo = useCallback((bounds: Bounds) => { mapRef.current?.fitBounds(bounds, { padding: 28, duration: 900 }); }, []);
+  const revealMap = useCallback(() => {
+    const canvas = mapCanvas.current;
+    if (!canvas) return;
+    const bounds = canvas.getBoundingClientRect();
+    const headerBottom = document.querySelector("header.site-header")?.getBoundingClientRect().bottom ?? 0;
+    const visibleHeight = Math.min(bounds.bottom, window.innerHeight) - Math.max(bounds.top, headerBottom);
+    // Region rows can be far below the map on a phone. Leave an already readable map in place.
+    if (visibleHeight >= Math.min(bounds.height, 240)) return;
+    canvas.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, []);
   const focusStore = useCallback((n: string) => {
     setSelected(n);
     const s = stores.find((x) => x.n === n);
@@ -257,7 +272,8 @@ export function StockMap({ stores, initial, focus, country }: { stores: MapStore
     if (!pts.length) return;
     const lngs = pts.map((p) => p.lng), lats = pts.map((p) => p.lat);
     flyTo([[Math.min(...lngs) - 0.6, Math.min(...lats) - 0.4], [Math.max(...lngs) + 0.6, Math.max(...lats) + 0.4]]);
-  }, [stores, flyTo]);
+    revealMap();
+  }, [stores, flyTo, revealMap]);
 
   const sel = selected ? views.find((v) => v.n === selected) ?? null : null;
   const modelMeta = filter.model === "all" ? null : MODELS.find((m) => m.key === filter.model)!;
@@ -271,38 +287,43 @@ export function StockMap({ stores, initial, focus, country }: { stores: MapStore
   void tick;
 
   return (
-    <div className="mx-auto max-w-[1400px] px-4 pt-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="field-page">
+      <div className="field-intro">
         <div>
-          <h1 className="display text-3xl sm:text-5xl">{d.title}</h1>
-          <p className="mt-2 max-w-2xl text-ink-2">{country ? fill(stores.length === 1 ? d.leadOne : d.leadAll, { n: L.n(stores.length), in: L.in }) : fill(d.leadUs, { n: L.n(stores.length) })}{fill(d.leadTail, { model })}</p>
+          <p className="field-kicker">{F.guide} / {countryLabel(cc, lang)}</p>
+          <h1 className="field-title">{d.title}</h1>
+          <p className="field-lead">{country ? fill(stores.length === 1 ? d.leadOne : d.leadAll, { n: L.n(stores.length), in: L.in }) : fill(d.leadUs, { n: L.n(stores.length) })}{fill(d.leadTail, { model })}</p>
         </div>
-        <div className="inline-flex items-center gap-2 text-sm text-ink-3"><span className={`dot ${stats.newest ? "dot-ok dot-live" : "dot-warn"}`} /> {stats.newest ? <Rich text={d.updated} vars={{ ago: <LiveAgo iso={stats.newest} /> }} /> : d.waiting}</div>
+        <div className="field-callout"><div className="inline-flex items-center gap-2 text-sm text-ink-3"><span className={`dot ${stats.newest ? "dot-ok dot-live" : "dot-warn"}`} /> {stats.newest ? <Rich text={d.updated} vars={{ ago: <LiveAgo iso={stats.newest} /> }} /> : d.waiting}</div><p className="mt-3 text-sm leading-relaxed text-ink-2">{F.nowNote}</p></div>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
+      <div className="map-workspace">
+      <aside className="map-filter-dock pane" aria-label={F.model}>
+        <h2 className="field-kicker">{F.model}</h2>
+        <div className="map-model-options">
         {MODELS.map((m) => <button key={m.key} type="button" className="chip" aria-pressed={filter.model === m.key} onClick={() => setFilter({ model: m.key, storage: "", color: "" })}>{m.name}</button>)}
         <button type="button" className="chip" aria-pressed={filter.model === "all"} onClick={() => setFilter({ model: "all", storage: "", color: "" })}>{d.allModels}</button>
+        </div>
         {modelMeta && (
           <>
-            <span className="mx-1 text-ink-3">·</span>
-            <select className="input py-2.5" style={{ width: "auto" }} value={filter.storage} onChange={(e) => setFilter((f) => ({ ...f, storage: e.target.value }))} aria-label={d.storage}>
+            <label className="text-xs text-ink-3" htmlFor="atlas-storage">{d.storage}</label>
+            <select id="atlas-storage" className="input py-2.5" value={filter.storage} onChange={(e) => setFilter((f) => ({ ...f, storage: e.target.value }))} aria-label={d.storage}>
               <option value="">{d.anyStorage}</option>
               {storages.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
-            <select className="input py-2.5" style={{ width: "auto" }} value={filter.color} onChange={(e) => setFilter((f) => ({ ...f, color: e.target.value }))} aria-label={d.color}>
+            <label className="text-xs text-ink-3" htmlFor="atlas-color">{d.color}</label>
+            <select id="atlas-color" className="input py-2.5" value={filter.color} onChange={(e) => setFilter((f) => ({ ...f, color: e.target.value }))} aria-label={d.color}>
               <option value="">{d.anyColor}</option>
               {colors.map((c) => <option key={c} value={c}>{L.color(c)}</option>)}
             </select>
           </>
         )}
-      </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="pane relative h-[62vh] min-h-[460px] overflow-hidden">
+        <div className="border-t border-line pt-4"><h3 className="text-sm font-semibold">{F.alert}</h3><p className="mt-2 text-xs leading-relaxed text-ink-3">{F.alertNote}</p></div>
+      </aside>
+        <div ref={mapCanvas} className="map-canvas pane relative overflow-hidden">
           {/* explicit size, not inset-0: maplibre's own CSS sets position: relative on the container */}
           <div ref={mapEl} className="h-full w-full" aria-label={country ? fill(d.mapLabel, { in: L.in }) : d.mapLabelUs} role="application" />
-          {!ready && !mapError && <div className="absolute inset-0 flex items-center justify-center bg-bg-2 text-sm text-ink-3"><span className="spinner me-2" /> {d.loading}</div>}
+          {!ready && !mapError && <div className="map-loading-grid" role="status" aria-label={d.loading}><span className="sr-only">{d.loading}</span>{Array.from({ length: 9 }, (_, i) => <Skeleton key={i} className="h-full w-full" />)}</div>}
           {mapError && <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-ink-2">{fill(d.errors.tail, { error: mapError })}</div>}
           <div className="absolute end-3 top-3 flex flex-wrap justify-end gap-1.5">
             <button type="button" className="rounded-full border border-accent/50 bg-pane px-2.5 py-1 text-[11px] font-medium text-accent backdrop-blur hover:bg-ink/10 sm:px-3 sm:py-1.5 sm:text-xs" onClick={nearMe} disabled={locating}>{locating ? d.locating : d.nearMe}</button>
@@ -315,7 +336,7 @@ export function StockMap({ stores, initial, focus, country }: { stores: MapStore
           </div>
         </div>
 
-        <aside className="space-y-4">
+        <aside className="map-detail-dock">
           <div className="pane p-5">
             <div className="eyebrow">{d.rightNow}</div>
             <div className="mt-2 flex items-baseline gap-2"><span className="display text-5xl">{stats.withStock}</span><span className="text-ink-3">{fill(d.ofStores, { n: L.n(stores.length) })}</span></div>
@@ -370,7 +391,7 @@ export function StockMap({ stores, initial, focus, country }: { stores: MapStore
         </aside>
       </div>
 
-      <section className="pane mt-8 p-5 sm:p-6">
+      <section className="pane field-section p-5 sm:p-7">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 className="text-xl font-semibold">{fill(d.byRegion, { noun: regionNoun })}</h2>
           <p className="text-sm text-ink-3">{fill(d.regionsHave, { n: L.n(stats.states.filter((s) => s.withStock).length), total: L.n(stats.states.length), nouns: noun.other, model })}</p>
@@ -381,7 +402,7 @@ export function StockMap({ stores, initial, focus, country }: { stores: MapStore
             <tbody className="divide-y divide-line">
               {stats.states.map((s) => (
                 <tr key={s.code} className="cursor-pointer hover:bg-ink/5" onClick={() => focusState(s.code)}>
-                  <td className="py-2 pe-3"><span className="font-mono text-xs text-ink-3">{L.code(s.code, s.name)}</span> {L.region(s.name)} <Link href={stores.find((x) => x.code === s.code)?.stateHref ?? (country ? `/${country.cc}` : "/stores")} className="ms-1 text-xs text-ink-3 underline hover:text-ink" onClick={(e) => e.stopPropagation()}>{d.table.page}</Link></td>
+                  <td className="py-2 pe-3"><button type="button" className="text-start hover:text-accent" onClick={(e) => { e.stopPropagation(); focusState(s.code); }}><span className="font-mono text-xs text-ink-3">{L.code(s.code, s.name)}</span> {L.region(s.name)}</button> <Link href={stores.find((x) => x.code === s.code)?.stateHref ?? (country ? `/${country.cc}` : "/stores")} className="ms-1 text-xs text-ink-3 underline hover:text-ink" onClick={(e) => e.stopPropagation()}>{d.table.page}</Link></td>
                   <td className="py-2 pe-3 text-ink-2">{s.stores}</td>
                   <td className={`py-2 pe-3 ${s.withStock ? "text-accent" : "text-ink-3"}`}>{s.withStock}</td>
                   <td className="py-2 pe-3 text-ink-2">{s.configs}</td>

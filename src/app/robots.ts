@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { INTL_CODES } from "@/lib/apple/countries";
 import { NATIVE_LOCALES } from "@/lib/i18n/locales";
+import { publicIndexingEnabled } from "@/lib/seo/curation";
 
-/** Search and AI answer engines are welcome everywhere public; private areas stay out for everyone. */
+/** Omitted editorial pages remain crawlable so their noindex directive can be read. */
 const PRIVATE = ["/admin", "/account", "/api/", "/checkout/"];
 /**
  * Filtered views that are never meant for the index: every place-level product page (noindex) and the
@@ -22,7 +23,7 @@ const AI_AGENTS = [
 
 export default function robots(): MetadataRoute.Robots {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://shelfspring.com";
-  const indexable = process.env.NEXT_PUBLIC_INDEXABLE === "1";
+  const indexable = publicIndexingEnabled();
   if (!indexable) return { rules: [{ userAgent: "*", disallow: "/" }] };
   return {
     rules: [

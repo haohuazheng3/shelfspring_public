@@ -1,13 +1,10 @@
-/**
- * /which-iphone-duo-restocks-most: the eight configurations ranked by confirmed restocks, shown as tiles, tables and
- * keyword lines. Each H2 is a question with one answer-first sentence; the numbers are live from the restock log.
- */
+import { withCuratedMetadata } from "@/lib/seo/curation";
+import { GuideLayout } from "@/components/guides/GuideLayout";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { PendingLink as Link } from "@/components/ui/PendingLink";
 import { BlockView } from "@/components/content/Blocks";
 import { Inline } from "@/components/content/Inline";
-import { Figure } from "@/components/content/Figure";
 import { RichFaq, SourceList } from "@/components/content/RichFaq";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getFacts, type Facts } from "@/lib/content/facts";
@@ -22,19 +19,18 @@ import { Measured, Points, Stat, StatGrid, StepStrip } from "@/components/ui/Viz
 
 export const revalidate = 3600;
 
-const TITLE = "iPhone Duo Restock Mix: Compare Storage and Color Records";
-const DESCRIPTION = "Compare recorded iPhone Duo returns by storage and color, alongside current pickup listings. Event counts describe the sample, not your purchase odds.";
+const TITLE = "iPhone Duo Configuration Mix: Read the Return Records";
+const DESCRIPTION = "Build a flexible iPhone Duo shortlist using US configuration counts, storage and color comparisons, and separate country samples. Keep event shares distinct from live pickup listings.";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withCuratedMetadata("/which-iphone-duo-restocks-most", {
   title: { absolute: `${TITLE} · ShelfSpring` },
   description: DESCRIPTION,
   alternates: { canonical: "/which-iphone-duo-restocks-most" },
   openGraph: { type: "article", siteName: "ShelfSpring", title: TITLE, description: DESCRIPTION, url: "/which-iphone-duo-restocks-most" },
-};
+});
 
 const APPLE_DUO = "https://www.apple.com/shop/buy-iphone/iphone-duo";
 const PICKUP = "https://www.apple.com/shop/shipping-pickup";
-const WIKI_FOLDABLE = "https://en.wikipedia.org/wiki/Foldable_smartphone";
 /** The other countries whose mix we compare, in the order the site lists them. */
 const ABROAD: CountryCode[] = ["ca", "uk", "au", "jp"];
 
@@ -52,7 +48,7 @@ function storeLink(storeNumber: string): string {
 }
 /** "[Apple Fifth Avenue](…), Nov 2, 9:31 AM local time" for a restock. */
 function lastLine(at: string | null, storeNumber: string | null): string {
-  if (!at || !storeNumber) return "none yet";
+  if (!at || !storeNumber) return "no recorded return";
   const s = storeByNumber(storeNumber);
   return s ? `${storeLink(storeNumber)}, ${localStamp(at, s)} local time` : `${ET.format(new Date(at))} ET`;
 }
@@ -63,10 +59,9 @@ function topAbroad(t: RestockTimes): { name: string; storage: string; restocks: 
   return p && i ? { name: `${i.storage} ${i.color}`, storage: i.storage, restocks: p.restocks } : null;
 }
 
-/** A question, its one-sentence answer, then the UI. */
 function Section({ id, h2, lead, facts, children }: { id: string; h2: string; lead: string; facts: Facts; children: ReactNode }) {
   return (
-    <section id={id} className="pane scroll-mt-24 p-5 sm:p-7">
+    <section id={id} className="guide-chapter">
       <h2 className="display text-2xl sm:text-3xl">{h2}</h2>
       <p className="mt-3 text-base text-ink-2 sm:text-lg"><Inline text={lead} facts={facts} /></p>
       {children}
@@ -114,65 +109,62 @@ export default async function WhichDuoRestocksMost() {
   const storageGap = storageSorted.length ? storageSorted[0].share - storageSorted[storageSorted.length - 1].share : 0;
   const colorGap = colorSorted.length >= 2 ? colorSorted[0].share - colorSorted[colorSorted.length - 1].share : 0;
   const storageWins = storageGap >= colorGap;
-  const leadStorage = storageSorted[0];
   const biggest = storages[storages.length - 1];
   const big = storageRows.find((r) => r.storage === biggest);
   const bigRows = rows.filter((r) => r.item.storage === biggest);
   const bigLast = bigRows.filter((r) => r.lastAt).sort((a, b) => (b.lastAt! > a.lastAt! ? 1 : -1))[0];
-  const abroadRows = ABROAD.map((cc, i) => ({ cc, name: COUNTRIES[cc].name, t: abroad[i], top: topAbroad(abroad[i]) }));
+  const abroadRows = ABROAD.map((cc, i) => ({ cc, name: COUNTRIES[cc].name, t: abroad[i], top: abroad[i].unknown ? null : topAbroad(abroad[i]) }));
   const abroadWithData = abroadRows.filter((r) => r.top);
-  const sameStorage = abroadWithData.filter((r) => leadStorage && r.top!.storage === leadStorage.storage);
-  const todayLine = t.today ? `${plural(t.today.restocks, "restock")} at ${plural(t.today.stores, "store")}` : "no count yet";
+  const todayLine = !t.unknown && t.today ? `${plural(t.today.restocks, "recorded return")} across ${plural(t.today.stores, "store")}` : "a current daily count is unavailable";
   const ratio = most && fewest && have && fewest.share > 0 ? Math.max(1, Math.round(most.share / fewest.share)) : null;
   const oneIn = big && big.share > 0 ? Math.max(1, Math.round(1 / big.share)) : null;
 
-  const rankTable: Block = { t: "table", head: ["Configuration", "Price", `Restocks since ${since}`, "Share", "Last restock", "Stores with it now"], rows: rows.map((r) => [r.name, fmtPrice(r.price), n(r.restocks), pct(r.share), lastLine(r.lastAt, r.lastStore), `{{duo.cfg:${r.name}}}`]), caption: `All eight iPhone Duo configurations at the ${STORES.length} US Apple Stores, most restocks first`, source: `ShelfSpring restock log; prices from [apple.com](${APPLE_DUO}), before sales tax` };
-  const storageTable: Block = { t: "table", head: ["Storage", "Price (either color)", "Restocks", "Share", "Stores with it now"], rows: storageRows.map((r) => [r.storage, fmtPrice(r.price), n(r.restocks), pct(r.share), nowText(r.now)]), caption: "By storage size", source: "ShelfSpring restock log" };
-  const colorTable: Block = { t: "table", head: ["Color", "Restocks", "Share", "Stores with it now"], rows: colorRows.map((r) => [r.color, n(r.restocks), pct(r.share), `{{duo.color:${r.color}}}`]), caption: "By color", source: "ShelfSpring restock log" };
-  const abroadTable: Block = { t: "table", head: ["Country", "Most-restocked configuration", "Its restocks", "All Duo restocks", "Stores with a restock"], rows: abroadRows.map((r) => [`[${r.name}](/${r.cc}/iphone-duo-restock-times)`, r.top ? r.top.name : r.t.unknown ? "—" : "none confirmed yet", r.top ? n(r.top.restocks) : "—", n(r.t.n), `${n(r.t.stores)} of ${r.t.storesTotal}`]), caption: `Since ${intlSince}, each country's own Apple Stores and part numbers`, source: "ShelfSpring restock log" };
+  const count = (value: number) => t.unknown ? "—" : n(value);
+  const share = (value: number) => have ? pct(value) : "—";
+  const leaders = have && most ? rows.filter((row) => row.restocks === most.restocks) : [];
+  const rankTable: Block = { t: "table", head: ["Configuration", "US catalog price", "Recorded returns", "Share of US returns", "Latest recorded return", "Currently listing US stores"], rows: rows.map((r) => [r.name, fmtPrice(r.price), count(r.restocks), share(r.share), t.unknown ? "—" : lastLine(r.lastAt, r.lastStore), `{{duo.cfg:${r.name}}}`]), caption: `${items.length} configurations · ${STORES.length} US stores · history since ${since}`, source: `Imported inventory events and catalog prices before sales tax; verify the offer on [Apple](${APPLE_DUO})` };
+  const storageTable: Block = { t: "table", head: ["Storage", "US catalog price", "Recorded returns", "Share of US returns", "Listed store–configuration pairs"], rows: storageRows.map((r) => [r.storage, fmtPrice(r.price), count(r.restocks), share(r.share), nowText(r.now)]), caption: "Storage groups combine their colors; a store listing two colors contributes two current pairs.", source: `US inventory history since ${since}; current counts use the latest stock snapshot` };
+  const colorTable: Block = { t: "table", head: ["Color", "Recorded returns", "Share of US returns", "Distinct US stores listing this color"], rows: colorRows.map((r) => [r.color, count(r.restocks), share(r.share), `{{duo.color:${r.color}}}`]), caption: "Color groups combine storage sizes; current store totals count each store once within a color.", source: `US inventory history since ${since}; current counts use the latest stock snapshot` };
+  const abroadTable: Block = { t: "table", head: ["Country", "First configuration by return count", "Its recorded returns", "Country return sample", "Stores represented"], rows: abroadRows.map((r) => [`[${r.name}](/${r.cc}/iphone-duo-restock-times)`, r.t.unknown ? "Unavailable" : r.top ? r.top.name : "No returns recorded", r.t.unknown ? "—" : r.top ? n(r.top.restocks) : "0", r.t.unknown ? "—" : n(r.t.n), r.t.unknown ? "—" : `${n(r.t.stores)} / ${r.t.storesTotal}`]), caption: `Four separate country samples · coverage begins ${intlSince} · country-specific stores and part numbers`, source: "Historical inventory observations; equal counts can share first place even when this summary shows one configuration" };
 
   const mostLead = have && most
-    ? `**${most.name}**, with **${n(most.restocks)}** confirmed US restocks since ${since}${rows[1] ? `; ${rows[1].name} is second with ${n(rows[1].restocks)}` : ""}.`
-    : "The ranking below is computed from every confirmed restock at every US Apple Store and fills in as they happen.";
-  const storageLead = have && storageSorted.length >= 2 && colorSorted.length >= 2
-    ? `**${storageWins ? "Storage" : "Color"} matters more**: ${storageSorted[0].storage} has **${pct(storageSorted[0].share)}** of confirmed US restocks and ${storageSorted[storageSorted.length - 1].storage} ${pct(storageSorted[storageSorted.length - 1].share)}; ${colorSorted[0].color} has **${pct(colorSorted[0].share)}** and ${colorSorted[1].color} ${pct(colorSorted[1].share)}.`
-    : "Whichever shows the wider gap between its most- and least-restocked option; the sums by storage and by color below come from the same confirmed restocks.";
+    ? `${leaders.length > 1 ? `**${listWords(leaders.map((r) => r.name))}** share the highest recorded count` : `**${most.name}** has the highest recorded count`}: ${n(most.restocks)} returns ${leaders.length > 1 ? "each " : ""}within a US sample of ${n(t.n)} events since ${since}. The ordering describes this sample, not the next pickup opportunity.`
+    : t.unknown ? "The US history could not be read. Catalog choices and any available current snapshot remain separate; missing history is not a record of zero returns."
+    : "There are no recorded US returns in this history yet. The catalog can still help you compare choices, but it cannot establish a leading configuration.";
+  const storageLead = have
+    ? `Grouping the same ${n(t.n)} US events by storage and by color answers two different comparison questions. Read the counts first, then use the percentage-point spread to describe the distribution within each group.`
+    : "Both tables reuse the same US event sample. Without recorded returns, no share or spread can be calculated; current listings are shown independently when available.";
   const bigLead = have && big
-    ? `Yes, but rarely: **${n(big.restocks)}** confirmed ${biggest} restocks since ${since}, **${pct(big.share)}** of all iPhone Duo restocks, and {{duo.storage:${biggest}}} US stores listing one right now.`
-    : `Occasionally: the ${biggest} is the thinnest slice of the mix, and its live count fills in as restocks are confirmed.`;
-  const watchLead = `Choose two or three configurations you would actually keep at reachable stores${leadStorage && have ? `; ${leadStorage.storage} accounts for ${pct(leadStorage.share)} of recorded returns in this sample` : ""}. One store × one configuration is one alert. More saved options do not establish a purchase probability.`;
-  const abroadLead = abroadWithData.length
-    ? `Early days, but so far ${abroadWithData.map((r) => `**${r.name}** leads with ${r.top!.name} (${plural(r.top!.restocks, "restock")})`).join(", ")}, all since ${intlSince}.`
-    : `Too early to say: tracking outside the US began on ${intlSince}, and the table below fills in with each country's first confirmed restocks.`;
-  const countLead = `A restock is logged when **two checks** of apple.com, about a second apart, both list the configuration for pickup at that store; the first sighting of a store × configuration is excluded, and the count runs from ${longDate(TRACKING_SINCE_US)}.`;
+    ? `${biggest} accounts for ${n(big.restocks)} of ${n(t.n)} recorded US Duo returns (${pct(big.share)}) since ${since}. That share does not establish how frequently it will appear at a particular store.`
+    : `Use the ${biggest} catalog price and current listings to decide whether this storage size belongs on your shortlist. A return-frequency claim needs an available historical sample.`;
+  const watchLead = "Start with your storage needs and budget. Historical records can help compare acceptable alternatives; they cannot make an unsuitable configuration a good purchase.";
+  const abroadLead = `${abroadWithData.length} of the ${ABROAD.length} country samples below currently contain readable configuration returns. Keep each country's coverage, sample size and latest listings together when planning a pickup there.`;
+  const countLead = "The unit in these tables is a recorded return: a store and configuration changing back to available in the source feed. It is an event count, not a shipment count, an order count or a measure of demand.";
 
   const nav = [
-    { id: "most", label: "The ranking" },
-    { id: "storage-or-color", label: "Storage vs color" },
-    { id: "2tb", label: `The ${biggest}` },
-    { id: "watch", label: "What to watch" },
-    { id: "countries", label: "Other countries" },
-    { id: "counting", label: "How we count" },
+    { id: "counting", label: "Define the evidence" },
+    { id: "most", label: "Read the US ranking" },
+    { id: "storage-or-color", label: "Compare grouped counts" },
+    { id: "2tb", label: `Inspect ${biggest}` },
+    { id: "countries", label: "Keep countries separate" },
+    { id: "watch", label: "Build your shortlist" },
   ];
 
-  const c0 = colors[0], c1 = colors[1] ?? colors[0];
   const s0 = storages[0], s1 = storages[1] ?? storages[0];
   const priceGap = fmtPrice((items.find((i) => i.storage === s1)?.price ?? 0) - items[0].price);
   const faq: Faq[] = [
-    { q: `Is ${c1} or ${c0} easier to get?`, a: have && colorSorted.length === 2
-      ? `${colorSorted[0].color}, slightly: ${n(colorSorted[0].restocks)} confirmed US restocks (${pct(colorSorted[0].share)}) to ${colorSorted[1].color}'s ${n(colorSorted[1].restocks)} (${pct(colorSorted[1].share)}) since ${since}, and right now {{duo.color:${colorSorted[0].color}}} stores list a ${colorSorted[0].color} and {{duo.color:${colorSorted[1].color}}} a ${colorSorted[1].color}. The gap is small enough that we would take either.`
-      : `Neither by much, in our experience; right now {{duo.color:${c0}}} stores list a ${c0} and {{duo.color:${c1}}} a ${c1}.` },
-    { q: `Does the ${s0} restock less than the ${s1}?`, a: have && storageRows.length >= 2
-      ? `${storageRows[0].restocks < storageRows[1].restocks ? "Yes" : storageRows[0].restocks > storageRows[1].restocks ? "No, the other way round" : "They are level"}: ${n(storageRows[0].restocks)} confirmed ${s0} restocks (${pct(storageRows[0].share)}) to ${n(storageRows[1].restocks)} for the ${s1} (${pct(storageRows[1].share)}) since ${since}. The ${s1} costs ${priceGap} more.`
-      : `The storage table above answers this live; the ${s1} costs ${priceGap} more than the ${s0}.` },
-    { q: `Why does Apple seem to restock the ${leadStorage?.storage ?? s1} most?`, a: "We do not know, and we would distrust anyone who says they do: Apple does not publish its allocation by configuration, and ShelfSpring only counts what apple.com shows for pickup, store by store. The share on this page is an observation about restocks, not a statement about how many units Apple built." },
-    { q: "Can I set alerts for several configurations?", a: `Yes. Select acceptable configurations and reachable stores in [alert setup](/#notify); each store × configuration is one alert. All plans use the same stock feed. Plus covers ${PLANS.plus.limit} for $${PLANS.plus.priceUsd} per month, Pro ${PLANS.pro.limit} and Max ${PLANS.max.limit}.` },
-    { q: "Where do I see today's restocks?", a: `On [the restock log](/restocks), which lists every confirmed restock and sell-out with store, configuration and time; today so far: ${todayLine}. ShelfSpring is independent and not affiliated with Apple.` },
+    { q: "Does the first row identify the easiest phone to buy?", a: "It identifies a configuration with the largest recorded return count in this US sample. The feed does not show demand, unit quantities or completed purchases, so that position cannot establish purchase odds. Equal counts may produce several leaders; check the full rows and Apple’s current pickup offer." },
+    { q: "Should I change color because its share is higher?", a: have && colorSorted.length >= 2
+      ? `The observed counts are ${n(colorSorted[0].restocks)} for ${colorSorted[0].color} (${pct(colorSorted[0].share)}) and ${n(colorSorted[1].restocks)} for ${colorSorted[1].color} (${pct(colorSorted[1].share)}) in the US history since ${since}. These totals combine storage sizes and stores. Add another color only if you would want to own it; a national share is not a local availability forecast.`
+      : "No color preference can be inferred from an unavailable or empty return sample. Choose colors you would be happy to own, and consult current stock for each exact configuration." },
+    { q: `How should I compare ${s0} with ${s1}?`, a: `${s1} has a catalog price ${priceGap} above ${s0} in the US. Decide whether the extra storage fits your needs and budget, then compare the recorded counts and current listings in the storage table. The historical ranking does not explain Apple’s production or allocation decisions.` },
+    { q: "Why do storage and color tables use different current-count labels?", a: "The storage table adds the currently listed store–configuration pairs for its colors. A store listing both colors therefore appears twice in that sum. The color table instead reports distinct stores with any listed storage size in that color. These are different counting units and should not be compared as equal totals." },
+    { q: "How many saved alerts would my alternatives use?", a: `Each store and exact configuration uses one alert slot. Three configurations at three stores use nine slots. Current plan capacities are ${PLANS.plus.limit} for ${PLANS.plus.name}, ${PLANS.pro.limit} for ${PLANS.pro.name} and ${PLANS.max.limit} for ${PLANS.max.name}; all use the same feed. [Review the watchlist guide](/iphone-duo-stock-alerts) before choosing capacity.` },
+    { q: "Where can I inspect individual observations?", a: `Open [the US event journal](/restocks) for store, configuration and observation times. For its latest US daily bucket, ${todayLine}. A journal entry describes a past change, so use the [stock board](/stock/iphone-duo) and Apple’s checkout to check what is available now.` },
   ];
   const sources: Source[] = [
-    { label: "Apple: Buy iPhone Duo (configurations and prices)", url: APPLE_DUO },
-    { label: "Apple: Delivery and Pickup (how pickup availability works)", url: PICKUP },
-    { label: "Wikipedia: Foldable smartphone", url: WIKI_FOLDABLE },
+    { label: "Apple’s iPhone Duo configuration and purchase options", url: APPLE_DUO },
+    { label: "Apple’s delivery and collection guidance", url: PICKUP },
   ];
 
   const site = "https://shelfspring.com";
@@ -181,147 +173,118 @@ export default async function WhichDuoRestocksMost() {
     "@graph": [
       { "@type": "WebPage", "@id": `${site}/which-iphone-duo-restocks-most`, url: `${site}/which-iphone-duo-restocks-most`, name: TITLE, description: DESCRIPTION, isPartOf: { "@id": `${site}/#website` }, about: { "@id": `${site}/#organization` }, dateModified: t.at },
       {
-        "@type": "Dataset", "@id": `${site}/which-iphone-duo-restocks-most#dataset`, name: "iPhone Duo restocks by configuration, US Apple Stores",
-        description: `Confirmed in-store pickup restocks of each iPhone Duo storage and color at all ${STORES.length} US Apple Stores since ${longDate(TRACKING_SINCE_US)}, from recorded source observations.`,
+        "@type": "Dataset", "@id": `${site}/which-iphone-duo-restocks-most#dataset`, name: "Observed US iPhone Duo returns grouped by configuration",
+        description: `Store–configuration return events from imported US inventory history beginning ${longDate(TRACKING_SINCE_US)}. Counts and shares describe recorded availability transitions at ${STORES.length} catalog stores, not units or purchase outcomes. Current listings are a separate snapshot.`,
         url: `${site}/which-iphone-duo-restocks-most`, publisher: { "@id": `${site}/#organization` }, isAccessibleForFree: true,
-        temporalCoverage: `${TRACKING_SINCE_US}/..`, spatialCoverage: "Apple Stores in the United States",
-        variableMeasured: ["iPhone Duo storage and color", "confirmed restocks", "share of restocks", "last restock", "stores listing it now"],
-        ...(have ? { size: `${t.n} restocks across ${rows.length} configurations` } : {}),
+        temporalCoverage: `${TRACKING_SINCE_US}/..`, spatialCoverage: "United States Apple Store inventory observations",
+        variableMeasured: ["Configuration", "Recorded return count", "Share of recorded US returns", "Latest observed return time", "Current listing snapshot"],
+        ...(have ? { size: `${t.n} recorded US return events across ${rows.length} configurations` } : {}),
       },
     ],
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pt-8 sm:pt-12">
+    <GuideLayout guide="which-iphone-duo-restocks-most" contents={nav}>
       <JsonLd data={ld} />
-
-      {/* hero */}
-      <section className="grid items-start gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+      <section className="guide-evidence-lead">
         <div>
-          <div className="eyebrow mb-4">iPhone Duo · all eight configurations</div>
-          <h1 className="display text-4xl sm:text-6xl">Which iPhone Duo configurations appear more often in the record?</h1>
-          <p className="mt-5 max-w-xl text-lg text-ink-2">
-            {have && most && fewest
-              ? <><b className="text-ink">{most.name}</b> ({fmtPrice(most.price)}): <b className="text-ink">{pct(most.share)}</b> of the {n(t.n)} iPhone Duo restocks confirmed at US Apple Stores since {since}; {fewest.name} has the fewest at {pct(fewest.share)}.</>
-              : <>Compare recorded returns by configuration alongside current store listings. The dataset covers every configuration at {STORES.length} US Apple Stores; check observation times before ordering.</>}
-          </p>
+          <div className="eyebrow mb-4">Configuration evidence · United States</div>
+          <p className="mt-5 max-w-xl text-lg text-ink-2">A useful shortlist starts with what you need from the phone. This record adds context: which combinations appeared in the observed history, how the counts split across storage and color, and which choices the latest snapshot lists. Keep those questions separate when deciding where to be flexible.</p>
+          <p className="mt-3 text-sm text-ink-3">History snapshot: <time dateTime={t.at}>{ET.format(new Date(t.at))} ET</time>. Current stock snapshot: <time dateTime={facts.at}>{ET.format(new Date(facts.at))} ET</time>.</p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link href="/#notify" className="btn btn-primary btn-lg">Set up alerts</Link>
-            <Link href="/stock/iphone-duo" className="btn btn-ghost btn-lg">Live Duo stock</Link>
+            <Link href="/stock/iphone-duo" className="btn btn-primary btn-lg">Check the configuration board</Link>
+            <Link href="/#notify" className="btn btn-ghost btn-lg">Save acceptable choices</Link>
           </div>
         </div>
         <StatGrid cols={2}>
-          <Stat value={most ? n(most.restocks) : "—"} label={most ? <>{most.name} · most restocks since {since}</> : "most-restocked configuration"} tone="accent" />
-          <Stat value={fewest ? n(fewest.restocks) : "—"} label={fewest ? <>{fewest.name} · fewest restocks</> : "least-restocked configuration"} tone="muted" />
-          <Stat value={most ? nowText(most.now) : "—"} label={most ? <>of {STORES.length} US stores list the {most.name} now</> : "stores listing it now"} live={!!most && most.now != null} />
-          <Stat value={fewest ? nowText(fewest.now) : "—"} label={fewest ? <>list the {fewest.name} now</> : "stores listing it now"} tone="muted" />
+          <Stat value={count(t.n)} label={`recorded US return events since ${since}`} tone="accent" />
+          <Stat value={items.length} label={`${storages.length} storage sizes × ${colors.length} colors in the US catalog`} />
         </StatGrid>
       </section>
 
-      <nav aria-label="On this page" className="mt-8 flex flex-wrap gap-2 text-sm">
-        {nav.map((s) => <a key={s.id} href={`#${s.id}`} className="chip px-3 py-1.5 text-xs">{s.label}</a>)}
-      </nav>
-
       <div className="mt-6 grid gap-5">
-        {/* ranking */}
-        <Section id="most" h2="Which iPhone Duo restocks most often?" lead={mostLead} facts={facts}>
-          <BlockView b={rankTable} facts={facts} />
-          <Points items={[
-            { text: <Inline text={`Apple's first [foldable smartphone](${WIKI_FOLDABLE}) · ${storages.length} storage sizes × ${colors.length} colors (${listWords(colors)}) = **eight configurations**`} facts={facts} /> },
-            { text: <>Each configuration has its own pickup availability at each store</> },
-            { text: t.sellout ? <>&quot;Stores with it now&quot; is live and usually small: half of all Duo restocks were gone within <b className="text-ink">{n(t.sellout.medianSec)} seconds</b></> : <>&quot;Stores with it now&quot; is live and usually small: most listings are gone within minutes</>, no: true },
+        <Section id="counting" h2="Begin with the counting unit" lead={countLead} facts={facts}>
+          <Points className="mt-5" size="base" items={[
+            { text: <>The source rechecks a changed availability response about a second later and records the transition when both responses agree.</> },
+            { text: <>The first observation of a store–configuration pair establishes a starting state. It is excluded from the return totals.</> },
+            { text: <>These US tables use recorded source history from {since}. The country comparison below starts from {intlSince}. Imported dates describe dataset coverage, not the age of ShelfSpring.</> },
+            { text: <>Repeated returns for the same pair count as separate events. The availability response does not reveal how many phones were behind any one listing.</> },
           ]} />
-          <Figure id="foldable-hands" />
+          <Measured title="Read the denominator before the percentage">
+            A configuration’s share divides its return count by the {t.unknown ? "unavailable" : n(t.n)} recorded US events in this sample. No percentage is shown when that history is unavailable or contains no returns. Separately labelled third-party reports are excluded from these source-event totals.
+          </Measured>
+          <LinkRow links={[{ label: "Follow the inventory method", href: "/how-it-works" }, { label: "Inspect the US event journal", href: "/restocks" }]} />
         </Section>
 
-        {/* storage vs color */}
-        <Section id="storage-or-color" h2="Storage or color: which matters more?" lead={storageLead} facts={facts}>
+        <Section id="most" h2="Read a ranking without turning it into a forecast" lead={mostLead} facts={facts}>
+          <BlockView b={rankTable} facts={facts} />
+          <p className="mt-4 text-ink-2">The price column belongs to the US catalog. The event columns describe history since {since}; the final column is a separate current-state snapshot. A configuration can rank highly in past returns and have no stores listing it in the current snapshot.</p>
+          {!t.unknown && t.sellout ? (
+            <Measured title="A different sample measures completed windows">
+              The duration summary contains {n(t.sellout.n)} completed observed US Duo listings since {since}, with a median listed-to-gone interval of {n(t.sellout.medianSec)} seconds. Open listings are not in that duration sample. The interval ends at the next absent observation, so it is an observation bound, not time left to order after a notification.
+            </Measured>
+          ) : (
+            <p className="pane-2 mt-4 p-4 text-sm text-ink-3">No usable completed-duration summary is available. This table does not supply a typical lifetime for a listing; missing duration data cannot support a claim that most listings disappear within minutes.</p>
+          )}
+        </Section>
+
+        <Section id="storage-or-color" h2="Compare the distributions within each group" lead={storageLead} facts={facts}>
           <StatGrid cols={2} className="mt-5">
-            <Stat value={have ? points(storageGap) : "—"} label="gap between the most- and least-restocked storage size, share of all restocks" tone={storageWins ? "accent" : "plain"} />
-            <Stat value={have ? points(colorGap) : "—"} label="gap between the two colors" tone={storageWins ? "plain" : "accent"} />
+            <Stat value={have ? points(storageGap) : "—"} label="percentage-point spread between highest and lowest US storage shares" tone={have && storageWins ? "accent" : "plain"} />
+            <Stat value={have ? points(colorGap) : "—"} label="percentage-point spread between highest and lowest US color shares" tone={have && !storageWins ? "accent" : "plain"} />
           </StatGrid>
           <BlockView b={storageTable} facts={facts} />
           <BlockView b={colorTable} facts={facts} />
-          <Points items={have ? [
-            { text: storageWins ? <>Storage sizes show the wider spread in this sample; that describes past recorded returns</> : <>Colors show the wider spread in this sample; it does not predict the next listing</> },
-            { text: <>A configuration that restocks twice as often is one you see <b className="text-ink">twice as many pushes</b> for</>, step: true },
-          ] : [
-            { text: <>Compare event counts and sample sizes without treating them as purchase probabilities</> },
-            { text: <>The gaps fill in as restocks are confirmed</>, step: true },
-          ]} />
-          <Figure id="two-phones-sky" />
+          <p className="mt-4 text-ink-2">{have ? storageGap === colorGap ? "The two groupings have equal spreads in this sample." : `${storageWins ? "Storage groups" : "Color groups"} have the wider observed spread in this sample.` : "There is no measured spread to compare yet."} Storage and color have different numbers of categories, and both aggregate many stores. A wider spread does not establish which choice will matter more for your next local pickup.</p>
+          <p className="mt-3 text-ink-2">The storage table’s current column counts listed pairs, so a store with two colors can contribute twice. The color table uses distinct stores instead. Read the unit with each count; neither table measures notification delivery.</p>
         </Section>
 
-        {/* the biggest size */}
-        <Section id="2tb" h2={`Is the ${biggest} iPhone Duo ever in stock?`} lead={bigLead} facts={facts}>
+        <Section id="2tb" h2={`Evaluate ${biggest} on its own terms`} lead={bigLead} facts={facts}>
           <StatGrid cols={4} className="mt-5">
-            <Stat value={big ? n(big.restocks) : "—"} label={<>{biggest} restocks since {since}{big && have ? <> · {pct(big.share)} of all Duo restocks</> : null}</>} tone="accent" />
-            <Stat value={<Inline text={`{{duo.storage:${biggest}}}`} facts={facts} />} label={<>of {STORES.length} US stores list a {biggest} right now</>} live />
+            <Stat value={big ? count(big.restocks) : "—"} label={<>{biggest} recorded US returns{big && have ? <> · {pct(big.share)} of this sample</> : null}</>} tone="accent" />
+            <Stat value={<Inline text={`{{duo.storage:${biggest}}}`} facts={facts} />} label={<>distinct US stores currently listing any {biggest} color</>} live={!!duo && !duo.unknown} />
             {bigRows.length === 2
-              ? <Stat value={<>{n(bigRows[0].restocks)}<span className="text-base text-ink-3"> / </span>{n(bigRows[1].restocks)}</>} label={<>{bigRows[0].item.color} / {bigRows[1].item.color}</>} tone="muted" />
-              : <Stat value="—" label="split by color" tone="muted" />}
-            <Stat value={fmtPrice(items[items.length - 1].price)} label={<>either color · {fmtPrice(items[items.length - 1].price - items[0].price)} more than the {storages[0]}</>} />
+              ? <Stat value={<>{count(bigRows[0].restocks)}<span className="text-base text-ink-3"> / </span>{count(bigRows[1].restocks)}</>} label={<>US returns: {bigRows[0].item.color} / {bigRows[1].item.color}</>} tone="muted" />
+              : <Stat value="—" label="color breakdown unavailable" tone="muted" />}
+            <Stat value={fmtPrice(items[items.length - 1].price)} label={<>US catalog · {fmtPrice(items[items.length - 1].price - items[0].price)} above {storages[0]}</>} />
           </StatGrid>
-          <Points className="mt-5" items={[
-            { text: <Inline text={`**Last ${biggest} restock:** ${bigLast ? `${bigLast.name} at ${lastLine(bigLast.lastAt, bigLast.lastStore)}` : "none confirmed yet"}`} facts={facts} /> },
-            { text: <>Set the {biggest} alerts <b className="text-ink">and the next size down</b></> },
-            { text: oneIn ? <>A {pct(big!.share)} share ≈ one Duo restock in <b className="text-ink">{oneIn}</b> is a {biggest}; at a single store that can be days between chances</> : <>The {biggest} is the thinnest slice of the mix; at a single store that can be days between chances</>, no: true },
-          ]} />
-          <LinkRow links={[{ label: `Live ${biggest} stock`, href: "/stock/iphone-duo" }, { label: "Stores with one listed near you", href: "/iphone-duo-near-me" }]} />
+          <p className="mt-5 text-ink-2"><Inline text={`Latest recorded ${biggest} return: ${t.unknown ? "history unavailable" : bigLast ? `${bigLast.name} at ${lastLine(bigLast.lastAt, bigLast.lastStore)}` : "none in this history"}.`} facts={facts} /></p>
+          {have && oneIn && big ? <p className="mt-3 text-ink-2">Its {pct(big.share)} share is approximately one in {oneIn} recorded US returns in this sample. That is a way to express the distribution, not an estimate of how many days a store will take to receive it.</p> : <p className="mt-3 text-ink-2">There is no positive event share to express as a frequency here. Check current listings without assuming that this size is rare or unavailable everywhere.</p>}
+          <LinkRow links={[{ label: `Review current ${biggest} choices`, href: "/stock/iphone-duo" }, { label: "Find a practical collection area", href: "/iphone-duo-near-me" }]} />
         </Section>
 
-        {/* what to watch */}
-        <Section id="watch" h2="Which configuration should I watch?" lead={watchLead} facts={facts}>
+        <Section id="countries" h2="Read each country as its own sample" lead={abroadLead} facts={facts}>
+          <BlockView b={abroadTable} facts={facts} />
+          <p className="mt-4 text-ink-2">These country rows show one highest-count configuration per sample; tied configurations can share that count. A country with fewer stores or a smaller event sample is not directly comparable by raw totals to the United States.</p>
+          <Measured title="Coverage is not a confidence score">
+            International history begins on {intlSince}. The sample sizes remain visible as records accumulate. This ranking has no statistical-confidence threshold and cannot establish a stable national preference, a supply allocation policy or a future restocking schedule.
+          </Measured>
+          <LinkRow links={ABROAD.map((cc) => ({ label: `Inspect ${COUNTRIES[cc].name} history`, href: `/${cc}/iphone-duo-restock-times` }))} />
+        </Section>
+
+        <Section id="watch" h2="Turn your preferences into a shortlist" lead={watchLead} facts={facts}>
           <StepStrip className="mt-5" steps={[
-            { title: <>Lead with {leadStorage && have ? leadStorage.storage : "the storage that restocks most"}</>, hint: "it is where the pushes come from" },
-            { title: "Add the next size you would keep", hint: "not one you would return; a cancelled reservation is a slot someone else lost" },
-            { title: "Choose acceptable colors", hint: "save both only if you would be happy buying either" },
-            { title: "Two or three stores", hint: <Inline text={`3 stores × 3 configurations = ${plural(9, "alert")}, inside Plus's ${PLANS.plus.limit} ([pricing](/pricing))`} facts={facts} /> },
+            { title: "Set a storage floor", hint: "Name the capacity you need and the maximum price you would accept before considering the ranking." },
+            { title: "Choose colors you want", hint: "Only include a color if you would be satisfied keeping the phone in that finish." },
+            { title: "Pair choices with reachable stores", hint: "Your travel options and Apple’s collection choices determine which matches would be useful." },
+            { title: "Check the rule count", hint: `For example, three configurations at three stores use nine alerts. Compare that count with your plan’s capacity of ${PLANS.plus.limit}, ${PLANS.pro.limit} or ${PLANS.max.limit}.` },
           ]} />
           <StatGrid cols={3} className="mt-6">
-            <Stat value={ratio ? `${ratio}×` : "—"} label={ratio && most && fewest ? <>as many recorded returns for {most.name} ({pct(most.share)}) as {fewest.name} ({pct(fewest.share)})</> : "recorded returns: most- vs least-restocked configuration"} tone="accent" />
-            <Stat value="1 × 1" label="one store and one configuration per alert" />
-            <Stat value="Same feed" label="all plans; delivery time varies" />
+            <Stat value={ratio ? `≈${ratio}×` : "—"} label={ratio && most && fewest ? <>recorded-count ratio: {most.name} ({pct(most.share)}) / {fewest.name} ({pct(fewest.share)}) · rounded</> : "no ratio shown without positive counts at both ends"} tone="accent" />
+            <Stat value="1 pair" label="one exact configuration at one store uses one alert slot" />
+            <Stat value="Shared feed" label="plan capacity changes saved rules, not the inventory evidence" />
           </StatGrid>
-          <LinkRow links={[{ label: "Set the alerts", href: "/#notify" }, { label: "How the alerts behave", href: "/iphone-duo-stock-alerts" }]} />
-          <Figure id="phone-on-box" />
-          <div className="flex flex-wrap items-center gap-3">
-            <Link href="/#notify" className="btn btn-primary">Set up alerts for these configurations</Link>
-            <span className="text-sm text-ink-3">Plus: ${PLANS.plus.priceUsd}/month for {PLANS.plus.limit} alerts.</span>
+          <p className="mt-4 text-ink-2">The ratio compares national historical counts. It does not promise a proportional number of alerts: your selected stores, saved rules, future events and delivery conditions all affect the messages you receive.</p>
+          <LinkRow links={[{ label: "Plan the notification setup", href: "/iphone-duo-stock-alerts" }, { label: "Compare plan capacity", href: "/pricing" }]} />
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <Link href="/#notify" className="btn btn-primary">Save my configuration shortlist</Link>
+            <span className="text-sm text-ink-3">{PLANS.plus.name}: ${PLANS.plus.priceUsd}/month · {PLANS.plus.limit} alert slots.</span>
           </div>
-        </Section>
-
-        {/* other countries */}
-        <Section id="countries" h2="Does the mix differ in other countries?" lead={abroadLead} facts={facts}>
-          <BlockView b={abroadTable} facts={facts} />
-          {abroadWithData.length > 0 && leadStorage && (
-            <Points items={[
-              sameStorage.length === abroadWithData.length
-                ? { text: <>Not a US quirk so far: <b className="text-ink">{listWords(abroadWithData.map((r) => r.name))}</b> {abroadWithData.length === 1 ? "leads" : "all lead"} with the same storage size, the {leadStorage.storage}</> }
-                : { text: <>The mix already differs: <b className="text-ink">{listWords(abroadWithData.filter((r) => r.top!.storage !== leadStorage.storage).map((r) => `${r.name} (${r.top!.storage})`))}</b> {abroadWithData.length - sameStorage.length === 1 ? "leads" : "lead"} with a different size from the US&apos;s {leadStorage.storage}</> },
-              { text: <>Each country&apos;s page has its own hour-of-day and day-by-day tables</>, step: true },
-            ]} />
-          )}
-          <Measured title="Thin data">
-            Tracking outside the US began on {intlSince}, so these are a few days of restocks, not a pattern. We call a country&apos;s favourite configuration a pattern only once it has enough restocks over enough days, the same rule as our hour-of-day patterns.
-          </Measured>
-        </Section>
-
-        {/* how we count */}
-        <Section id="counting" h2="How does ShelfSpring count a restock?" lead={countLead} facts={facts}>
-          <Points className="mt-5" size="base" items={[
-            { text: <><b className="text-ink">Two checks must agree</b> · about a second apart · a one-answer glitch is thrown away</> },
-            { text: <><b className="text-ink">The first sighting is excluded</b> · it is the start of a store × configuration&apos;s history, not a restock</> },
-            { text: <><b className="text-ink">{STORES.length} US stores in the dataset</b> · imported US history from {longDate(TRACKING_SINCE_US)}, other countries from {intlSince}; these are coverage dates</> },
-            { text: <><b className="text-ink">Recorded source observations</b> · imported history retains its dates; other trackers’ reports are separately labelled and excluded from these totals</> },
-            { text: <Inline text={`Shares are of restocks, not of units: Apple shows availability, never quantities ([Apple: Delivery and Pickup](${PICKUP})), so one phone and ten count the same`} facts={facts} />, no: true },
-          ]} />
-          <LinkRow links={[{ label: "The check cycle: how ShelfSpring works", href: "/how-it-works" }, { label: "Every restock behind these counts", href: "/restocks" }, { label: "How to get an iPhone Duo when it is sold out", href: "/how-to-get-an-iphone-duo" }, { label: "When Apple restocks the iPhone Duo", href: "/iphone-duo-restock-times" }, { label: "How fast it sells out", href: "/iphone-duo-sell-out-times" }]} />
         </Section>
       </div>
 
-      <div className="mx-auto mt-10 max-w-3xl"><RichFaq items={faq} facts={facts} title="Questions" /></div>
-      <div className="mx-auto mt-8 max-w-3xl"><SourceList sources={sources} facts={facts} where={`all ${STORES.length} US Apple Stores`} /></div>
-    </div>
+      <div className="mx-auto mt-10 max-w-3xl"><RichFaq items={faq} facts={facts} title="Questions about the configuration record" /></div>
+      <div className="mx-auto mt-8 max-w-3xl"><SourceList sources={sources} facts={facts} where={`${STORES.length} US Apple Stores; the four country comparison rows use their own catalogs`} since={`${since} for US history and ${intlSince} for the international comparison`} /></div>
+    </GuideLayout>
   );
 }

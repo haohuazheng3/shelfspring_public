@@ -2,7 +2,9 @@ import type { Faq, Source } from "@/lib/content/types";
 import type { Facts } from "@/lib/content/facts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Inline, plainText } from "./Inline";
-import { t } from "@/lib/i18n/server";
+import { pageLocale, t } from "@/lib/i18n/server";
+import { storesOf } from "@/lib/apple/catalog";
+import { COUNTRIES } from "@/lib/apple/countries";
 
 /** FAQ with inline links and live tokens; FAQPage JSON-LD carries the plain-text answers. Open by default so readers and crawlers see the answers. */
 export function RichFaq({ items, facts, title, id = "faq" }: { items: Faq[]; facts: Facts; title?: string; id?: string }) {
@@ -24,14 +26,18 @@ export function RichFaq({ items, facts, title, id = "faq" }: { items: Faq[]; fac
   );
 }
 
-/** "Sources" list: our own tracker first (with the as-of time), then the outside sources. */
-export function SourceList({ sources, facts, where, since = "{{trackingSince}}" }: { sources: Source[]; facts: Facts; where?: string; since?: string }) {
-  const d = t().content;
+/** "Sources" list: the page country's historical dataset first, then the outside sources. */
+export function SourceList({ sources, facts, where, since }: { sources: Source[]; facts: Facts; where?: string; since?: string }) {
+  const D = t(), d = D.content;
+  const cc = facts.country ?? "us";
+  const localizedFacts = { ...facts, lang: facts.lang ?? pageLocale().lang };
+  const scope = where ?? D.views.common.sourcesWhere(storesOf(cc).length, COUNTRIES[cc]);
+  const start = since ?? (cc === "us" ? "{{trackingSince}}" : D.views.common.since);
   return (
     <section className="text-sm" aria-labelledby="src-h">
       <h2 id="src-h" className="text-lg font-semibold">{d.sources}</h2>
       <ol className="mt-2 list-decimal space-y-1 ps-5 text-ink-2">
-        <li>{d.trackerSource(where ?? d.allUsStores, <Inline text={since} facts={facts} />, <Inline text="{{asOf}}" facts={facts} />)}</li>
+        <li>{d.trackerSource(scope, <Inline text={start} facts={localizedFacts} />, <Inline text="{{asOf}}" facts={localizedFacts} />)}</li>
         {sources.map((s) => <li key={s.url}><a href={s.url} target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-ink">{s.label}</a></li>)}
       </ol>
     </section>

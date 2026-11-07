@@ -30,7 +30,7 @@ vi.mock("react", async (original) => {
 });
 
 import { RestockFilters } from "@/components/restocks/RestockFilters";
-import { SkeletonCard } from "@/components/ui/Skeleton";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 type Props = Parameters<typeof RestockFilters>[0];
 type Node = ReactElement<Record<string, unknown>>;
@@ -68,12 +68,12 @@ describe("restock filter intent and pending feedback", () => {
     const region = (tree: unknown) => nodes(tree).find((n) => n.type === "div" && n.props.className === "mt-5")!;
     const first = render(); effects();
     expect(region(first).props.children).toBe(props.children);
-    expect(nodes(first).some((n) => n.type === SkeletonCard)).toBe(false);
+    expect(nodes(first).some((n) => n.type === Skeleton)).toBe(false);
     click(link(first, "Restocks + sold out"));
     const pending = render();
     expect(region(pending).props["aria-busy"]).toBe(true);
     expect(region(pending).props.children).not.toBe(props.children);
-    expect(nodes(region(pending)).filter((n) => n.type === SkeletonCard)).toHaveLength(6);
+    expect(nodes(region(pending)).some((n) => n.type === Skeleton)).toBe(true);
     expect(nodes(region(pending)).some((n) => n.props.role === "status" && n.props["aria-label"] === "Loading")).toBe(true);
     expect(link(pending, "18 Pro").props.disabled).toBeUndefined();
     click(link(pending, "18 Pro"));
@@ -83,7 +83,7 @@ describe("restock filter intent and pending feedback", () => {
     const settled = render(); effects();
     expect(region(settled).props.children).toBe("NEW_SERVER_FEED_AND_PAGINATION");
     expect(region(settled).props["aria-busy"]).toBe(false);
-    expect(nodes(settled).some((n) => n.type === SkeletonCard)).toBe(false);
+    expect(nodes(settled).some((n) => n.type === Skeleton)).toBe(false);
   });
   it.each([["Restocks + sold out", "18 Pro"], ["18 Pro", "Restocks + sold out"]])("merges rapid %s then %s before any server response or rerender", (first, second) => {
     const oldTree = render(); effects();

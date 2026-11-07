@@ -22,17 +22,10 @@ export function HeaderNav({ variant }: { variant: "main" | "sections" }) {
   const d = useT().chrome.nav;
   const p = treePrefix(pathname, app?.id ?? null);
   const links: [string, string][] = [[`${p}/stock/iphone-duo`, d.duoStock], [`${p}/restocks`, d.restocks], [`${p}/map`, d.map], [`${p}/stores`, d.stores], ["/pricing", d.pricing]];
-  if (variant === "main") {
-    return (
-      <nav className="hidden items-center gap-1 text-sm text-ink-2 md:flex" aria-label={d.main}>
-        {links.map(([href, label]) => <Link key={href} className="rounded-full px-3 py-2 hover:bg-ink/5 hover:text-ink" href={href}>{label}</Link>)}
-      </nav>
-    );
-  }
   return (
-    <nav className="-mx-1 mt-2 flex gap-1 overflow-x-auto pb-0.5 text-sm text-ink-2 md:hidden [scrollbar-width:none]" aria-label={d.sections}>
-      {links.map(([href, label]) => <Link key={href} className="shrink-0 rounded-full px-3 py-1.5 hover:bg-ink/5 hover:text-ink" href={href}>{label}</Link>)}
-      <Link className="not-in-app shrink-0 rounded-full px-3 py-1.5 hover:bg-ink/5 hover:text-ink" href="/install">{d.getApp}</Link>
+    <nav className="section-navigation" aria-label={variant === "main" ? d.main : d.sections}>
+      {links.map(([href, label], index) => <Link key={href} className="section-link" aria-current={pathname === href ? "page" : undefined} href={href}><span className="section-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>{label}</Link>)}
+      <Link className="section-link not-in-app" aria-current={pathname === "/install" ? "page" : undefined} href="/install">{d.getApp}<span aria-hidden="true">↗</span></Link>
     </nav>
   );
 }

@@ -1,16 +1,12 @@
-/**
- * /iphone-duo-stock-alerts: what an alert is and why the interval matters, shown as tiles, a step strip, tables and
- * swaps. Each H2 is a question with one answer-first sentence; every number is live.
- */
+import { withCuratedMetadata } from "@/lib/seo/curation";
+import { GuideLayout } from "@/components/guides/GuideLayout";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { PendingLink as Link } from "@/components/ui/PendingLink";
 import { BlockView } from "@/components/content/Blocks";
 import { Inline } from "@/components/content/Inline";
-import { Figure } from "@/components/content/Figure";
 import { RichFaq, SourceList } from "@/components/content/RichFaq";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { AlertBannerMock } from "@/components/content/CheckoutMocks";
 import { getFacts, type Facts } from "@/lib/content/facts";
 import type { Block, Faq, Source } from "@/lib/content/types";
 import { ALL_STORES, STORES, appleName, storePath } from "@/lib/apple/catalog";
@@ -20,22 +16,22 @@ import { TRACKING_SINCE_INTL, TRACKING_SINCE_US, hourLabel, siteFacts } from "@/
 import { busiestWindow, duoRestockTimes } from "@/lib/content/restockTimes";
 import { medianBand } from "@/lib/stock/sellouts";
 import { alertHref } from "@/lib/seo/enrich";
-import { Measured, Points, Stat, StatGrid, StepStrip, Swap } from "@/components/ui/Viz";
+import { Measured, Points, Stat, StatGrid, StepStrip } from "@/components/ui/Viz";
 
 export const revalidate = 3600;
 
-const TITLE = "iPhone Duo Pickup Alerts: Build a Store and Configuration Watchlist";
-const DESCRIPTION = "Save the iPhone Duo configurations and Apple Stores you would choose. ShelfSpring alerts follow newly detected availability; compare recent listing durations and prepare your pickup order.";
+const TITLE = "iPhone Duo Alerts: Plan a Useful Watchlist · ShelfSpring";
+const DESCRIPTION = "Build an iPhone Duo watchlist around stores and configurations you can use. Count alert slots, check delivery settings and read historical pickup windows with their sample limits.";
 const PATH = "/iphone-duo-stock-alerts";
 const WEB_PUSH = "https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers";
 const APPLE_HELP = "https://www.apple.com/shop/help/shipping_delivery";
 
-export const metadata: Metadata = {
-  title: { absolute: `${TITLE} · ShelfSpring` },
+export const metadata: Metadata = withCuratedMetadata(PATH, {
+  title: { absolute: TITLE },
   description: DESCRIPTION,
   alternates: { canonical: PATH },
   openGraph: { type: "article", siteName: "ShelfSpring", title: TITLE, description: DESCRIPTION, url: PATH },
-};
+});
 
 const n = (x: number) => x.toLocaleString("en-US");
 /** Whole-percent shares; a share under half a percent reads "<1%", never a misleading "0%". */
@@ -43,17 +39,16 @@ const pct = (x: number) => (x > 0 && x < 0.005 ? "<1%" : `${Math.round(x * 100)}
 const longDate = (ymd: string) => new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "long", day: "numeric", year: "numeric" }).format(new Date(`${ymd}T12:00:00Z`));
 const hl = (h: number) => hourLabel(h % 24);
 
-/** A question, its one-sentence answer, then the UI. */
 function Section({ id, h2, lead, facts, children }: { id: string; h2: string; lead: string; facts: Facts; children: ReactNode }) {
   return (
-    <section id={id} className="pane scroll-mt-24 p-5 sm:p-7">
+    <section id={id} className="guide-chapter">
       <h2 className="display text-2xl sm:text-3xl">{h2}</h2>
       <p className="mt-3 text-base text-ink-2 sm:text-lg"><Inline text={lead} facts={facts} /></p>
       {children}
     </section>
   );
 }
-/** Where to go next: a row of chip links. */
+
 function LinkRow({ links, className = "mt-4" }: { links: { label: string; href: string }[]; className?: string }) {
   return (
     <div className={`flex flex-wrap gap-2 ${className}`}>
@@ -64,61 +59,58 @@ function LinkRow({ links, className = "mt-4" }: { links: { label: string; href: 
 
 export default async function DuoStockAlerts() {
   const [f, facts, rt] = await Promise.all([siteFacts(), getFacts(), duoRestockTimes("us")]);
-  const ds = f.duoSellout; // iPhone Duo restocks of the last 7 days that sold out
-  const so = rt.sellout; // every confirmed US Duo restock since tracking began that sold out
+  const ds = f.duoSellout; // Completed Duo listings across all tracked countries, last 7 days.
+  const so = rt.sellout; // Completed US Duo listings since the start of the historical dataset.
   const intl = ALL_STORES.length - STORES.length;
-  const typical = ds ? `about ${medianBand(ds.medianSec)}` : "not available from a sufficient recent sample";
+  const typical = ds ? medianBand(ds.medianSec) : null;
   const since = longDate(rt.since);
   const bw = rt.peakHour != null && rt.n > 0 ? busiestWindow(rt.byHour) : null;
   const top = rt.topStores[0];
   const topStore = top ? STORES.find((s) => s.storeNumber === top.storeNumber) : undefined;
   const setupHref = alertHref({ model: "duo" });
 
-  const alertTable: Block = { t: "table", head: ["What one alert is", "Detail"], rows: [
-    ["Scope", "one Apple Store × one exact configuration (model, storage, color)"],
-    ["Confirmation", "two matching answers from apple.com, about 1 second apart"],
-    ["Delivery", "push to an enabled device; email fallback when no device is set up. Timing varies."],
-    ["Coverage", `${STORES.length} US Apple Stores, plus ${intl} stores in ${INTL_CODES.length} other countries`],
-  ], caption: "The same checks for every plan.", source: "Recorded source observations and ShelfSpring alert matching; the two-answer rule is described on [how it works](/how-it-works)" };
-  const compareTable: Block = { t: "table", head: ["Signal", "What it tells you", "What to do next"], rows: [
-    ["Current listing", "The store and configuration available at the displayed observation time", "Confirm pickup with Apple"],
-    ["Recorded return", "A configuration changed back to available in the historical dataset", "Compare stores and recent activity"],
-    ["Listing duration", "Time between the source observing availability and observing it gone", "Treat it as historical context, not remaining checkout time"],
-    ["Notification", "A new matching return reached ShelfSpring’s alert workflow", "Read the store and configuration, then check Apple"],
-  ], caption: "Four signals, four different questions.", source: "ShelfSpring’s inventory pages and notification workflow" };
+  const setupSteps = [
+    { title: "Write down acceptable configurations", hint: "Choose the storage and color combinations you would actually order. Each exact combination needs its own alert at each selected store." },
+    { title: "Choose a realistic pickup area", hint: "Consider travel, store opening hours and your schedule. You will still need a pickup option that Apple offers when you order." },
+    { title: "Save the store–configuration pairs", hint: "Review the alert count and your plan capacity in the account editor before saving your watchlist." },
+    { title: "Check the delivery channel", hint: "Use the installation guide for your device, enable notifications where supported and send a test. Check your account email for the fallback channel." },
+  ];
 
-  const fastLead = ds
-    ? `Half within **${ds.medianSec} seconds** over the last 7 days (${n(ds.n)} sold-out Duo restocks, **${pct(ds.within30)}** within 30 s)${so ? `; since ${since}, **${pct(so.within2min)}** of ${n(so.n)} US Duo restocks were gone within 2 minutes` : ""}.`
-    : so ? `Within minutes: since ${since}, **${pct(so.within2min)}** of ${n(so.n)} confirmed US iPhone Duo restocks were gone within 2 minutes and ${pct(so.within20min)} within 20, with a median listing of ${so.medianSec} seconds.`
-    : "Too early to say: we state sell-out times only once 20 or more confirmed restocks have sold out, and the window does not have them yet.";
-  const howLead = "Choose a store and exact configuration. **After a matching recorded return reaches ShelfSpring**, it can trigger a notification. Inventory collection, synchronization and delivery take time; Apple may already have sold out when you open it.";
-  const compareLead = "Judge a pickup tool by **what its timestamps and alerts mean**. Current listings, historical patterns and notifications serve different purposes; none is an order confirmation.";
-  const setupLead = "Four steps, about two minutes: pick the iPhone, storage and color; tick the stores you can reach; on iPhone add ShelfSpring to your Home Screen; **reserve on apple.com from the push**.";
-  const costLead = `Browsing is free; alerts are **$${PLANS.plus.priceUsd}** a month for ${PLANS.plus.limit} (${PLANS.plus.name}), $${PLANS.pro.priceUsd} for ${PLANS.pro.limit} (${PLANS.pro.name}) or $${PLANS.max.priceUsd} for ${PLANS.max.limit} (${PLANS.max.name}), one alert being one store × one exact configuration.`;
-  const arrivesLead = `Read the store and configuration, then confirm pickup on apple.com before paying. The recent median listing is ${typical}, but that measures the whole listing—not time remaining when your alert arrives.`;
+  const deliveryTable: Block = { t: "table", head: ["Stage", "What happens", "Limit to keep in mind"], rows: [
+    ["Inventory evidence", "The source confirms an availability change with two matching Apple responses, about a second apart.", "A check records what Apple returned at that moment."],
+    ["Alert matching", "Synchronized return events are matched to your saved store and exact configuration.", "The source must detect the change and ShelfSpring must receive it before a match can be delivered."],
+    ["Device or email", "Enabled devices receive push attempts; email is the fallback when no device is enabled or push fails for every device.", "Permissions, device settings and network conditions affect delivery. There is no fixed arrival-time guarantee."],
+  ], caption: "All subscription tiers use the same inventory feed and matching workflow.", source: "[How ShelfSpring reads inventory](/how-it-works) and the account’s notification settings" };
+
+  const signalTable: Block = { t: "table", head: ["What you are reading", "The question it can answer", "The separate check you still need"], rows: [
+    ["An alert naming a store and configuration", "Which saved choice matched a newly recorded return?", "Does Apple still offer that exact choice for pickup?"],
+    ["A stock table with an observation time", "What did the latest recorded check show?", "Is that observation recent enough to guide your next check?"],
+    ["A completed listing in the history", "How long was this configuration observed before it disappeared?", "A historical duration does not reveal time remaining on a new listing."],
+    ["Apple’s order and pickup messages", "Has Apple accepted the order, and what are the collection instructions?", "Follow the status and requirements in Apple’s messages before travelling."],
+  ], caption: "Use each record for the decision it supports.", source: "Recorded inventory observations and [Apple’s pickup guidance](https://www.apple.com/shop/shipping-pickup)" };
 
   const nav = [
-    { id: "how-fast", label: "How fast restocks vanish" },
-    { id: "how-alerts-work", label: "How alerts work" },
-    { id: "compare", label: "Read the signals" },
-    { id: "setup", label: "Set up an alert" },
-    { id: "cost", label: "Price" },
-    { id: "when-it-arrives", label: "When the alert arrives" },
+    { id: "setup", label: "Define your watchlist" },
+    { id: "cost", label: "Count the alert slots" },
+    { id: "how-alerts-work", label: "Check delivery" },
+    { id: "compare", label: "Read a notification" },
+    { id: "how-fast", label: "Use the evidence" },
+    { id: "when-it-arrives", label: "Continue with Apple" },
   ];
 
   const faq: Faq[] = [
-    { q: "Do alerts work on iPhone without an app from the App Store?", a: `Yes: add ShelfSpring to your Home Screen from Safari and allow notifications once, a web app with web push that Apple supports for Home Screen web apps ([Apple Developer](${WEB_PUSH}); [install guide](/install)). Without a device set up, alerts arrive by email from alerts@shelfspring.com.` },
-    { q: "How many alerts do I need?", a: `Usually ${PLANS.plus.limit} or fewer: one configuration at the stores you can reach, two acceptable colors being two alerts per store. ${PLANS.plus.name} covers ${PLANS.plus.limit}, ${PLANS.pro.name} ${PLANS.pro.limit}, ${PLANS.max.name} ${PLANS.max.limit} ([pricing](/pricing)).` },
-    { q: "Can ShelfSpring reserve the phone for me?", a: "No. A notification points to a detected listing. Apple must still show your configuration at that store and accept your order; ShelfSpring cannot reserve stock." },
-    { q: "Does a paid plan change how frequently stock is collected?", a: "No. Every plan uses the same synchronized stock feed. Choose a plan by the number of store–configuration alerts you need. Collection, synchronization and notification delivery can all add delay." },
-    { q: "Does it cover Apple Stores outside the US?", a: `Yes: ${intl} stores in ${INTL_CODES.length} other countries. The imported historical dataset covers these markets from ${longDate(TRACKING_SINCE_INTL)}; that date is not ShelfSpring’s launch date. Start from [Canada](/ca), [the UK](/uk), [Australia](/au) or [Japan](/jp).` },
+    { q: "Will saving an alert tell me about stock that is already listed?", a: "Alerts respond to new matching returns in the synchronized feed; they are not a replay of the current stock table. Check the [live listings](/) when you create your watchlist. A store’s initial observation and a change to sold out do not trigger a restock alert." },
+    { q: "How do I decide which subscription fits my list?", a: `Count every store–configuration pair. One configuration at three stores needs three slots; two configurations at those same stores need six. The current limits are ${PLANS.plus.limit} for ${PLANS.plus.name}, ${PLANS.pro.limit} for ${PLANS.pro.name} and ${PLANS.max.limit} for ${PLANS.max.name}. All tiers use the same inventory feed; [compare capacity and prices](/pricing).` },
+    { q: "What should I check if a test notification does not appear?", a: "Open [the installation guide](/install) on the device you want to use. Review the browser or Home Screen app setup, notification permission and system notification settings, then try the test again. A successful test checks the delivery setup at that time; it does not guarantee that a future alert will arrive before stock changes." },
+    { q: "Does the seven-day median describe my local store?", a: "No. That sample combines completed iPhone Duo listings across all tracked countries. The separate US history on this page has a different scope and start date. Neither aggregate predicts the duration of your next local listing or measures how long you will have after receiving a notification." },
+    { q: "Can I use the same approach outside the United States?", a: `The catalog includes ${intl} Apple Stores across ${INTL_CODES.length} other countries. Begin with the relevant country page, such as [Canada](/ca), [the United Kingdom](/uk), [Australia](/au) or [Japan](/jp), and choose stores there. International records in the imported history begin on ${longDate(TRACKING_SINCE_INTL)}; the date describes dataset coverage, not ShelfSpring’s operating history.` },
+    { q: "When is it safe to make the trip to a store?", a: `Use Apple’s order status and pickup instructions to decide. ShelfSpring cannot hold a device, accept a pickup order or determine that it is ready to collect. Read [Apple’s shipping and pickup help](${APPLE_HELP}) for the requirements that apply to your order.` },
   ];
 
   const sources: Source[] = [
-    { label: "Apple: Delivery and Pickup (how in-store pickup works)", url: "https://www.apple.com/shop/shipping-pickup" },
-    { label: "Apple: Shipping & Pickup help (what to bring to a pickup)", url: APPLE_HELP },
-    { label: "Apple Developer: Sending web push notifications in web apps and browsers", url: WEB_PUSH },
-    { label: "Wikipedia: Push technology (what a push notification is)", url: "https://en.wikipedia.org/wiki/Push_technology" },
+    { label: "Apple: delivery and pickup options", url: "https://www.apple.com/shop/shipping-pickup" },
+    { label: "Apple: order collection and pickup requirements", url: APPLE_HELP },
+    { label: "Apple Developer: web push delivery in apps and browsers", url: WEB_PUSH },
   ];
 
   const site = "https://shelfspring.com";
@@ -127,179 +119,131 @@ export default async function DuoStockAlerts() {
     "@graph": [
       { "@type": "WebPage", "@id": `${site}${PATH}`, url: `${site}${PATH}`, name: TITLE, description: DESCRIPTION, isPartOf: { "@id": `${site}/#website` }, about: { "@id": `${site}/#organization` }, dateModified: f.at },
       {
-        "@type": "HowTo", name: "How to set up an iPhone Duo in-stock alert",
-        totalTime: "PT2M",
-        step: [
-          { "@type": "HowToStep", name: "Pick the iPhone, storage and color", text: "One alert is one exact configuration.", url: `${site}${setupHref}` },
-          { "@type": "HowToStep", name: "Tick the stores you can reach", text: "Stores are listed nearest first with an estimated drive time." },
-          { "@type": "HowToStep", name: "Add ShelfSpring to your Home Screen and allow notifications", text: "On iPhone, alerts are web push notifications to the Home Screen app.", url: `${site}/install` },
-          { "@type": "HowToStep", name: "Verify pickup with Apple", text: "After a notification arrives, confirm the named store and configuration on apple.com and complete Apple’s order process." },
-        ],
+        "@type": "HowTo", name: "Build an iPhone Duo pickup watchlist",
+        step: setupSteps.map((step) => ({ "@type": "HowToStep", name: step.title, text: step.hint, url: `${site}${PATH}#setup` })),
       },
     ],
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pt-8 sm:pt-12">
+    <GuideLayout guide="iphone-duo-stock-alerts" contents={nav}>
       <JsonLd data={ld} />
 
-      {/* hero */}
-      <section className="grid items-start gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+      <section className="guide-evidence-lead">
         <div>
-          <div className="eyebrow mb-4">iPhone Duo · in-stock alerts</div>
-          <h1 className="display text-4xl sm:text-6xl">Build an iPhone Duo watchlist for your next pickup opportunity</h1>
-          <p className="mt-5 max-w-xl text-lg text-ink-2">Choose the stores you can reach and the exact iPhone Duo you would buy. ShelfSpring watches the synchronized inventory feed for matching returns, so your next check can start with a specific store and configuration.</p>
+          <div className="eyebrow mb-4">Watchlist planning · iPhone Duo</div>
+          <p className="mt-5 max-w-xl text-lg text-ink-2">Start with a decision you could act on: which iPhone Duo, which store, and whether collecting it would fit your day. A saved alert connects those choices to future inventory changes. This notebook explains how to build that list and interpret what comes back.</p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link href={setupHref} className="btn btn-primary btn-lg">Set up an iPhone Duo alert</Link>
-            <Link href="/how-to-grab-an-iphone-duo-restock" className="btn btn-ghost btn-lg">Pickup checkout guide</Link>
+            <Link href={setupHref} className="btn btn-primary btn-lg">Build my Duo watchlist</Link>
+            <Link href="/iphone-duo-near-me" className="btn btn-ghost btn-lg">Explore reachable stores</Link>
           </div>
         </div>
         <StatGrid cols={2}>
-          <Stat value="1 × 1" label="one store and one configuration per alert" tone="accent" />
-          <Stat value="Same feed" label="all plans; notification delivery times vary" />
-          <Stat value={ds ? `${ds.medianSec}` : "—"} unit={ds ? "s" : undefined} label={ds ? <>median observed listing · last 7 days, {n(ds.n)} restocks</> : "not enough recent sold-out listings"} tone="warn" />
-          <Stat value={ds ? pct(ds.within30) : "20–30"} unit={ds ? undefined : "s"} label={ds ? "of last week's restocks gone within 30 seconds" : "some restocks are gone this fast"} tone="warn" />
+          <Stat value="1 pair" label="one store plus one exact configuration uses one alert slot" tone="accent" />
+          <Stat value={n(ALL_STORES.length)} label={`catalog stores across ${INTL_CODES.length + 1} tracked countries`} />
         </StatGrid>
       </section>
 
-      <nav aria-label="On this page" className="mt-8 flex flex-wrap gap-2 text-sm">
-        {nav.map((s) => <a key={s.id} href={`#${s.id}`} className="chip px-3 py-1.5 text-xs">{s.label}</a>)}
-      </nav>
-
       <div className="mt-6 grid gap-5">
-        {/* how fast */}
-        <Section id="how-fast" h2="How fast does an iPhone Duo restock disappear?" lead={fastLead} facts={facts}>
-          {so && (
-            <StatGrid cols={3} className="mt-5">
-              <Stat value={`${so.medianSec}`} unit="s" label={<>median listing since {since} · {n(so.n)} sold-out restocks</>} tone="warn" />
-              <Stat value={pct(so.within2min)} label="gone within 2 minutes" />
-              <Stat value={pct(so.within20min)} label="gone within 20 minutes" tone="muted" />
-            </StatGrid>
-          )}
+        <Section id="setup" h2="Make every saved choice usable" lead="An alert is useful when both halves of the match work for you: **the configuration you would buy and the store you could collect from**. Decide those limits before adding more choices." facts={facts}>
+          <StepStrip className="mt-5 lg:grid-cols-4!" steps={setupSteps} />
+          <p className="mt-5 text-ink-2">Treat nearby stores as alternatives, then check their practical differences. A frequent historical return cannot make an inconvenient journey workable, and an early-morning pattern does not require you to arrive at a fixed hour. Apple’s available pickup options govern the actual order.</p>
+          <LinkRow links={[{ label: "Find stores around your location", href: "/iphone-duo-near-me" }, { label: "Review device setup", href: "/install" }]} />
+        </Section>
+
+        <Section id="cost" h2="Budget for combinations, not devices" lead="The watchlist count grows with every store–configuration pair. Browsing stock and history is free; a subscription adds capacity for saved alerts." facts={facts}>
+          <StatGrid cols={3} className="mt-5">
+            <Stat value={`$${PLANS.plus.priceUsd}`} unit="/ month" label={<>{PLANS.plus.name} · {PLANS.plus.limit} alert slots</>} tone="accent" />
+            <Stat value={`$${PLANS.pro.priceUsd}`} unit="/ month" label={<>{PLANS.pro.name} · {PLANS.pro.limit} alert slots</>} />
+            <Stat value={`$${PLANS.max.priceUsd}`} unit="/ month" label={<>{PLANS.max.name} · {PLANS.max.limit} alert slots</>} />
+          </StatGrid>
+          <Points className="mt-5" items={[
+            { text: <>Example: one storage and color combination at three stores uses <b className="text-ink">3 slots</b>. Adding a second acceptable combination at each store brings the total to <b className="text-ink">6</b>.</> },
+            { text: <>Different stores can have different selections. Count the pairs you intend to save instead of assuming every configuration belongs at every store.</> },
+            { text: <>Choose capacity for that list. A larger subscription does not buy a different inventory feed or a guaranteed notification arrival time.</> },
+          ]} />
+          <LinkRow links={[{ label: "Review subscription terms and capacity", href: "/pricing" }]} />
+        </Section>
+
+        <Section id="how-alerts-work" h2="Check the route from a record to your device" lead="A recorded return passes through collection, synchronization, matching and delivery. **Those stages take time**, so a valid notification can describe availability that has already changed." facts={facts}>
+          <BlockView b={deliveryTable} facts={facts} />
+          <p className="mt-5 text-ink-2">Before depending on push, use the test in the notification settings on the device you will carry. On iPhone, follow the Home Screen app instructions in the installation guide. Browser support, permissions and system settings matter; keeping an account page open is not a substitute for checking delivery.</p>
+          <p className="mt-3 text-ink-2">A restock alert represents a new return event. The workflow does not send another restock alert merely because an item remains available, and it excludes sold-out changes and the source’s first observation of a store–configuration pair.</p>
+          <LinkRow links={[{ label: "Set up and test notifications", href: "/install" }, { label: "Read the inventory method", href: "/how-it-works" }]} />
+        </Section>
+
+        <Section id="compare" h2="Separate the useful lead from the order confirmation" lead="When a notification arrives, extract **the store, storage and color**. Use those details to check Apple’s current pickup offer; the message itself has not placed an order." facts={facts}>
+          <BlockView b={signalTable} facts={facts} />
+          <Points className="mt-5" items={[
+            { text: <>Compare the complete configuration. Availability for another color or storage size does not confirm the one you saved.</> },
+            { text: <>Read the observation time when returning to ShelfSpring. A past match can remain in the history after the stock is gone.</> },
+            { text: <>If Apple no longer offers pickup, check another acceptable choice from your list. There is no need to infer a new arrival time from the previous alert.</> },
+          ]} />
+        </Section>
+
+        <Section id="how-fast" h2="Use completed windows to understand the limits" lead="History helps explain why occasional checks can miss a listing. It does not establish a checkout deadline, a service delivery speed or your chance of obtaining the next phone." facts={facts}>
+          <h3 className="mt-6 text-lg font-semibold">Recent sample · all tracked countries · last 7 days</h3>
           {ds ? (
             <>
-              <div className="eyebrow mt-6">Illustrative sampling model from the last 7 days’ sold-out listings</div>
-              <StatGrid cols={4} className="mt-3">
-                <Stat value={n(ds.n)} label="sold-out listings in the 7-day historical sample" tone="accent" />
-                <Stat value={pct(ds.caught.m1)} label="checking every 1 minute" tone="muted" />
-                <Stat value={pct(ds.caught.m5)} label="checking every 5 minutes" tone="muted" />
-                <Stat value={pct(ds.caught.m15)} label="checking every 15 minutes" tone="muted" />
+              <p className="mt-2 text-ink-2">This combined sample contains {n(ds.n)} completed iPhone Duo pickup windows. Its median falls in the {typical} band. Each window is a store–configuration listing, so the count is neither individual phones nor successful purchases.</p>
+              <StatGrid cols={3} className="mt-4">
+                <Stat value={n(ds.n)} label="completed windows across all tracked countries, last 7 days" tone="accent" />
+                <Stat value={ds.medianSec} unit="s" label="median observed listed-to-gone interval" tone="warn" />
+                <Stat value={pct(ds.within30)} label="of this sample observed gone within 30 seconds" />
+              </StatGrid>
+              <h4 className="mt-6 font-semibold">An illustration of gaps between checks</h4>
+              <StatGrid cols={3} className="mt-3">
+                <Stat value={pct(ds.caught.m1)} label="modeled share seen with a 1-minute check interval" tone="muted" />
+                <Stat value={pct(ds.caught.m5)} label="modeled share seen with a 5-minute check interval" tone="muted" />
+                <Stat value={pct(ds.caught.m15)} label="modeled share seen with a 15-minute check interval" tone="muted" />
               </StatGrid>
               <Measured>
-                A listing that lasts d seconds is seen by a check every T seconds with probability min(1, d ÷ T), over the {n(ds.n)} Duo restocks that sold out in the last 7 days. A restock&apos;s life runs from the check that first saw it to the check that first saw it gone, so every duration is an upper bound and these estimates do not measure any service’s real-world performance or delivery speed.
+                The model averages min(1, d ÷ T) across these {n(ds.n)} completed windows, where d is the observed duration and T is the check interval in seconds. It assumes a regular check schedule whose starting point is uniformly distributed relative to the listing. Durations end at the first recorded absent check and are upper bounds on the observed window; shorter listings can be missed entirely. These estimates describe this historical sample only. They do not test any tracker, include notification delay or estimate purchase success.
               </Measured>
             </>
           ) : (
-            <p className="pane-2 mt-5 p-4 text-sm text-ink-3">The catch-rate tiles appear once 20 or more confirmed iPhone Duo restocks have sold out within the last 7 days; until then we would rather show nothing than a shaky number.</p>
+            <p className="pane-2 mt-4 p-4 text-sm text-ink-3">No recent duration estimate is available. The summary requires at least 20 completed iPhone Duo listings in the seven-day sample across all tracked countries. Until that sample is available, no median, short-window share or sampling estimate is shown.</p>
           )}
-          <ol className="mt-5 grid gap-3 sm:grid-cols-2">
-            <Swap no="Treat the last restock as current stock" yes="Check the latest listing time" why="History shows where stock returned before. Only a current Apple listing can start a pickup order." />
-            <Swap no="Keep every store tab open" yes="Save a practical watchlist" why="Choose stores you can reach and configurations you would buy; alerts identify matching returns after detection." />
-          </ol>
-          <LinkRow links={[{ label: "Every restock with the seconds it lasted", href: "/iphone-duo-sell-out-times" }]} />
-          <Figure id="texting-city-street" />
-        </Section>
 
-        {/* how alerts work */}
-        <Section id="how-alerts-work" h2="How do ShelfSpring alerts work?" lead={howLead} facts={facts}>
-          <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
-            <div>
-              <StepStrip className="lg:grid-cols-2!" steps={[
-                { title: "Collect", hint: "source checks cover tracked stores and configurations; every plan uses the same feed" },
-                { title: "Confirm", hint: "the first \"available\" is asked again about a second later; a restock counts only when both agree" },
-                { title: "Synchronize and notify", hint: <Inline text="new records reach ShelfSpring before delivery to the [Home Screen app](/install); email is a fallback when no device is enabled. Timing can vary." facts={facts} /> },
-                { title: "Once", hint: "one push per restock: nothing while it stays listed, nothing for sell-outs or a store's first sighting" },
-              ]} />
-              <BlockView b={alertTable} facts={facts} />
-              <Points items={[
-                { text: <Inline text={`On iPhone the notification is a [web push](https://en.wikipedia.org/wiki/Push_technology) to a Home Screen web app, supported in Safari ([Apple Developer](${WEB_PUSH}))`} facts={facts} /> },
-                { text: <>Nothing to download · one permission prompt</> },
-                { text: <>Read the store name in the banner, then reserve</>, step: true },
-              ]} />
-            </div>
-            <div className="mx-auto w-full max-w-[16rem] lg:mx-0"><AlertBannerMock /></div>
-          </div>
-          <Figure id="phone-notification" />
-        </Section>
-
-        {/* compare */}
-        <Section id="compare" h2="What does each stock signal tell you?" lead={compareLead} facts={facts}>
-          <BlockView b={compareTable} facts={facts} />
-          {ds && (
+          <h3 className="mt-7 text-lg font-semibold">Separate reference · United States · since {since}</h3>
+          <p className="mt-2 text-ink-2">The following records cover US stores from the start of the imported dataset. They use a longer window than the seven-day summary across all tracked countries above. Historical concentration can guide which store pages you investigate, but it is not a published restocking schedule.</p>
+          {so ? (
             <>
-              <div className="eyebrow">Historical context for your watchlist</div>
-              <StatGrid cols={2} className="mt-3">
-                <Stat value={n(ds.n)} label="observed sold-out listings, last 7 days" tone="warn" />
-                <Stat value={ds.medianSec} unit="s" label="median whole listing duration; not time left after an alert" tone="accent" />
+              <p className="mt-3 text-sm text-ink-3">Duration sample: {n(so.n)} completed US iPhone Duo listings since {since}.</p>
+              <StatGrid cols={3} className="mt-3">
+                <Stat value={so.medianSec} unit="s" label="median US observed listed-to-gone interval" tone="warn" />
+                <Stat value={pct(so.within2min)} label="US sample observed gone within 2 minutes" />
+                <Stat value={pct(so.within20min)} label="US sample observed gone within 20 minutes" tone="muted" />
               </StatGrid>
             </>
+          ) : (
+            <p className="mt-3 text-sm text-ink-3">The US duration summary is unavailable for this sample. An absent summary does not mean there were no pickup opportunities.</p>
           )}
-          <Points className="mt-5" items={[
-            { text: <>Read the <b className="text-ink">observation time</b> beside the stock table</> },
-            { text: <>A notification can arrive after availability changes; it is not a reservation</>, no: true },
-            { text: <>Keep a second acceptable store or configuration in your plan</>, step: true },
-          ]} />
-        </Section>
-
-        {/* setup */}
-        <Section id="setup" h2="How do I set up an iPhone Duo alert?" lead={setupLead} facts={facts}>
-          <StepStrip className="mt-5 lg:grid-cols-4!" steps={[
-            { title: "Pick the iPhone, storage and color", hint: "one alert is one exact configuration; two acceptable colors are two alerts" },
-            { title: "Tick the stores you can reach", hint: "nearest first, with an estimated drive time" },
-            { title: "Add ShelfSpring to your Home Screen", hint: <Inline text={`on iPhone, then allow notifications ([step by step](/install))`} facts={facts} /> },
-            { title: "Reserve from the push", hint: "open apple.com from it and check out with in-store pickup at the store it names" },
-          ]} />
-          <h3 className="mt-7 text-lg font-semibold">Which stores should I pick?</h3>
-          <p className="mt-2 text-ink-2">The two or three you can reach by <b className="text-ink">9 AM</b>, plus the ones that restock most.</p>
           <StatGrid cols={2} className="mt-4">
             {bw
-              ? <Stat value={pct(bw.share)} label={<>of the {n(rt.n)} confirmed US Duo restocks since {since} landed between {hl(bw.from)} and {hl(bw.to)} local time</>} tone="accent" />
-              : <Stat value="—" label={<>the day-by-day picture is on <Link href="/iphone-duo-restock-times" className="underline underline-offset-2">when the iPhone Duo restocks</Link></>} tone="muted" />}
+              ? <Stat value={pct(bw.share)} label={<>of {n(rt.n)} recorded US Duo returns since {since} fell between {hl(bw.from)} and {hl(bw.to)}, using each store’s local time</>} tone="accent" />
+              : <Stat value="—" label="US returns do not yet support a busiest-window summary" tone="muted" />}
             {top && topStore
-              ? <Stat value={n(top.restocks)} label={<><Link href={storePath(topStore)} className="underline underline-offset-2">{appleName(topStore)}</Link> · most confirmed Duo restocks since {since} · {top.days} days</>} />
-              : <Stat value="—" label="the store with the most restocks fills in as they are confirmed" tone="muted" />}
+              ? <Stat value={n(top.restocks)} label={<><Link href={storePath(topStore)} className="underline underline-offset-2">{appleName(topStore)}</Link> · largest recorded US Duo return count since {since}, across {top.days} days with returns</>} />
+              : <Stat value="—" label="no leading US store is available in this historical sample" tone="muted" />}
           </StatGrid>
-          <Points className="mt-4" items={[
-            { text: <>A store you cannot reach in the morning is a weaker pick than a farther one you can</>, no: true },
-          ]} />
-          <LinkRow links={[{ label: "Which iPhone Duo restocks most", href: "/which-iphone-duo-restocks-most" }, { label: "iPhone Duo near me", href: "/iphone-duo-near-me" }, { label: "When the iPhone Duo restocks", href: "/iphone-duo-restock-times" }]} />
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <Link href={setupHref} className="btn btn-primary">Set up an iPhone Duo alert</Link>
-            <span className="text-sm text-ink-3">Notifications follow detected availability; timing varies.</span>
-          </div>
-          <Figure id="apple-store-night-vancouver" />
+          <LinkRow links={[{ label: "Inspect the duration records", href: "/iphone-duo-sell-out-times" }, { label: "Explore US return times", href: "/iphone-duo-restock-times" }, { label: "Compare recorded configurations", href: "/which-iphone-duo-restocks-most" }]} />
         </Section>
 
-        {/* cost */}
-        <Section id="cost" h2="What does it cost?" lead={costLead} facts={facts}>
-          <StatGrid cols={3} className="mt-5">
-            <Stat value={`$${PLANS.plus.priceUsd}`} unit="/ month" label={<>{PLANS.plus.name} · {PLANS.plus.limit} alerts</>} tone="accent" />
-            <Stat value={`$${PLANS.pro.priceUsd}`} unit="/ month" label={<>{PLANS.pro.name} · {PLANS.pro.limit} alerts</>} />
-            <Stat value={`$${PLANS.max.priceUsd}`} unit="/ month" label={<>{PLANS.max.name} · {PLANS.max.limit} alerts</>} />
-          </StatGrid>
-          <Points className="mt-5" items={[
-            { text: <><b className="text-ink">{PLANS.plus.limit} alerts</b> = one configuration at {PLANS.plus.limit} stores, or two at five: most people in one metro area</> },
-            { text: <>{PLANS.pro.name} and {PLANS.max.name}: several colors, several people or a long drive radius</> },
-            { text: <>Every plan uses the same stock feed; live stock and the restock log are free to browse</> },
-          ]} />
-          <LinkRow links={[{ label: "Pricing", href: "/pricing" }]} />
-        </Section>
-
-        {/* when it arrives */}
-        <Section id="when-it-arrives" h2="What should I do the moment the alert arrives?" lead={arrivesLead} facts={facts}>
+        <Section id="when-it-arrives" h2="Let Apple confirm the next step" lead="Your watchlist has done its job when it gives you a relevant choice to investigate. **Apple’s current checkout and order status** determine whether you can buy and collect it." facts={facts}>
           <StepStrip className="mt-5 lg:grid-cols-4!" steps={[
-            { title: "Be signed in before the alert", hint: "Apple Pay or a card and your address saved; typing an address during a restock is how people lose it" },
-            { title: "Tap → \"I'll pick it up\"", hint: "at the store named; if it already reads unavailable, try your other stores: a batch often reaches several at once" },
-            { title: "Finish checkout", hint: "the reservation is the order; Apple emails when it is ready and states the pickup window" },
-            { title: "Bring what Apple asks for", hint: <Inline text={`the order number or QR code from the pickup email and a government-issued photo ID ([Apple: Shipping & Pickup help](${APPLE_HELP}))`} facts={facts} /> },
+            { title: "Match the offer", hint: "Open Apple’s buying flow and verify the named configuration and store against the notification." },
+            { title: "Review the pickup option", hint: "Check the collection time and any requirements shown for that order. Continue only if the option suits you." },
+            { title: "Complete Apple’s checkout", hint: "Review the purchase details and submit the order with Apple. A saved ShelfSpring alert has not reserved inventory." },
+            { title: "Follow the order updates", hint: "Wait for Apple’s pickup instructions before travelling, and bring what those instructions require." },
           ]} />
-          <LinkRow links={[{ label: "Prepare the pickup checkout before a return", href: "/how-to-grab-an-iphone-duo-restock" }, { label: "The wider plan: how to get an iPhone Duo", href: "/how-to-get-an-iphone-duo" }, { label: "What the wording on apple.com means", href: "/apple-store-pickup-availability-explained" }]} />
-          <div className="mt-5"><Link href={setupHref} className="btn btn-primary">Set up an alert</Link></div>
+          <LinkRow links={[{ label: "Prepare for Apple’s pickup checkout", href: "/how-to-grab-an-iphone-duo-restock" }, { label: "Understand pickup status wording", href: "/apple-store-pickup-availability-explained" }]} />
+          <div className="mt-5"><Link href={setupHref} className="btn btn-primary">Open the watchlist editor</Link></div>
         </Section>
       </div>
 
-      <div className="mx-auto mt-10 max-w-3xl"><RichFaq items={faq} facts={facts} title="Questions" /></div>
-      <div className="mx-auto mt-8 max-w-3xl"><SourceList sources={sources} facts={facts} where={`${n(ALL_STORES.length)} Apple Stores in ${INTL_CODES.length + 1} countries`} since={TRACKING_SINCE_US} /></div>
-    </div>
+      <div className="mx-auto mt-10 max-w-3xl"><RichFaq items={faq} facts={facts} title="Watchlist decisions and delivery questions" /></div>
+      <div className="mx-auto mt-8 max-w-3xl"><SourceList sources={sources} facts={facts} where={`${n(ALL_STORES.length)} tracked Apple Stores across ${INTL_CODES.length + 1} countries`} since={`${longDate(TRACKING_SINCE_US)} for US records; international records begin ${longDate(TRACKING_SINCE_INTL)}`} /></div>
+    </GuideLayout>
   );
 }

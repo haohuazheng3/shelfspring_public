@@ -20,11 +20,23 @@ import { publicRouteCheck } from "@/lib/seo/routes";
 import { BlogCollection, collectionMetadata } from "@/components/pages/BlogCollection";
 import CategoryPage, { generateMetadata } from "@/app/(public)/blog/[category]/page";
 import PaginatedCategory, { generateStaticParams } from "@/app/(public)/blog/[category]/page/[page]/page";
+import { CURATED_PAGES, isCuratedPath, withCuratedMetadata } from "@/lib/seo/curation";
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-06T12:00:00Z")); });
 afterEach(() => vi.useRealTimers());
 
 describe("cacheable journal pagination", () => {
+  it("makes validated published articles and populated collections eligible without indexing future or empty pages", () => {
+    vi.stubEnv("NEXT_PUBLIC_INDEXABLE", "1"); vi.stubEnv("DEPLOY_TARGET", "production"); vi.stubEnv("VERCEL_ENV", "production");
+    try {
+      expect(CURATED_PAGES).toHaveLength(333); // 317 core + 13 actual articles + journal/category/page 2.
+      for (const path of ["/blog", "/blog/pickup-guides", "/blog/pickup-guides/page/2", "/blog/pickup-guides/fixture-guide-13"]) {
+        expect(isCuratedPath(path), path).toBe(true);
+        expect(withCuratedMetadata(path, {}).robots).toEqual({ index: true, follow: true });
+      }
+      for (const path of ["/blog/stock-patterns", "/blog/pickup-guides/page/3", "/blog/pickup-guides/fixture-guide-14"]) expect(isCuratedPath(path), path).toBe(false);
+    } finally { vi.unstubAllEnvs(); }
+  });
   it("redirects legacy query pages to clean paths while preserving unrelated query values", () => {
     expect(publicRouteCheck("/blog/pickup-guides", "?page=2&utm_source=example")).toEqual({ redirect: "/blog/pickup-guides/page/2?utm_source=example" });
     expect(publicRouteCheck("/blog/pickup-guides", "?page=1")).toEqual({ redirect: "/blog/pickup-guides" });

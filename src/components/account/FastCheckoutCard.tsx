@@ -5,7 +5,6 @@
  */
 import { PendingLink as Link } from "@/components/ui/PendingLink";
 import { duoRestockTimes } from "@/lib/content/restockTimes";
-import { Stat, StatGrid, StepStrip } from "@/components/ui/Viz";
 import { t } from "@/lib/i18n/server";
 
 export async function FastCheckoutCard() {
@@ -18,12 +17,8 @@ export async function FastCheckoutCard() {
         <h2 id="fast-checkout" className="text-xl font-semibold">{d.title}</h2>
         <span className="text-xs text-ink-3">{d.sub}</span>
       </div>
-      <StatGrid cols={3} className="mt-3">
-        <Stat value={median ?? "—"} unit={median == null ? undefined : u.s} label={d.lasts} tone="warn" />
-        <Stat value="—" label={d.push} />
-        <Stat value="4" unit={u.taps} label={d.tapsLeft} tone="accent" />
-      </StatGrid>
-      <StepStrip className="mt-3" steps={d.steps} />
+      <div className="mt-5 border-y border-line py-4"><p className="text-xs text-ink-3">{d.lasts}</p><p className="mt-1 font-mono text-3xl">{median ?? "—"}{median != null && <span className="ms-1 text-base text-ink-3">{u.s}</span>}</p><p className="mt-2 text-xs text-ink-3">{d.push}</p></div>
+      <ol className="mt-5 grid gap-4 sm:grid-cols-2">{d.steps.map((step, i) => <li key={step.title} className="flex gap-3"><span className="font-mono text-xs text-accent" aria-hidden>0{i + 1}</span><div><h3 className="text-sm font-semibold">{step.title}</h3><p className="mt-1 text-xs leading-relaxed text-ink-3">{step.hint}</p></div></li>)}</ol>
       <div className="mt-4 flex flex-wrap gap-2">
         <Link href="/how-to-grab-an-iphone-duo-restock" className="btn btn-primary btn-sm">{d.guide}</Link>
         <a href="#restock-times" className="btn btn-ghost btn-sm">{d.window}</a>

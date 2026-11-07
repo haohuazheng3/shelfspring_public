@@ -69,15 +69,15 @@ export function SiteDocument({ children, loc, app = null, publicPage = false, an
         <meta property="og:image:type" content="image/png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="ShelfSpring — find your iPhone and catch the next restock" />
+        <meta property="og:image:alt" content="ShelfSpring — your field guide to Apple pickup stock" />
         <meta name="twitter:image" content={new URL("/opengraph-image", SITE).href} />
-        <meta name="twitter:image:alt" content="ShelfSpring — find your iPhone and catch the next restock" />
+        <meta name="twitter:image:alt" content="ShelfSpring — your field guide to Apple pickup stock" />
       </head>
       <body className="flex min-h-full flex-col">
         <LangProvider loc={loc} app={app} d={loc.lang === "en" ? null : CDICTS[loc.lang]} rememberLocale={publicPage}>
         <ClerkProvider
           publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-          appearance={{ variables: { colorPrimary: "#24684c" } }}
+          appearance={{ variables: { colorPrimary: "#2455d6" } }}
           signInUrl="/?signin=1"
           signUpUrl="/?signin=1"
         >

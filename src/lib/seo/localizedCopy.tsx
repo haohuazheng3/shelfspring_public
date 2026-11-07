@@ -338,7 +338,7 @@ export function withShelfPlace(lang: Lang, base: PlaceDictionary): PlaceDictiona
 }
 export function withShelfPages(lang: Lang, base: PagesDictionary): PagesDictionary {
   const c = copy(lang), N = (v: number) => num(lang, v);
-  return { ...base, common: { ...base.common, matrixH2: c.options, matrixHint: c.countNote, checkNote: c.cadence }, region: { ...base.region, counts: (stores, cities) => `${N(stores)} Apple Stores · ${N(cities)} · ${c.cadence}` }, city: { ...base.city, counts: (stores) => `${N(stores)} Apple Stores · ${c.cadence}` }, store: {
+  return { ...base, common: { ...base.common, matrixH2: c.options, matrixHint: c.countNote, checkNote: c.cadence }, region: { ...base.region, counts: (stores, cities) => `${base.region.counts(stores, cities).split(" · ").slice(0, 2).join(" · ")} · ${c.cadence}` }, city: { ...base.city, counts: (stores) => `${N(stores)} Apple Stores · ${c.cadence}` }, store: {
     ...base.store,
     description: (a) => [`${a.place}, ${a.city}: ${c.now} · Duo ${N(a.duo)}, 18 Pro ${N(a.pro)}, Pro Max ${N(a.pm)}. ${c.compare}`, `${a.place}: ${c.now} · Duo ${N(a.duo)}, Pro ${N(a.pro)}, Max ${N(a.pm)}.`],
     intro: (a) => <>{a.place}{a.street ? ` · ${a.street}` : ""}. {c.now}: <b className="text-ink">Duo {N(a.duo)}/{N(a.duoOf)} · 18 Pro {N(a.pro)}/{N(a.proOf)} · Pro Max {N(a.pm)}/{N(a.pmOf)}</b>. {c.compare} {c.evidence}</>,

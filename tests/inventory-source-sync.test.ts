@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   dispatchInventoryAlerts, expireSourceInventory, importInventoryHistory, notificationDecision, PgInventoryDestination, PgInventoryOutbox, safeSyncError, sourcePoolConfig, SOURCE_STATUS_STALE_MS,
   syncInventoryOnce, syncOptions, type ClaimedAlert, type EventPolicy, type InventoryDestination,
@@ -304,6 +304,11 @@ class Outbox implements NotificationOutbox {
   }
 }
 describe("inventory notification crash boundaries", () => {
+  beforeEach(() => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("PREVIEW_INVENTORY_MODE", "0");
+  });
+  afterEach(() => vi.unstubAllEnvs());
   it("never claims or marks pending rows sent when preview delivery is disabled", async () => {
     const outbox = new Outbox();
     const claim = vi.spyOn(outbox, "claim"), finish = vi.spyOn(outbox, "finish");
@@ -311,8 +316,7 @@ describe("inventory notification crash boundaries", () => {
     expect(await dispatchInventoryAlerts(outbox, syncOptions({ PREVIEW_INVENTORY_MODE: "1" }), notify)).toBe(0);
     expect(claim).not.toHaveBeenCalled(); expect(finish).not.toHaveBeenCalled(); expect(notify).not.toHaveBeenCalled();
     vi.stubEnv("PREVIEW_INVENTORY_MODE", "typo-still-disabled");
-    try { expect(await dispatchInventoryAlerts(outbox, options, notify)).toBe(0); }
-    finally { vi.unstubAllEnvs(); }
+    expect(await dispatchInventoryAlerts(outbox, options, notify)).toBe(0);
     expect(claim).not.toHaveBeenCalled();
   });
   it("commits the claim before calling the mature notifier and never dispatches it twice", async () => {

@@ -37,8 +37,8 @@ export function BrowsePopular({ states = 10, cities = 12 }: { states?: number; c
   const d = t().content.browse;
   return (
     <div className="space-y-5">
-      <LinkRow title={d.mostStores} links={topStates(states).map((s) => ({ href: s.href, label: s.name, meta: String(s.count) }))} more={{ href: "/stores", label: d.allStates }} />
-      <LinkRow title={d.bigCities} links={topCities(cities).map((c) => ({ href: c.href, label: cityLabel(c), meta: String(c.count) }))} />
+      <LinkRow curated title={d.mostStores} links={topStates(states).map((s) => ({ href: s.href, label: s.name, meta: String(s.count) }))} more={{ href: "/stores", label: d.allStates }} />
+      <LinkRow curated title={d.bigCities} links={topCities(cities).map((c) => ({ href: c.href, label: cityLabel(c), meta: String(c.count) }))} />
     </div>
   );
 }

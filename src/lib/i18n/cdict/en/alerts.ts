@@ -12,18 +12,18 @@ import type { Forms } from "@/lib/i18n/format";
 export const alerts = {
   /** The home page's block (AlertSetup). */
   setup: {
-    title: "Get an alert",
-    lead: "Tick the phones you want and the stores you can get to. Every phone is watched at every store.",
+    title: "Build your watchlist",
+    lead: "Start with the phones you would buy. Add reachable stores, then review the number of rules before choosing a plan.",
   },
 
   /** The editor: phones × stores, the sum line, turning alerts on (AlertEditor). */
   editor: {
     /** Joins the two or three names a folded section lists. */
     listSep: ", ",
-    phonesTitle: "Phones",
-    storesTitle: "Stores",
-    phonesNone: "None yet: tick a configuration",
-    storesNone: "None yet: tick the stores you can get to",
+    phonesTitle: "01 · Choose your configurations",
+    storesTitle: "02 · Choose your pickup locations",
+    phonesNone: "Add a model, capacity and color below",
+    storesNone: "Add stores you could realistically visit",
     phones: { one: "# phone", other: "# phones" } as Forms,
     stores: { one: "# store", other: "# stores" } as Forms,
     alerts: { one: "# alert", other: "# alerts" } as Forms,
@@ -49,8 +49,8 @@ export const alerts = {
     saveFailedStatus: "Couldn't save ({status})",
     checkoutUnavailable: "Checkout unavailable",
     seePlans: "See plans",
-    signIn: "Sign in",
-    signInLead: "Your email is the account. We send a 6-digit code, no password. New here? The same code sets up your account, then you pick your alerts.",
+    signIn: "Open your ShelfSpring workspace",
+    signInLead: "Enter your email to receive a six-digit code. It opens your existing account or creates one here—there is no password to remember.",
     turnOn: { one: "Turn on this alert", other: "Turn on these # alerts" } as Forms,
     thenPlan: "Then pick a plan: {plan} covers them for {price}/month, cancel anytime.",
     untickFew: "Untick a few first: the largest plan holds {most}.",

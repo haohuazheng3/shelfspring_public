@@ -22,8 +22,8 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#f5f4ee",
-    theme_color: "#f5f4ee",
+    background_color: "#f7f6f2",
+    theme_color: "#f7f6f2",
     categories: ["shopping", "utilities"],
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
