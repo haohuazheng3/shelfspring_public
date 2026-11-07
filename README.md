@@ -2,6 +2,8 @@
 
 ShelfSpring helps shoppers compare Apple Store pickup availability, explore restock history, and receive availability alerts.
 
+Production shares inventory and history with an existing collection cluster while keeping each site's accounts, subscriptions and delivery records in separate database schemas. Shared-feed workers read inventory in place; independent collector deployments remain supported. The private cluster migration and administration tools are not part of this export.
+
 ## Run locally
 
 Use Node.js 24 or newer and PostgreSQL. Install dependencies with `npm ci`, copy `.env.example` to `.env.local`, and configure the services you want to use. Authentication requires your own Clerk application; payments and notifications require your own provider accounts.
