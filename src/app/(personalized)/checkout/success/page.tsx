@@ -18,7 +18,7 @@ import "@/components/pages/Workspace.css";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
-  return { title: dict((await requestLocale()).lang).account.success.metaTitle, robots: { index: false } };
+  return { title: dict((await requestLocale()).lang).account.success.yourPlan, robots: { index: false } };
 }
 
 export default async function Success({ searchParams }: PageProps<"/checkout/success">) {

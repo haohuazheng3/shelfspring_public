@@ -120,6 +120,8 @@ body {
 ::selection { background: color-mix(in srgb, var(--accent) 25%, transparent); }
 a { color: inherit; }
 button, input, select, textarea { font: inherit; color: inherit; }
+/* Keep content anchors and focused form fields below the two-row masthead. */
+main [id] { scroll-margin-block-start: calc(9rem + env(safe-area-inset-top)); }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
 
@@ -571,7 +573,6 @@ a.field-row:hover { color: var(--accent); }
 .guide-margin-note p { margin-top: .65rem; color: var(--ink-3); font-size: .75rem; line-height: 1.8; }
 .guide-index-link { display: flex; gap: 1rem; justify-content: space-between; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: .75rem; font-weight: 550; color: var(--accent); }
 .guide-reading { min-width: 0; counter-reset: guide-chapter; }
-.guide-reading [id] { scroll-margin-block-start: calc(9rem + env(safe-area-inset-top)); }
 .guide-reading > :first-child { margin-top: 0; }
 .guide-reading > p { max-width: 48rem; }
 .guide-evidence-lead { padding: 1.75rem; border-radius: 24px; border: 1px solid var(--line); background: var(--pane-solid); box-shadow: var(--shadow); display: grid; gap: 1.5rem; }
