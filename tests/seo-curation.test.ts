@@ -8,11 +8,11 @@ import { versionsOf } from "@/components/pages/shared";
 afterEach(() => vi.unstubAllEnvs());
 
 describe("stable publication selection", () => {
-  it("has 317 distinct routes chosen by supported markets, comparisons and isolated locations", () => {
-    expect(CURATED_PAGES).toHaveLength(317);
-    expect(new Set(CURATED_PAGES.map((p) => p.path)).size).toBe(317);
+  it("has 322 distinct routes chosen by supported markets, comparisons and isolated locations", () => {
+    expect(CURATED_PAGES).toHaveLength(322);
+    expect(new Set(CURATED_PAGES.map((p) => p.path)).size).toBe(322);
     expect(CURATED_PAGES.reduce<Record<string, number>>((out, p) => { out[p.kind] = (out[p.kind] ?? 0) + 1; return out; }, {}))
-      .toEqual({ country: 36, core: 11, model: 108, city: 65, guide: 5, "isolated-store": 62, region: 30 });
+      .toEqual({ country: 36, core: 11, model: 108, city: 65, guide: 10, "isolated-store": 62, region: 30 });
     for (const page of CURATED_PAGES) {
       expect(publicRouteCheck(page.path), page.path).toBeNull();
       if (page.kind === "city") expect(page.storeNumbers.length).toBeGreaterThan(1);

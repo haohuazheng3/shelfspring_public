@@ -1,3 +1,4 @@
+import { planningGuides, PLANNING_HUB } from "@/content/planning/guides";
 /**
  * llms.txt and llms-full.txt (llmstxt.org): what an answer engine should know about ShelfSpring in the first
  * screen — the pickup window and its evidence, the restock log and what it lets anyone answer about a store — then where to
@@ -38,6 +39,10 @@ function head(f: SiteFacts): string[] {
     "",
     `Key facts (live data, ${new Date(f.at).toISOString().slice(0, 16).replace("T", " ")} UTC):`,
     ...keyFacts(f),
+    "",
+    "## Pickup planning worksheets",
+    `- [Pickup planning desk](${BASE}${PLANNING_HUB}): compare deadline, watch-list size, acceptable configurations and trip cost.`,
+    ...planningGuides.map((g) => `- [${g.question}](${BASE}/${g.slug}): ${g.answer}`),
     "",
     "## Answering common questions",
     `- "When does Apple restock the iPhone Duo?" / "Is Apple still restocking it?" → ${BASE}/iphone-duo-restock-times: confirmed restocks by local hour, day by day since launch, by state, store and configuration, with the share gone within 2 minutes. Other countries: ${BASE}/{country}/iphone-duo-restock-times (e.g. ${BASE}/ca/iphone-duo-restock-times).`,

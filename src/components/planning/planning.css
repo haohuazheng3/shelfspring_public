@@ -1,0 +1,44 @@
+.ss-plan-page { max-width: 1120px; margin: auto; padding: 2.5rem clamp(1rem, 4vw, 3rem) 5rem; color: var(--ink); }
+.ss-plan-crumb { font-size: .85rem; color: var(--ink-2); margin-bottom: 2rem; }
+.ss-plan-crumb a, .ss-plan-page p a { text-decoration: underline; text-underline-offset: .2em; }
+.ss-plan-hero { max-width: 900px; padding: 1rem 0 2.5rem; border-bottom: 2px solid var(--ink); }
+.ss-plan-eyebrow { font-size: .76rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: var(--accent); }
+.ss-plan-hero h1 { font-family: var(--font-newsreader), Georgia, serif; font-size: clamp(2.35rem, 5vw, 4.2rem); font-weight: 500; line-height: 1.08; letter-spacing: -.035em; margin: 1rem 0; text-wrap: balance; }
+.ss-plan-hero > p:not(.ss-plan-eyebrow) { max-width: 770px; font-size: 1.12rem; line-height: 1.8; color: var(--ink-2); }
+.ss-plan-meta { display: block; margin-top: 1.3rem; font-size: .8rem; color: var(--ink-3); }
+.ss-plan-layout { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 3rem; margin-top: 2rem; }
+.ss-plan-article { min-width: 0; }
+.ss-plan-article h2, .ss-plan-tool h2 { font-size: 1.6rem; font-weight: 600; line-height: 1.3; margin-bottom: 1rem; letter-spacing: -.02em; }
+.ss-plan-article section:not(.ss-plan-tool) { padding-block: 1.8rem; border-bottom: 1px solid var(--line); scroll-margin-top: 6rem; }
+.ss-plan-article p { line-height: 1.85; margin-block: .9rem; color: var(--ink-2); }
+.ss-plan-aside { align-self: start; position: sticky; top: 6rem; }
+.ss-plan-aside h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1rem; }
+.ss-plan-aside ol { padding-left: 1.1rem; list-style: decimal; font-size: .9rem; }
+.ss-plan-aside li { margin-bottom: .9rem; color: var(--ink-2); }
+.ss-plan-aside a:hover, .ss-plan-cards a:hover, .ss-plan-related a:hover { color: var(--accent); }
+.ss-plan-tool { background: var(--bg-2); border: 1px solid var(--line-2); padding: clamp(1rem, 3vw, 1.8rem); margin: 1rem 0 2rem; scroll-margin-top: 6rem; }
+.ss-plan-tool > p { font-size: .92rem; }
+.ss-plan-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-block: 1.3rem; }
+.ss-plan-field { display: flex; flex-direction: column; gap: .5rem; font-size: .87rem; font-weight: 600; }
+.ss-plan-field input { width: 100%; min-height: 46px; border: 1px solid var(--line-2); border-radius: 4px; padding: .65rem; background: var(--bg); color: var(--ink); font: inherit; }
+.ss-plan-field input:focus-visible, .ss-plan-checks input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ss-plan-checks { display: grid; gap: .9rem; margin-block: 1.5rem; }
+.ss-plan-checks label { display: flex; gap: .8rem; align-items: flex-start; line-height: 1.5; cursor: pointer; }
+.ss-plan-checks input { width: 20px; height: 20px; flex-shrink: 0; margin-top: .15rem; accent-color: var(--accent); }
+.ss-plan-result { display: grid; gap: .5rem; background: var(--bg); border-left: 3px solid var(--accent); padding: 1.2rem; line-height: 1.6; }
+.ss-plan-result strong { font-size: 1.5rem; }
+.ss-plan-result span, .ss-plan-note { font-size: .85rem; }
+.ss-plan-capacity { list-style: none; margin-top: 1rem; }
+.ss-plan-capacity li { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; padding: .7rem 0; border-bottom: 1px solid var(--line); font-size: .85rem; }
+.ss-plan-inputError { color: var(--bad); font-size: .8rem; font-weight: 400; }
+.ss-plan-checklist { padding-left: 1.2rem; list-style: decimal; line-height: 1.8; }
+.ss-plan-checklist li { padding-left: .3rem; margin-block: .5rem; }
+.ss-plan-faq h3 { font-weight: 650; margin-top: 1.5rem; }
+.ss-plan-cards { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 2.5rem; margin-top: 2rem; }
+.ss-plan-cards a { display: block; padding: 2rem 0; border-top: 1px solid var(--line-2); }
+.ss-plan-cards h2 { font-size: 1.7rem; line-height: 1.2; margin-block: .8rem; }
+.ss-plan-cards p { color: var(--ink-2); line-height: 1.7; }
+.ss-plan-related { padding-block: 2rem; }
+.ss-plan-related a { display: block; padding: .7rem 0; text-decoration: underline; text-underline-offset: .2em; }
+@media (max-width: 800px) { .ss-plan-layout { grid-template-columns: 1fr; gap: 1.2rem; } .ss-plan-aside { position: static; grid-row: 1; border-bottom: 1px solid var(--line); padding-bottom: 1rem; } .ss-plan-aside ol { columns: 2; } .ss-plan-aside li { break-inside: avoid; } }
+@media (max-width: 480px) { .ss-plan-fields, .ss-plan-cards { grid-template-columns: 1fr; } .ss-plan-aside ol { columns: 1; } }

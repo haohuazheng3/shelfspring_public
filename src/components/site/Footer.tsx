@@ -12,6 +12,7 @@ import { curatedRecommendations } from "@/lib/seo/curation";
 type DirectoryLink = { href: string; label: string; className?: string };
 
 const READING: DirectoryLink[] = [
+  { href: "/pickup-planning", label: "Four pickup planning worksheets" },
   { href: "/iphone-duo-restock-times", label: "Understand restock timing" },
   { href: "/iphone-duo-sell-out-times", label: "Read the sell-out window" },
   { href: "/iphone-duo-stock-alerts", label: "Choose a stock alert" },
@@ -48,6 +49,7 @@ export function Footer({ loc }: { loc: Locale }) {
     ...(native ? [{ href: `${p}/iphone-duo-restock-times`, label: F.restockTimes }] : []),
   ];
   const product: DirectoryLink[] = [
+    { href: "/pickup-planning", label: native ? "Pickup planning · English" : "Pickup planning worksheets" },
     { href: "/how-it-works", label: native ? `${F.howItWorks} · ${F.englishOnly}` : "How ShelfSpring works" },
     { href: "/pricing", label: native ? F.pricing : "Plans & alerts" },
     { href: "/install", label: native ? F.getApp : "Keep it on your home screen", className: "not-in-app" },

@@ -29,7 +29,7 @@ describe("cacheable journal pagination", () => {
   it("makes validated published articles and populated collections eligible without indexing future or empty pages", () => {
     vi.stubEnv("NEXT_PUBLIC_INDEXABLE", "1"); vi.stubEnv("DEPLOY_TARGET", "production"); vi.stubEnv("VERCEL_ENV", "production");
     try {
-      expect(CURATED_PAGES).toHaveLength(333); // 317 core + 13 actual articles + journal/category/page 2.
+      expect(CURATED_PAGES).toHaveLength(338); // 322 core + 13 actual articles + journal/category/page 2.
       for (const path of ["/blog", "/blog/pickup-guides", "/blog/pickup-guides/page/2", "/blog/pickup-guides/fixture-guide-13"]) {
         expect(isCuratedPath(path), path).toBe(true);
         expect(withCuratedMetadata(path, {}).robots).toEqual({ index: true, follow: true });

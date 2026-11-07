@@ -1,3 +1,4 @@
+import { planningGuides, PLANNING_HUB, PLANNING_REVIEWED } from "@/content/planning/guides";
 /** A publication policy, not a traffic forecast. Functional routes outside this set remain available. */
 import type { Metadata } from "next";
 import { MODELS, citiesWithStores, distanceMiles, placeTarget, statesWithStores, storePath, storesOf } from "@/lib/apple/catalog";
@@ -68,6 +69,7 @@ function buildPages(): readonly CuratedPage[] {
   for (const path of CURATED_CORE) pages.push({ path, kind: "core", purpose: PURPOSE.core,
     storeNumbers: ["/stores", "/map", "/restocks"].includes(path) ? storesOf("us").map((s) => s.storeNumber) : [] });
   for (const path of CURATED_GUIDES) pages.push({ path, kind: "guide", purpose: PURPOSE.guide, storeNumbers: storesOf("us").map((s) => s.storeNumber) });
+  for (const path of [PLANNING_HUB, ...planningGuides.map((g) => `/${g.slug}`)]) pages.push({ path, kind: "guide", purpose: "Make a personal pickup decision with an interactive worksheet.", storeNumbers: [], updatedAt: PLANNING_REVIEWED });
   // Entry in the validated publication registry is the deliberate editorial action. Empty collections
   // stay noindex; real articles and nonempty pagination become eligible without a second hidden list.
   const posts = publishedPosts();

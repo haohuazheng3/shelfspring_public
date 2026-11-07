@@ -14,6 +14,7 @@ const RETIRED: Record<string, string> = { "/blog/how-to-find-iphone-18-pro-in-st
  * extension, and the public/ folders (a test keeps this in step with src/app and public/).
  */
 export const TOP_LEVEL: ReadonlySet<string> = new Set([
+  "pickup-planning", "iphone-pickup-or-delivery", "how-many-apple-stores-to-track", "iphone-color-or-storage-for-availability", "how-far-to-travel-for-iphone-pickup",
   "about", "account", "admin", "api", "checkout", "contact", "how-it-works", "install", "map", "pricing", "privacy", "refunds", "restocks", "stock", "stores", "terms",
   // The iPhone Duo question pages (project documentation §13): one answer page per question people put to search and answer engines.
   "iphone-duo-restock-times", "iphone-duo-sell-out-times", "iphone-duo-stock-alerts", "iphone-duo-near-me", "how-to-get-an-iphone-duo", "which-iphone-duo-restocks-most", "apple-store-pickup-availability-explained", "how-to-grab-an-iphone-duo-restock",
