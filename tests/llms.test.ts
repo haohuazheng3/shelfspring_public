@@ -19,10 +19,12 @@ const { localHourDay, patternSentence, patternsFrom } = await import("@/lib/cont
 const { ALL_STORES } = await import("@/lib/apple/catalog");
 
 describe("llms.txt — what an answer engine reads first", () => {
-  it("explains synchronization delays and separates historical samples from brand age", async () => {
+  it("links measured watch-scope timing and separates historical samples from brand age", async () => {
     const t = await llmsTxt();
     const top = t.split("## Answering common questions")[0];
-    expect(top).toContain("synchronization and notification transport can add delay");
+    expect(top).toContain("median gap 5.993 s, p95 6.793 s");
+    expect(top).toContain("https://shelfspring.com/watch-speed-report");
+    expect(top).toContain("not a notification-delivery guarantee");
     expect(top).toContain("historical inventory dataset can predate ShelfSpring");
     expect(top).not.toMatch(/fastest published|every 5 seconds|about 3 seconds/);
     expect(top).toContain("a typical iPhone Duo restock sells out in about 60–80 seconds (median 79 s");
