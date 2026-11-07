@@ -18,7 +18,7 @@ import { restockPayload } from "../push/payload";
 import { coveredWatchIds, effectivePlan } from "../plans";
 import type { Transition } from "./ingest";
 import { langOfUser } from "../i18n/notify";
-import { previewInventoryMode } from "./inventory-mode";
+import { previewInventoryMode, sharedInventoryMode } from "./inventory-mode";
 
 const COOLDOWN_MS = 30 * 60 * 1000; // same watch × store × part at most every 30 min
 
@@ -169,7 +169,8 @@ export async function notifyRestocks(transitions: Transition[], eventIds: number
       await record(byEmail, "email", "failed", { error: errorMessage(e).slice(0, 500) });
     }
   }));
-  if (eventIds.length) {
+  // Shared stock belongs to the collector. Delivery state is exclusively in our private outbox/notifications.
+  if (eventIds.length && !sharedInventoryMode()) {
     await d.update(schema.availabilityEvents).set({ notifiedAt: now }).where(inArray(schema.availabilityEvents.id, eventIds));
   }
   return stats;

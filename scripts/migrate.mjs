@@ -5,59 +5,110 @@
  * src/lib/db (plain on loopback, otherwise verified against DATABASE_CA).
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
-if (!url || url.includes("[SENSITIVE]")) {
-  console.log("[migrate] no database URL — skipped");
-  process.exit(0);
-}
-const dir = join(root, "drizzle");
-if (!existsSync(dir)) { console.log("[migrate] no drizzle/ directory — skipped"); process.exit(0); }
-const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
-const host = new URL(url).hostname.replace(/^\[|\]$/g, "");
-const local = ["localhost", "127.0.0.1", "::1"].includes(host);
-const ca = process.env.DATABASE_CA?.replace(/\\n/g, "\n").trim() || undefined;
-// The build runs this; on 11-04 a build failed because the server was out of ordinary connection slots
-// (53300) for a moment. That passes in seconds, so wait it out (up to ~30 s) instead of failing the deploy.
-let client;
-for (let i = 0; ; i++) {
-  client = new pg.Client({ connectionString: url, ssl: local ? false : { ca, rejectUnauthorized: true }, connectionTimeoutMillis: 15_000 });
-  try {
-    await client.connect();
-    break;
-  } catch (e) {
-    await client.end().catch(() => {});
-    if (e?.code !== "53300" || i >= 7) throw e;
-    console.warn(`[migrate] database out of connection slots, retrying in ${1 + i} s`);
-    await new Promise((r) => setTimeout(r, 1000 * (1 + i)));
+const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const roleSchemas = new Map([["shelfspring", "shelfspring"], ["shelfspring_poller", "shelfspring"],
+  ["shelfspring_preview", "shelfspring_preview"], ["shelfspring_preview_poller", "shelfspring_preview"]]);
+const sqlFiles = (dir) => existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".sql")).sort() : [];
+
+/** @param {Record<string, string | undefined>} env */
+export function migrationConnectionConfig(url, env = process.env) {
+  const parsed = new URL(url);
+  const shared = env.DATABASE_SHARED_CLUSTER || "";
+  if (shared && shared !== "pickupchecker") throw new Error("Invalid shared database cluster");
+  if (shared && (!['postgres:', 'postgresql:'].includes(parsed.protocol) || parsed.pathname !== "/pickupchecker" || !roleSchemas.has(parsed.username) || parsed.hash)) {
+    throw new Error("Shared migrations require an isolated ShelfSpring role");
   }
+  const targets = new Set(["host", "hostaddr", "port", "user", "password", "database", "dbname"]);
+  const tls = new Set(["ssl", "sslmode", "sslcert", "sslkey", "sslrootcert", "sslpassword", "sslnegotiation", "uselibpqcompat"]);
+  for (const key of [...parsed.searchParams.keys()]) {
+    if (targets.has(key.toLowerCase()) || shared && key.toLowerCase() === "options") throw new Error("Migration connection settings must not be overridden");
+    if (tls.has(key.toLowerCase())) parsed.searchParams.delete(key);
+  }
+  const host = parsed.hostname.replace(/^\[|\]$/g, "");
+  const local = ["localhost", "127.0.0.1", "::1"].includes(host);
+  const ca = env.DATABASE_CA?.replace(/\\n/g, "\n").trim() || undefined;
+  return { connectionString: parsed.toString(), ssl: local ? false : { ca, rejectUnauthorized: true }, connectionTimeoutMillis: 15_000 };
 }
-try {
-  await client.query("CREATE TABLE IF NOT EXISTS _migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
-  const done = new Set((await client.query("SELECT name FROM _migrations")).rows.map((r) => r.name));
+
+/** Shared schemas are restored first; this runner never bootstraps them using legacy public DDL. */
+export async function applyMigrations(client, { root = repositoryRoot, sharedCluster = "", log = console.log } = {}) {
+  if (sharedCluster && sharedCluster !== "pickupchecker") throw new Error("Invalid shared database cluster");
+  const legacy = sqlFiles(join(root, "drizzle"));
+  let table = "_migrations";
+  let dir = join(root, "drizzle");
+  let prefix = "";
+  if (sharedCluster) {
+    const row = (await client.query(`SELECT current_user AS role, current_schema() AS schema,
+      current_setting('pickupchecker.host', true) AS host, pg_is_in_recovery() AS recovery,
+      (SELECT value FROM public.shelfspring_cluster_authority) AS cluster`)).rows[0];
+    const schema = roleSchemas.get(row?.role);
+    const label = (value) => typeof value === "string" && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(value);
+    if (!schema || row.schema !== schema || row.recovery !== false || !label(row.host)
+      || row.cluster?.primary !== row.host || !Number.isSafeInteger(row.cluster?.epoch) || row.cluster.epoch < 1) {
+      throw new Error("Shared migration role, schema or cluster authority is invalid");
+    }
+    table = `${schema}._migrations`;
+    // Qualified lookup cannot mistake the original application's migration ledger for ours.
+    const existing = (await client.query("SELECT to_regclass($1)::text AS name", [table])).rows[0]?.name;
+    if (!existing) throw new Error("Shared private schema must be restored before migrations");
+    const restored = new Set((await client.query(`SELECT name FROM ${table}`)).rows.map((r) => r.name));
+    if (legacy.length === 0 || legacy.some((file) => !restored.has(file))) throw new Error("Shared schema is missing the complete legacy migration ledger; refusing legacy DDL");
+    dir = join(root, "drizzle-shared");
+    prefix = "shared/";
+  } else {
+    if (legacy.length === 0) { log("[migrate] no drizzle/ directory — skipped"); return; }
+    await client.query("CREATE TABLE IF NOT EXISTS _migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
+  }
+  const files = sqlFiles(dir);
+  const done = new Set((await client.query(`SELECT name FROM ${table}`)).rows.map((r) => r.name));
   let applied = 0;
   for (const f of files) {
-    if (done.has(f)) continue;
+    const name = prefix + f;
+    if (done.has(name)) continue;
     const text = readFileSync(join(dir, f), "utf8");
     // drizzle-kit separates statements with "--> statement-breakpoint"
     const statements = text.split(/-->\s*statement-breakpoint/g).map((s) => s.trim()).filter(Boolean);
     await client.query("BEGIN");
     try {
       for (const s of statements) await client.query(s);
-      await client.query("INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT DO NOTHING", [f]);
+      await client.query(`INSERT INTO ${table} (name) VALUES ($1) ON CONFLICT DO NOTHING`, [name]);
       await client.query("COMMIT");
     } catch (e) {
       await client.query("ROLLBACK");
       throw e;
     }
     applied++;
-    console.log(`[migrate] applied ${f} (${statements.length} statements)`);
+    log(`[migrate] applied ${name} (${statements.length} statements)`);
   }
-  console.log(`[migrate] up to date (${applied} new, ${files.length} total)`);
-} finally {
-  await client.end();
+  log(`[migrate] up to date (${applied} new, ${files.length} ${sharedCluster ? "shared-schema" : "total"})`);
 }
+
+async function main() {
+  const sharedCluster = process.env.DATABASE_SHARED_CLUSTER || "";
+  if (sharedCluster && process.env.DATABASE_URL_UNPOOLED) throw new Error("Shared migrations refuse an alternate unpooled target");
+  const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
+  if (!url || url.includes("[SENSITIVE]")) {
+    if (sharedCluster) throw new Error("Shared migrations require a database URL");
+    console.log("[migrate] no database URL — skipped");
+    return;
+  }
+  const config = migrationConnectionConfig(url);
+  // A busy deployment may briefly exhaust ordinary slots; preserve the existing bounded retry.
+  let client;
+  for (let i = 0; ; i++) {
+    client = new pg.Client(config);
+    try { await client.connect(); break; } catch (e) {
+      await client.end().catch(() => {});
+      if (e?.code !== "53300" || i >= 7) throw e;
+      console.warn(`[migrate] database out of connection slots, retrying in ${1 + i} s`);
+      await new Promise((r) => setTimeout(r, 1000 * (1 + i)));
+    }
+  }
+  try { await applyMigrations(client, { sharedCluster }); } finally { await client.end(); }
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

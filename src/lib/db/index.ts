@@ -19,8 +19,12 @@ export function db(): NodePgDatabase<typeof schema> {
   if (_db) return _db;
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set");
+  const shared = sharedClusterMode();
   const targets: { name: DbTargetName; url: string }[] = [{ name: "primary", url }];
   if (process.env.DATABASE_URL_STANDBY) targets.push({ name: "standby", url: process.env.DATABASE_URL_STANDBY });
+  if (shared && targets.some((target) => new URL(target.url).username !== new URL(url).username)) {
+    throw new Error("Shared database targets must use the same isolated role");
+  }
   const pools = targets.map((t) => {
     const pool = new Pool(poolConfig(t.url));
     // An idle connection the server closed (idle_session_timeout, a restart): the pool drops it and dials anew.
@@ -28,7 +32,8 @@ export function db(): NodePgDatabase<typeof schema> {
     if (process.env.VERCEL) attachDatabasePool(pool);
     return { name: t.name, pool };
   });
-  _router = pools.length > 1 ? new FailoverPool(pools) : null;
+  // A shared cluster must validate the original cluster authority even with one configured target.
+  _router = pools.length > 1 || shared ? new FailoverPool(pools, shared) : null;
   // FailoverPool implements what drizzle uses of a Pool (query, connect); the cast is only for the type.
   _db = drizzle(_router ? (_router as unknown as Pool) : pools[0].pool, { schema });
   return _db;
@@ -41,6 +46,11 @@ export function db(): NodePgDatabase<typeof schema> {
  */
 export function poolConfig(url: string, env: Record<string, string | undefined> = process.env): PoolConfig {
   const parsed = new URL(url);
+  if (sharedClusterMode(env)) {
+    if (parsed.pathname !== "/pickupchecker" || !sharedRoleSchema(parsed.username)) throw new Error("Shared database requires an isolated ShelfSpring role");
+    // The role owns the search_path. Do not let URL options silently replace it with public.
+    if ([...parsed.searchParams.keys()].some((key) => key.toLowerCase() === "options")) throw new Error("Shared database URL must use its role's schema settings");
+  }
   // pg parses connectionString after the explicit config and lets URL options override it.
   // A host override could also turn our loopback/plain decision into a remote plaintext connection.
   const authorityOptions = new Set(["host", "hostaddr", "port", "user", "password", "database", "dbname"]);
@@ -74,6 +84,19 @@ export function hasDatabase(): boolean {
   return Boolean(process.env.DATABASE_URL);
 }
 
+/** An explicit, fixed mode; never interpolate an environment value into probe SQL. */
+export function sharedClusterMode(env: Record<string, string | undefined> = process.env): boolean {
+  if (!env.DATABASE_SHARED_CLUSTER) return false;
+  if (env.DATABASE_SHARED_CLUSTER !== "pickupchecker") throw new Error("Invalid shared database cluster");
+  return true;
+}
+
+function sharedRoleSchema(role: string): string | null {
+  if (role === "shelfspring" || role === "shelfspring_poller") return "shelfspring";
+  if (role === "shelfspring_preview" || role === "shelfspring_preview_poller") return "shelfspring_preview";
+  return null;
+}
+
 /* ---------------- failover between the primary and the standby ---------------- */
 
 export type DbTargetName = "primary" | "standby";
@@ -99,7 +122,20 @@ export interface DbProbe {
  * primary that has learnt it was replaced says so (owner ≠ its own host) and is never chosen. With no writable
  * database, a reachable one serves reads (the replica while the takeover is decided); null when none answers.
  */
-export function chooseTarget(probes: DbProbe[]): { index: number; writable: boolean } | null {
+export function chooseTarget(probes: DbProbe[], shared = false): { index: number; writable: boolean } | null {
+  if (shared) {
+    const valid = probes.map((probe, index) => ({ probe, index })).filter(({ probe: p }) => p.ok && validAuthority(p));
+    const epoch = Math.max(...valid.map(({ probe }) => probe.epoch));
+    const current = valid.filter(({ probe }) => probe.epoch === epoch);
+    // Conflicting authorities at one epoch cannot authorize application writes.
+    if (new Set(current.map(({ probe }) => probe.owner)).size !== 1) return null;
+    const writable = current.filter(({ probe }) => probe.recovery === false && probe.owner === probe.host);
+    if (writable.length > 1) return null;
+    if (writable.length === 1) return { index: writable[0].index, writable: true };
+    // A fenced server may still accept SQL writes. Never use it as a nominally read-only fallback.
+    const replica = current.find(({ probe }) => probe.recovery === true);
+    return replica ? { index: replica.index, writable: false } : null;
+  }
   let best = -1;
   probes.forEach((p, i) => {
     if (!p.ok || p.recovery !== false) return;
@@ -145,22 +181,37 @@ export async function waitOutBusy<T>(run: () => Promise<T>, backoff: number[] = 
 
 const PROBE_SQL = `select pg_is_in_recovery() as recovery, current_setting('shelfspring.host', true) as host,
   (select value from poller_state where key = 'cluster') as cluster`;
+// Application queries use the role's shelfspring,public search_path. Authority must bypass that schema.
+const SHARED_PROBE_SQL = `select pg_is_in_recovery() as recovery, current_setting('pickupchecker.host', true) as host,
+  current_user as app_role, current_schema() as app_schema,
+  (select value from public.shelfspring_cluster_authority) as cluster`;
+function validAuthority(p: Pick<DbProbe, "host" | "owner" | "epoch">): boolean {
+  const label = (value: string | null) => typeof value === "string" && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(value);
+  return label(p.host) && label(p.owner) && Number.isSafeInteger(p.epoch) && p.epoch >= 1;
+}
 /** How long a choice stands before it is checked again in the background. */
 const PROBE_TTL_MS = 15_000;
 const PROBE_TIMEOUT_MS = 2_000;
 
-async function probe(name: DbTargetName, pool: Pool): Promise<DbProbe> {
+async function probe(name: DbTargetName, pool: Pool, shared: boolean): Promise<DbProbe> {
   const t0 = Date.now();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
     const r = await Promise.race([
-      pool.query(PROBE_SQL),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`no answer in ${PROBE_TIMEOUT_MS} ms`)), PROBE_TIMEOUT_MS)),
+      pool.query(shared ? SHARED_PROBE_SQL : PROBE_SQL),
+      new Promise<never>((_, reject) => { timeout = setTimeout(() => reject(new Error(`no answer in ${PROBE_TIMEOUT_MS} ms`)), PROBE_TIMEOUT_MS); }),
     ]);
-    const row = r.rows[0] as { recovery: boolean; host: string | null; cluster: { primary?: string; epoch?: number } | null };
-    return { name, ok: true, ms: Date.now() - t0, recovery: row.recovery, host: row.host || null, owner: row.cluster?.primary ?? null, epoch: Number(row.cluster?.epoch ?? 0) };
+    const row = r.rows[0] as { recovery: boolean; host: string | null; cluster: { primary?: string; epoch?: number } | null; app_role?: string; app_schema?: string };
+    const result: DbProbe = { name, ok: true, ms: Date.now() - t0, recovery: row.recovery, host: row.host || null, owner: row.cluster?.primary ?? null, epoch: Number(row.cluster?.epoch ?? 0) };
+    if (shared && (!validAuthority(result) || typeof row.cluster?.epoch !== "number" || typeof row.recovery !== "boolean"
+      || !row.app_role || !sharedRoleSchema(row.app_role) || row.app_schema !== sharedRoleSchema(row.app_role))) {
+      throw new Error("Shared database cluster authority is missing or invalid");
+    }
+    return result;
   } catch (e) {
-    return { name, ok: false, ms: Date.now() - t0, recovery: null, host: null, owner: null, epoch: -1, error: (e as Error).message };
-  }
+    return { name, ok: false, ms: Date.now() - t0, recovery: null, host: null, owner: null, epoch: -1,
+      error: shared ? "Shared database cluster authority unavailable" : (e as Error).message };
+  } finally { if (timeout) clearTimeout(timeout); }
 }
 
 /**
@@ -173,13 +224,19 @@ export class FailoverPool {
   private choice: { index: number; writable: boolean } | null = null;
   private checkedAt = 0;
   private pending: Promise<void> | null = null;
-  constructor(readonly targets: { name: DbTargetName; pool: Pool }[]) {}
+  private epochFloor = 0;
+  constructor(readonly targets: { name: DbTargetName; pool: Pool }[], private readonly shared = false) {}
 
   private refresh(): Promise<void> {
-    this.pending ??= Promise.all(this.targets.map((t) => probe(t.name, t.pool))).then((probes) => {
+    this.pending ??= Promise.all(this.targets.map((t) => probe(t.name, t.pool, this.shared))).then((probes) => {
       const before = this.choice?.index;
+      if (this.shared) {
+        this.epochFloor = Math.max(this.epochFloor, ...probes.filter((p) => p.ok).map((p) => p.epoch));
+        // Once this process has observed a promotion, it cannot fall back to an older writable epoch.
+        for (const p of probes) if (p.ok && p.epoch < this.epochFloor) p.ok = false;
+      }
       this.probes = probes;
-      this.choice = chooseTarget(probes);
+      this.choice = chooseTarget(probes, this.shared);
       this.checkedAt = Date.now();
       if (before != null && this.choice && before !== this.choice.index) console.warn(`[db] now using the ${this.targets[this.choice.index].name} database (${this.choice.writable ? "writable" : "read-only"})`);
     }).finally(() => { this.pending = null; });
@@ -188,7 +245,10 @@ export class FailoverPool {
 
   private async pool(): Promise<Pool> {
     if (!this.choice) await this.refresh();
-    else if (Date.now() - this.checkedAt > PROBE_TTL_MS) void this.refresh();
+    else if (Date.now() - this.checkedAt > PROBE_TTL_MS) {
+      // Never issue a new shared-cluster query on an expired authority while refreshing in the background.
+      if (this.shared) await this.refresh(); else void this.refresh();
+    }
     if (!this.choice) throw new Error(`no database answers: ${this.probes.map((p) => `${p.name} ${p.error ?? "?"}`).join("; ")}`);
     return this.targets[this.choice.index].pool;
   }

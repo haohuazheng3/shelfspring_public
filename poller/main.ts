@@ -488,7 +488,7 @@ async function clusterLoop(intlConfigured: boolean) {
 /* ---------------- main loop ---------------- */
 
 async function main() {
-  if (process.env.INVENTORY_FEED_MODE === "source") throw new Error("Source inventory mode must run poller/source-sync.ts, not the Apple collector");
+  if (["source", "shared"].includes(process.env.INVENTORY_FEED_MODE ?? "")) throw new Error("Source inventory mode must run poller/source-sync.ts, not the Apple collector");
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL missing");
   const ipv6 = PREFIX ? new Ipv6Egress(PREFIX) : null;
   const spare = firstAvailable("spare", [singleIdentityEgress("ipv4", { used: 0, windowStart: Date.now(), cooldownUntil: 0 }, fetchIpv4), new VercelEgress()]);

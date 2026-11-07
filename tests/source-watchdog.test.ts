@@ -34,6 +34,15 @@ beforeEach(() => {
 });
 
 describe("source-feed watchdog isolation", () => {
+  it("diagnoses stale shared stock without changing inventory or starting collection", async () => {
+    vi.stubEnv("INVENTORY_FEED_MODE", "shared"); state.heartbeat!.value.mode = "shared";
+    state.heartbeat!.value.at = new Date().toISOString(); state.freshPairs = 10;
+    expect(await (await run()).json()).toMatchObject({ mode: "shared", state: "blind", degraded: false });
+    vi.stubEnv("INVENTORY_FEED_MODE", "");
+    await run();
+    expect(state.expiryCalls).toBe(0); expect(state.fallbackCalls).toBe(0);
+    expect(state.mails).toHaveLength(1);
+  });
   it("debounces a silent feed and alerts without ever starting fallback polling", async () => {
     expect(await (await run()).json()).toMatchObject({ state: "silent", sourceOnly: true, degraded: false });
     await run();

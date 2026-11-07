@@ -54,6 +54,17 @@ describe("source inventory never triggers direct Apple collection", () => {
     await expect(fetchPickupAtStore(["MJQ34LL/A"], "R001", network)).rejects.toThrow("disabled in source inventory mode");
     expect(network).not.toHaveBeenCalled();
   });
+  it("fences shared database mode at manual, egress and direct client boundaries", async () => {
+    vi.stubEnv("INVENTORY_FEED_MODE", "shared");
+    const network = vi.fn(); vi.stubGlobal("fetch", network);
+    expect(await (await tick(request("poll/tick"))).json()).toMatchObject({ skipped: "source-mode" });
+    expect((await egress(request("egress/apple"))).status).toBe(409);
+    await expect(fetchPickup(["MJQ34LL/A"], "10001", network)).rejects.toThrow("disabled");
+    await expect(fetchPickupAtStore(["MJQ34LL/A"], "R001", network)).rejects.toThrow("disabled");
+    vi.stubEnv("INVENTORY_FEED_MODE", ""); state.mode = "shared";
+    expect(await degradedTick()).toMatchObject({ skipped: "source-mode" });
+    expect(network).not.toHaveBeenCalled(); expect(state.sweep).not.toHaveBeenCalled(); expect(state.writes).not.toHaveBeenCalled();
+  });
   it("retains authentication before revealing mode or running any checks", async () => {
     expect((await tick(request("poll/tick", "wrong"))).status).toBe(401);
     expect((await egress(request("egress/apple", "wrong"))).status).toBe(401);
@@ -70,6 +81,6 @@ describe("source inventory never triggers direct Apple collection", () => {
   });
   it("fences the standalone collector before its startup side effects", () => {
     const source = readFileSync("poller/main.ts", "utf8");
-    expect(source).toMatch(/async function main\(\) \{\s*if \(process\.env\.INVENTORY_FEED_MODE === "source"\) throw/);
+    expect(source).toMatch(/async function main\(\) \{\s*if \(\["source", "shared"\]\.includes\(process\.env\.INVENTORY_FEED_MODE \?\? ""\)\) throw/);
   });
 });

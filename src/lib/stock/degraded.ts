@@ -10,8 +10,8 @@ const BUDGET_KEY = "egress:vercel";
 
 /** The heartbeat also fences manual calls if a deployment accidentally omitted its feed-mode flag. */
 export async function directCollectionDisabled(): Promise<boolean> {
-  return process.env.INVENTORY_FEED_MODE === "source"
-    || (await readState<{ mode?: string }>("heartbeat"))?.value.mode === "source-sync";
+  if (["source", "shared"].includes(process.env.INVENTORY_FEED_MODE ?? "")) return true;
+  return ["source-sync", "shared"].includes((await readState<{ mode?: string }>("heartbeat"))?.value.mode ?? "");
 }
 
 export async function degradedTick(maxRequests = 3): Promise<{ requests: number; failures: number; exhausted: boolean; first: string | null; skipped?: "source-mode" }> {

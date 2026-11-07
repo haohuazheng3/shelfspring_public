@@ -47,7 +47,7 @@ export async function GET(req: Request) {
     // This project's source-feed mode must never begin a second Apple poller, even before the
     // first heartbeat or when the feed disappears. The heartbeat also protects a configured feed
     // if a later deployment accidentally omits the environment flag.
-    if (process.env.INVENTORY_FEED_MODE === "source" || hb?.value.mode === "source-sync") {
+    if (["source", "shared"].includes(process.env.INVENTORY_FEED_MODE ?? "") || ["source-sync", "shared"].includes(hb?.value.mode ?? "")) {
       return await watchSourceFeed(hb);
     }
     const age = hb ? Date.now() - new Date(hb.value.at ?? hb.updatedAt).getTime() : Infinity;
@@ -155,8 +155,9 @@ export async function GET(req: Request) {
 
 /** Shared inventory is read-only upstream: alert on stale imports, with the existing debounce rules. */
 async function watchSourceFeed(hb: { value: Heartbeat; updatedAt: Date | string } | null) {
+  const shared = process.env.INVENTORY_FEED_MODE === "shared" || hb?.value.mode === "shared";
   // Runs even if the feed process is down. This changes target display state only, never source timestamps/events.
-  await expireSourceInventory();
+  if (!shared) await expireSourceInventory();
   const now = new Date();
   const age = hb ? now.getTime() - new Date(hb.value.at ?? hb.updatedAt).getTime() : Infinity;
   const fresh = await freshness({ intlCadenceSec: hb?.value.intl?.cadenceSec });
@@ -170,7 +171,7 @@ async function watchSourceFeed(hb: { value: Heartbeat; updatedAt: Date | string 
   const summary = [fresh.pairs ? us.summary : "no imported US inventory", intl?.state !== "ok" ? intl?.summary : null].filter(Boolean).join("; ");
   const previous = (await readState<UsWatchState>("watchdog:source"))?.value ?? US_IDLE;
   const step = usWatchStep(previous, state, now);
-  const meta = { mode: "source-sync", sourceOnly: true, degraded: false, ageMs: Number.isFinite(age) ? Math.round(age) : null, state };
+  const meta = { mode: shared ? "shared" : "source-sync", sourceOnly: true, degraded: false, ageMs: Number.isFinite(age) ? Math.round(age) : null, state };
   await logOps("cron", "debug", "source sync watchdog tick", meta);
   if (!previous.down && step.next.down) await logOps("cron", "warn", `inventory source ${state}: ${summary}`, meta);
   if (step.mail) {
@@ -179,8 +180,8 @@ async function watchSourceFeed(hb: { value: Heartbeat; updatedAt: Date | string 
     await logOps("cron", recovered ? "info" : "warn", `inventory source ${step.mail}: ${summary}`, meta);
     await notifyOwner(subject,
       `${summary}.\nFeed host: ${hb?.value.host ?? "not yet reported"}.\n` +
-      `This site imports stock through its inventory sync service. No Apple fallback polling has been started. ` +
-      `Check the sync service on the new host and /admin. The existing source hosts have not been changed.\n` +
+      (shared ? `This site reads the shared inventory directly. Check its private notification worker and the existing collector; no Apple fallback polling has been started.\n`
+        : `This site imports stock through its inventory sync service. No Apple fallback polling has been started. Check the sync service on the new host and /admin. The existing source hosts have not been changed.\n`) +
       `Alerts use the same ${BAD_RUNS}-run failure / ${RECOVER_RUNS}-run recovery debounce; ongoing failures are repeated every ${REMIND_MS / 3600_000} h.`,
     );
   }

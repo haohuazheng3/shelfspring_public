@@ -177,7 +177,7 @@ export async function fetchPickupAtStore(
 
 async function fetchParsed(url: string, location: string, fetchImpl: FetchLike, timeoutMs: number, headers: Record<string, string> = APPLE_HEADERS): Promise<PickupResponse> {
   // Final boundary for sweeps, instant confirmation, fast lanes and future callers.
-  if (process.env.INVENTORY_FEED_MODE === "source") throw new Error("Direct Apple collection is disabled in source inventory mode");
+  if (["source", "shared"].includes(process.env.INVENTORY_FEED_MODE ?? "")) throw new Error("Direct Apple collection is disabled in source inventory mode");
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), timeoutMs);
   try {

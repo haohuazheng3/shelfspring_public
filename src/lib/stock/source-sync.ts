@@ -8,7 +8,14 @@ import { Pool, type PoolClient, type PoolConfig } from "pg";
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 import type { Transition } from "./ingest";
-import { previewInventoryMode } from "./inventory-mode";
+import { previewInventoryMode, sharedInventoryMode } from "./inventory-mode";
+
+/** Drizzle raw node-postgres queries preserve timestamps as strings. Validate at the adapter boundary. */
+export function inventoryDate(value: unknown): Date {
+  const date = value instanceof Date ? value : typeof value === "string" ? new Date(value) : null;
+  if (!date || !Number.isFinite(date.getTime())) throw new Error("Invalid inventory timestamp");
+  return date;
+}
 
 export interface SourceEvent {
   id: string;
@@ -336,6 +343,7 @@ export async function syncInventoryOnce(reader: InventoryReader, destination: In
 // Same 30-minute expiry as the original poller; expiry is not a new source observation.
 export const SOURCE_STATUS_STALE_MS = 30 * 60_000;
 export async function expireSourceInventory(): Promise<number> {
+  if (sharedInventoryMode()) return 0;
   const result = await db().execute(sql`UPDATE store_sku_status SET status = 'unknown',
     pending_status = NULL, pending_since = NULL, pending_seen = 0
     WHERE status <> 'unknown' AND (last_checked_at IS NULL
@@ -356,8 +364,8 @@ export class PgInventoryDestination implements InventoryDestination {
     });
   }
 }
-class PgInventoryWriter implements InventoryWriter {
-  constructor(private readonly tx: DatabaseTransaction, private readonly source: string) {}
+export class PgInventoryWriter implements InventoryWriter {
+  constructor(private readonly tx: DatabaseTransaction, private readonly source: string, private readonly mode: "source-sync" | "shared" = "source-sync") {}
   async state() {
     const result = await this.tx.execute<{ value: SyncState }>(sql`SELECT value FROM inventory_sync_state WHERE source = ${this.source}`);
     return result.rows[0]?.value ?? null;
@@ -427,11 +435,11 @@ class PgInventoryWriter implements InventoryWriter {
     await this.tx.execute(sql`INSERT INTO inventory_sync_state (source, value, updated_at)
       VALUES (${this.source}, ${JSON.stringify(state)}::jsonb, now())
       ON CONFLICT (source) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`);
-    const heartbeat = { at: state.lastSuccessAt, mode: "source-sync", host: options.host,
-      cadenceSec: options.intervalMs / 1_000, statusCadenceSec: options.statusIntervalMs / 1_000,
+    const heartbeat = { at: state.lastSuccessAt, mode: this.mode, host: options.host,
+      cadenceSec: options.intervalMs / 1_000, statusCadenceSec: this.mode === "shared" ? 0 : options.statusIntervalMs / 1_000,
       source: this.source, feedOnly: true, notificationsEnabled: options.notificationsEnabled };
     const feed = { ...heartbeat, highWater: state.highWater, reconcileAfter: state.reconcileAfter,
-      cutoverAt: state.cutoverAt, lastStatusAt: state.lastStatusAt, error: null };
+      cutoverAt: state.cutoverAt, lastStatusAt: this.mode === "shared" ? null : state.lastStatusAt, error: null };
     await this.tx.execute(sql`INSERT INTO poller_state (key, value, updated_at) VALUES
       ('heartbeat', ${JSON.stringify(heartbeat)}::jsonb, now()), ('inventory-source', ${JSON.stringify(feed)}::jsonb, now())
       ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`);
@@ -446,10 +454,14 @@ export interface NotificationOutbox {
 export type NotifyInventory = (transitions: Transition[], eventIds: number[], now?: Date) => Promise<{ failed: number }>;
 
 /** One irreversible send attempt per claim. A crash after sending cannot safely be retried automatically. */
-export async function dispatchInventoryAlerts(outbox: NotificationOutbox, options: SyncOptions, notify: NotifyInventory): Promise<number> {
+export async function dispatchInventoryAlerts(outbox: NotificationOutbox, options: SyncOptions, notify: NotifyInventory,
+  stillOwnsClaim?: () => Promise<boolean>): Promise<number> {
   if (!options.notificationsEnabled || previewInventoryMode()) return 0;
   const { token, alerts } = await outbox.claim(options);
   if (!alerts.length) return 0;
+  // Ownership may change while claiming. Do not send or requeue an ambiguous claim;
+  // the next exclusive leader marks it uncertain for review. Source mode has no extra guard.
+  if (stillOwnsClaim && !await stillOwnsClaim()) return 0;
   try {
     const stats = await notify(alerts.map((e) => e.transition), alerts.map((e) => e.eventId));
     await outbox.finish(token, stats.failed ? "failed" : "sent", stats.failed ? "delivery-failed-review-required" : null);
@@ -470,14 +482,14 @@ export class PgInventoryOutbox implements NotificationOutbox {
       await tx.execute(sql`UPDATE inventory_sync_outbox SET status = 'expired', reason = 'delivery-window-expired', completed_at = now()
         WHERE source = ${options.source} AND status = 'pending' AND created_at < now() - ${options.maxAlertAgeMs} * interval '1 millisecond'`);
       const result = await tx.execute<{ source_event_id: string; event_id: string | number; store_number: string; part_number: string;
-        kind: "restock"; quote: string | null; at: Date; first_seen: boolean; seen_until: Date | null }>(sql`
+        kind: "restock"; quote: string | null; at: string | Date; first_seen: boolean; seen_until: string | Date | null }>(sql`
         WITH candidates AS (
           SELECT o.source, o.source_event_id FROM inventory_sync_outbox o
           JOIN availability_events e ON e.id = o.event_id
           JOIN inventory_sync_state s ON s.source = o.source
           JOIN store_sku_status current_stock ON current_stock.store_number = e.store_number AND current_stock.part_number = e.part_number
           WHERE o.source = ${options.source} AND o.status = 'pending' AND e.kind = 'restock' AND e.first_seen = false
-            AND e.inventory_source = o.source AND e.source_event_id = o.source_event_id
+            AND ${sharedInventoryMode() ? sql`e.id::text = o.source_event_id` : sql`e.inventory_source = o.source AND e.source_event_id = o.source_event_id`}
             AND current_stock.status = 'available' AND current_stock.since = e.at
             AND current_stock.last_checked_at >= e.at
             AND current_stock.last_checked_at >= now() - ${options.maxAlertAgeMs} * interval '1 millisecond'
@@ -499,7 +511,7 @@ export class PgInventoryOutbox implements NotificationOutbox {
         if (!Number.isSafeInteger(eventId) || eventId < 1) throw new Error("Inventory event ID exceeds the supported integer range");
         return { sourceEventId: e.source_event_id, eventId,
           transition: { storeNumber: e.store_number, partNumber: e.part_number, kind: e.kind, quote: e.quote,
-            at: e.at, firstSeen: e.first_seen, seenUntil: e.seen_until } };
+            at: inventoryDate(e.at), firstSeen: e.first_seen, seenUntil: e.seen_until === null ? null : inventoryDate(e.seen_until) } };
       });
     });
     return { token, alerts };
