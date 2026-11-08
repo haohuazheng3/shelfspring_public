@@ -67,6 +67,7 @@ export function AlertEditor({ catalog, account, start = {}, variant = "panel", s
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadingAccount = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [checkout, setCheckout] = useState<PaidPlanKey | null>(null);
   const checkoutInFlight = useRef(false);
   // Bumped on every refused tick: the inline notice sits above the lists, out of view once someone has
@@ -214,7 +215,7 @@ export function AlertEditor({ catalog, account, start = {}, variant = "panel", s
   const goCheckout = async (k: PaidPlanKey) => {
     if (checkoutInFlight.current) return;
     checkoutInFlight.current = true;
-    setCheckout(k); setNotice(null);
+    setCheckout(k); setCheckoutError(null);
     try {
       const r = await fetch("/api/stripe/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ plan: k }) });
       const j = (await r.json().catch(() => ({}))) as { url?: string; error?: string };
@@ -222,7 +223,7 @@ export function AlertEditor({ catalog, account, start = {}, variant = "panel", s
       track("checkout_started", { plan: k });
       window.location.assign(j.url);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : String(e));
+      setCheckoutError(e instanceof Error ? e.message : String(e));
       checkoutInFlight.current = false;
       setCheckout(null);
     }
@@ -351,6 +352,7 @@ export function AlertEditor({ catalog, account, start = {}, variant = "panel", s
               ))}
             </div>
           )}
+          {checkoutError && <p role="alert" className="mt-3 rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-sm">{checkoutError}</p>}
           <p className="mt-2 text-xs text-ink-3"><span aria-hidden>⚡ </span>{speed}{d.afterSpeed}</p>
         </div>
       )}
