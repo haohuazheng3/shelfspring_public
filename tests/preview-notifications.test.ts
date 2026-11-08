@@ -86,7 +86,7 @@ describe("preview application notification boundary", () => {
 
   it("returns an explicit disabled response before registering or sending a browser push", async () => {
     vi.stubEnv("VERCEL_ENV", "preview");
-    const response = await testPush();
+    const response = await testPush(new Request("https://shelfspring.com/api/push/test", { method: "POST" }));
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ code: "PREVIEW_NOTIFICATIONS_DISABLED", sent: 0 });
     const key = await publicVapid();

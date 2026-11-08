@@ -16,7 +16,7 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useLayoutEffect, useRef, type ComponentProps, type RefObject } from "react";
-import { NAV_EVENT, type NavEventDetail } from "./navEvents";
+import { NAV_EVENT, SAME_PAGE_EVENT, isSamePage, type NavEventDetail } from "./navEvents";
 import { analyticsDocumentBoundary } from "@/lib/analytics-privacy";
 import { useAppLocale, useLocale } from "@/components/i18n/LangProvider";
 import { langOfPath, localeFromSegment, localizePath } from "@/lib/i18n/locales";
@@ -47,7 +47,7 @@ export type PendingLinkProps = ComponentProps<typeof Link>;
  * exists ("/jp/stores/…" on a Japanese page → "/ja-jp/stores/…"), and a link into another language is a plain
  * anchor — a full page load — because the root layout (header, footer, <html lang>) renders once per load.
  */
-export function PendingLink({ children, ref, href, prefetch, onMouseEnter, onTouchStart, onFocus, ...props }: PendingLinkProps) {
+export function PendingLink({ children, ref, href, prefetch, onMouseEnter, onTouchStart, onFocus, onClick, ...props }: PendingLinkProps) {
   const loc = useLocale();
   const app = useAppLocale();
   const router = useRouter();
@@ -64,7 +64,7 @@ export function PendingLink({ children, ref, href, prefetch, onMouseEnter, onTou
   if (typeof to === "string" && to.startsWith("/") && (analyticsDocumentBoundary(pathname, to) || langOfPath(to, app?.lang ?? "en") !== loc.lang || (targetLocale && targetLocale.id !== loc.id))) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { replace, scroll, shallow, locale, legacyBehavior, passHref, onNavigate, ...a } = props as PendingLinkProps & Record<string, unknown>;
-    return <a {...(a as React.AnchorHTMLAttributes<HTMLAnchorElement>)} href={to} ref={setRef} onMouseEnter={onMouseEnter} onTouchStart={onTouchStart} onFocus={onFocus}>{children}</a>;
+    return <a {...(a as React.AnchorHTMLAttributes<HTMLAnchorElement>)} href={to} ref={setRef} onMouseEnter={onMouseEnter} onTouchStart={onTouchStart} onFocus={onFocus} onClick={onClick}>{children}</a>;
   }
   // Intent prefetch: once per link, only when the default viewport prefetch is off (prefetch === true keeps next/link's own).
   const intent = () => {
@@ -81,6 +81,14 @@ export function PendingLink({ children, ref, href, prefetch, onMouseEnter, onTou
       onMouseEnter={(e) => { onMouseEnter?.(e); intent(); }}
       onTouchStart={(e) => { onTouchStart?.(e); intent(); }}
       onFocus={(e) => { onFocus?.(e); intent(); }}
+      onClick={(e) => {
+        onClick?.(e);
+        // A plain tap on a link to this very page: refresh it instead of a navigation that changes nothing visible.
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || typeof to !== "string") return;
+        if (!isSamePage(to, window.location)) return;
+        e.preventDefault();
+        window.dispatchEvent(new Event(SAME_PAGE_EVENT));
+      }}
     >
       <PendingProbe anchor={own} />
       {children}

@@ -3,7 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
   path: "/privacy", live: false, refresh: vi.fn(), cleanup: undefined as (() => void) | undefined,
 }));
-vi.mock("react", () => ({ useEffect: (effect: () => (() => void) | void) => { state.cleanup = effect() ?? undefined; } }));
+vi.mock("react", () => ({
+  // Two effects: the refresh pill's timer (nothing to clean while it is hidden) and the listeners, declared second.
+  useEffect: (effect: () => (() => void) | void) => { const c = effect(); if (c) state.cleanup = c; },
+  useState: <T,>(v: T) => [v, () => undefined],
+  useTransition: () => [false, (fn: () => void) => fn()],
+}));
+vi.mock("@/components/i18n/LangProvider", () => ({ useT: () => ({ chrome: { refresh: { busy: "Updating…", done: "Updated" } } }) }));
 vi.mock("next/navigation", () => ({ usePathname: () => state.path, useRouter: () => ({ refresh: state.refresh }) }));
 vi.mock("@/components/site/LiveChecked", () => ({ hasLiveStockSubscribers: () => state.live, STOCK_CHANGED: "pc:stock-changed" }));
 import { FreshOnReturn } from "@/components/site/FreshOnReturn";
@@ -15,7 +21,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date("2026-11-06T12:00:00Z"));
   state.path = "/privacy"; state.live = false; state.refresh.mockReset();
   page = Object.assign(new EventTarget(), { visibilityState: "visible" });
-  browser = Object.assign(new EventTarget(), { setInterval, clearInterval, setTimeout, clearTimeout });
+  browser = Object.assign(new EventTarget(), { setInterval, clearInterval, setTimeout, clearTimeout, scrollTo: () => undefined });
   vi.stubGlobal("document", page);
   vi.stubGlobal("window", browser);
 });
@@ -66,5 +72,21 @@ describe("server refresh only where data needs it", () => {
     vi.advanceTimersByTime(6 * 60_000);
     expect(state.refresh).not.toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe("a tap on the link to the page on screen (SAME_PAGE_EVENT)", () => {
+  it("refreshes a page that shows live stock, once per few seconds", () => {
+    state.path = "/stock/iphone-duo"; state.live = true; FreshOnReturn();
+    vi.advanceTimersByTime(10_000);
+    browser.dispatchEvent(new Event("pc:same-page"));
+    browser.dispatchEvent(new Event("pc:same-page"));
+    expect(state.refresh).toHaveBeenCalledTimes(1);
+  });
+  it("only scrolls up on a page without live stock", () => {
+    state.path = "/privacy"; state.live = false; FreshOnReturn();
+    vi.advanceTimersByTime(10_000);
+    browser.dispatchEvent(new Event("pc:same-page"));
+    expect(state.refresh).not.toHaveBeenCalled();
   });
 });
