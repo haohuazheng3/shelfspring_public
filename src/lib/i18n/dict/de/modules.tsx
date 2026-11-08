@@ -193,4 +193,48 @@ export const modules: Dict["modules"] = {
     seen: (ago: ReactNode) => <>Gesehen {ago}</>,
     loading: "Verfügbarkeit wird geladen",
   },
+
+  /** DuoLedger: das Beobachtungsbuch am Anfang der Regions-, Stadt-, Store-, Länder- und Duo-Modellseiten. `place` kommt ohne Präposition. */
+  duoLedger: {
+    kicker: (place: string) => `Beobachtungsbuch · iPhone Duo · ${place}`,
+    headNone: (o) => `In keinem der ${n(o.n)} Apple Stores ${inOrt(o.place)} ist ein iPhone Duo zur Abholung gelistet.`,
+    headNoneOne: (place: string) => `${place} listet derzeit keine iPhone-Duo-Variante zur Abholung.`,
+    headSome: (o) => <>Zur Abholung gelistet in {n(o.k)} von {n(o.n)} Apple Stores {inOrt(o.place)}: {o.list}.</>,
+    headSomeOne: (o) => <>{o.place} listet {n(o.k)} von {n(o.total)} iPhone-Duo-Varianten zur Abholung: {o.list}.</>,
+    storeItem: (store: ReactNode, configs: number) => <>{store} ({plural(configs, "Variante", "Varianten")})</>,
+    observed: (stamp: string) => `Beobachtet ${stamp}.`,
+    lastReturn: (o) => <>Letzte bestätigte Rückkehr: <b className="text-ink">{o.config}</b>{o.store != null && <> bei {o.store}</>}, {o.when}{o.lasted ? <>, {o.lasted}</> : null}.</>,
+    noReturnYet: (place: string, since: string) => `Seit Beginn der Aufzeichnung am ${since} keine bestätigte iPhone-Duo-Rückkehr ${inOrt(place)}.`,
+    others: (o) => (o.one ? `iPhone 18 Pro: ${n(o.pro)} von ${n(o.configs)} Varianten hier gelistet; 18 Pro Max: ${n(o.max)} von ${n(o.configs)}.` : `iPhone 18 Pro: in ${n(o.pro)} dieser Stores gelistet; 18 Pro Max: in ${n(o.max)}.`),
+    mReturns: (since: string) => `bestätigte Rückkehren seit ${since}`,
+    mStores: "Stores mit mindestens einer Rückkehr",
+    mDays: "erfasste Tage mit einer Rückkehr",
+    mWindow: (pct: string) => `stärkste zwei Stunden · ${pct} der Aufzeichnung`,
+    mPerDay: "Rückkehren pro erfasstem Tag",
+    mMedian: "mittlere Listungsdauer, vom Erscheinen bis zum Verschwinden",
+    mToday: "Rückkehren heute, bisher",
+    secUnit: "s",
+    minUnit: "Min.",
+    note: (o) => (o.one
+      ? `Seit ${o.since} hat ShelfSpring bei ${o.place} ${plural(o.n, "bestätigte iPhone-Duo-Rückkehr", "bestätigte iPhone-Duo-Rückkehren")} erfasst, an ${n(o.days)} von ${n(o.tracked)} erfassten Tagen. Die stärksten zwei Stunden waren ${o.range} (${o.pct} der Aufzeichnung; ${o.morning} fielen zwischen 8 und 12 Uhr), die stärkste einzelne Stunde ${o.busiest} mit ${n(o.busiestN)}.${o.median ? ` Die Hälfte der gemessenen Listungen war innerhalb von ${o.median} wieder verschwunden.` : ""}${o.config ? ` Am häufigsten kehrte ${o.config} zurück (${n(o.top)} von ${n(o.n)}).` : ""}`
+      : `In den ${n(o.stores)} Apple Stores ${inOrt(o.place)} hat ShelfSpring seit ${o.since} ${plural(o.n, "bestätigte iPhone-Duo-Rückkehr", "bestätigte iPhone-Duo-Rückkehren")} erfasst; ${n(o.k)} der Stores hatten mindestens eine. Die stärksten zwei Stunden waren ${o.range} ${o.zone} (${o.pct} der Aufzeichnung; ${o.morning} fielen zwischen 8 und 12 Uhr), die stärkste einzelne Stunde ${o.busiest} mit ${n(o.busiestN)}.${o.median ? ` Die Hälfte der gemessenen Listungen war innerhalb von ${o.median} wieder verschwunden.` : ""}${o.config ? ` Am häufigsten kehrte ${o.config} zurück (${n(o.top)} von ${n(o.n)}).` : ""}`),
+    noteFew: (o) => `${plural(o.n, "bestätigte iPhone-Duo-Rückkehr", "bestätigte iPhone-Duo-Rückkehren")} ${o.one ? `bei ${o.place}` : `in den ${n(o.stores)} Apple Stores ${inOrt(o.place)}`} seit ${o.since}, an ${plural(o.days, "Tag", "Tagen")} – unter der Schwelle von ${n(o.min)} Rückkehren an ${n(o.minDays)} Tagen, ab der ShelfSpring eine übliche Stunde nennt.${o.median ? ` Die Hälfte der gemessenen Listungen war innerhalb von ${o.median} wieder verschwunden.` : ""} Die einzelnen Rückkehren stehen im Buch darunter.`,
+    hourByHour: "Aufzeichnung Stunde für Stunde öffnen →",
+    ledger: (k: number) => (k === 1 ? "Die letzte erfasste Rückkehr" : `Die letzten ${n(k)} erfassten Rückkehren`),
+    col: { observed: "Beobachtet (Store-Ortszeit)", config: "Variante", store: "Store", listed: "Gelistet für" },
+    secs: (k: number) => `${n(k)} s`,
+    mins: (k: number) => `${n(k)} Min.`,
+    listedRange: (low: string, high: string) => `gelistet ${low}–${high}`,
+    listedAbout: (x: string) => `gelistet etwa ${x}`,
+    stillListed: (x: string) => `noch gelistet (${x})`,
+    method: (o) => `Aufzeichnung seit ${o.since} · ${o.note} · eine Rückkehr zählt erst, wenn zwei aufeinanderfolgende Beobachtungen übereinstimmen; das erste Auftauchen einer Variante zählt nie.`,
+    delivered: (o) => (o.one
+      ? `In den letzten ${n(o.days)} Tagen hat ShelfSpring ${plural(o.sent, "Alarm", "Alarme")} an Mitglieder für Rückkehren bei ${o.place} zugestellt.`
+      : `In den letzten ${n(o.days)} Tagen hat ShelfSpring ${plural(o.sent, "Alarm", "Alarme")} an Mitglieder für Rückkehren in ${n(o.stores)} der ${n(o.total)} Apple Stores ${inOrt(o.place)} zugestellt.`),
+    watch: (place: string) => `Eine Variante ${inOrt(place)} beobachten →`,
+    watchOne: "Eine Variante in diesem Store beobachten →",
+    unknown: "Die Aufzeichnung ließ sich für diese Anfrage nicht lesen; die Live-Listung oben ist nicht betroffen.",
+    zone: () => "Ortszeit",
+    allModels: (o) => `Alle Modelle zusammen: ${plural(o.n, "erfasste Rückkehr", "erfasste Rückkehren")} in ${n(o.days)} Tagen${o.peak ? `; die stärkste Stunde war ${o.peak}` : ""}.`,
+  },
 };

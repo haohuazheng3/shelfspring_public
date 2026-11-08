@@ -42,6 +42,8 @@ export const basePages = {
     here: "here",
     storesWithIt: "stores with it",
     whenRestock: (place: string) => `When do ${place} stores restock?`,
+    /** The Duo-only hour chart on place pages (2026-11-08). */
+    duoHours: (place: string) => `iPhone Duo returns by hour in ${place}`,
     howFast: (place: string) => `How fast do restocks sell out in ${place}?`,
     latestIn: (place: string) => `Latest restocks in ${place}`,
     noneIn: (place: string) => `No restock recorded in ${place} yet.`,
@@ -135,6 +137,7 @@ export const basePages = {
     configsInStock: "configs in stock",
     stockNowH2: "Pickup stock right now",
     whenRestock: (name: string) => `When does ${name} restock?`,
+    duoHours: (name: string) => `iPhone Duo returns by hour at ${name}`,
     howFast: (name: string) => `How fast do restocks sell out at ${name}?`,
     history: "Restock history",
     historyEmpty: "No restock or sell-out recorded here yet.",

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { DuoLedger } from "@/components/stock/DuoLedger";
+import { alertsDelivered, duoLedgerFrom, stockFromRows } from "@/lib/content/duoLedger";
 import "./Workspace.css";
 import { PendingLink as Link } from "@/components/ui/PendingLink";
-import { MODELS, modelByKey, STORE_INDEX, appleFamilyUrl, storesOf, mapPath, restocksPath, type ModelKey } from "@/lib/apple/catalog";
+import { MODELS, modelByKey, STORE_INDEX, appleFamilyUrl, storesOf, mapPath, restocksPath, type ModelKey, catalogFor, partNumbersFor } from "@/lib/apple/catalog";
 import { prefixOf, type Country } from "@/lib/apple/countries";
 import { restockFeed, restockCounts, stockByStore } from "@/lib/stock/queries";
 import { HomeAlertSetup } from "@/components/alerts/AlertSetup";
@@ -63,9 +65,12 @@ export async function HomePage({ country: c, searchParams: sp }: { country: Coun
     </div>
   );
 
-  const [facts0, sell, recent, rt] = await Promise.all([getFacts(cc), sellouts({ country: cc }), recentByConfig({ country: cc }), us ? Promise.resolve(null) : duoRestockTimes(cc)]);
+  const [facts0, sell, recent, rt, duoRows, duoSell, alerts] = await Promise.all([getFacts(cc), sellouts({ country: cc }), recentByConfig({ country: cc }), duoRestockTimes(cc), stockByStore("duo", {}, cc), sellouts({ parts: partNumbersFor("duo", [], [], cc), country: cc }), alertsDelivered(stores.map((s) => s.storeNumber))]);
   const facts = { ...facts0, lang }, current = facts.models[model], modelMeta = modelByKey(model)!;
   const countryName = N.country();
+  // The observation ledger (lib/content/duoLedger.ts): the Duo's listing status across the country, from the rows the board reads anyway.
+  const ledger = duoLedgerFrom({ stores, stock: stockFromRows(duoRows), others: { pro: facts.models["18-pro"].storesNow, max: facts.models["18-pro-max"].storesNow }, times: rt, sell: duoSell, alerts, configsTotal: catalogFor("duo", cc).length });
+  const ledgerPlace = us ? "the US" : countryName;
   const faq = us ? HOME_FAQ : P.homeFaq(cc, { n: rt!.n, stores: rt!.stores, storesTotal: rt!.storesTotal, peakHour: rt!.peakHour, path: `${p}/iphone-duo-restock-times` }).slice(0, 4);
   const sources = us ? HOME_SOURCES : [P.sources(cc as Exclude<typeof cc, "us">).pickupHelp, P.sources(cc as Exclude<typeof cc, "us">).storeList];
   const ld = { "@context": "https://schema.org", "@type": "WebApplication", name: "ShelfSpring", url: `https://shelfspring.com${pathInLocale(p, loc)}`, description: SITE_DESCRIPTION, featureList: SITE_FEATURES, applicationCategory: "UtilitiesApplication", operatingSystem: "Web, iOS and Android", publisher: { "@id": ORG_ID }, areaServed: { "@type": "Country", name: c.name }, offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: us ? "Public inventory and history are free; optional paid restock alerts." : P.home.offer } };
@@ -79,6 +84,7 @@ export async function HomePage({ country: c, searchParams: sp }: { country: Coun
           <div className="mt-6 border-t border-line pt-4"><p className="text-xs text-ink-3">{F.current}</p><p className="mt-1 font-semibold">{modelMeta.name}</p><p className="mt-2 text-sm text-ink-2">{current.unknown ? "—" : num(lang, current.storesNow)} · {H.storesWith(bidi(modelMeta.short, lang))}</p></div><p className="mt-5 text-xs leading-relaxed text-ink-3">{F.historyNote}</p>
         </aside>
       </section>
+      <div className="pb-2 pt-8"><DuoLedger d={ledger} place={ledgerPlace} stores={stores} country={cc} hourHref={`${p}/iphone-duo-restock-times`} watchHref={alertHref({ model: "duo", country: cc })} /></div>
       <nav aria-label={F.model} className="home-model-index">
         {MODELS.map((m, i) => <Link key={m.key} href={`${p || "/"}?model=${m.key}`} aria-current={model === m.key ? "page" : undefined} className="home-model-option"><span className="field-kicker" aria-hidden>0{i + 1}</span><span className="font-semibold">{m.name}</span><span className="text-xs text-ink-3">{facts.models[m.key].unknown ? "—" : num(lang, facts.models[m.key].storesNow)} · {H.storesWith(bidi(m.short, lang))}</span><span className="home-model-arrow" aria-hidden>↗</span></Link>)}
       </nav>
@@ -89,7 +95,7 @@ export async function HomePage({ country: c, searchParams: sp }: { country: Coun
       <section className="field-section" aria-labelledby="history-heading">
         <div className="field-section-head"><div><p className="field-kicker">02 / iPhone Duo</p><h2 id="history-heading" className="display text-3xl">{F.history}</h2></div><Link href={`${restocksPath(cc)}?model=duo`} className="btn btn-ghost btn-sm">{H.allRestocks} ↗</Link></div>
         <PickupPattern data={recent} storeCount={stores.length} country={cc} window="24h" />
-        <div className="mt-5"><Last24Hours data={recent} label={us ? "in the US" : P.home.last24Label(cc)} stores={stores} country={cc} alert={alertHref({ model: "duo", country: cc })} /></div>
+        <div className="mt-5"><Last24Hours data={recent} label={us ? "in the US" : P.home.last24Label(cc)} stores={stores} country={cc} alert={alertHref({ model: "duo", country: cc })} compact /></div>
       </section>
       <section className="field-section home-alert-workspace" aria-labelledby="watchlist-heading">
         <div><p className="field-kicker">03 / ShelfSpring</p><h2 id="watchlist-heading" className="display mt-3 text-3xl sm:text-4xl">{F.alert}</h2><p className="mt-4 max-w-sm leading-relaxed text-ink-2">{F.alertNote}</p><p className="mt-5 max-w-sm text-sm text-ink-3">{F.nowNote}</p><Link href="/pricing" className="btn btn-ghost btn-sm mt-6">{t().chrome.footer.pricing} ↗</Link></div>

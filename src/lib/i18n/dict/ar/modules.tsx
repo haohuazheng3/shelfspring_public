@@ -192,4 +192,48 @@ export const modules: Dict["modules"] = {
     seen: (ago: ReactNode) => <>شوهد {ago}</>,
     loading: "جارٍ تحميل المخزون",
   },
+
+  /** DuoLedger: سجل الرصد الذي تبدأ به صفحات المناطق والمدن والمتاجر والدول وطراز Duo. يصل `place` اسمًا مجردًا بلا حرف جر. */
+  duoLedger: {
+    kicker: (place: string) => `سجل الرصد · iPhone Duo · ${place}`,
+    headNone: (o) => `لا يعرض أي من ${count(o.n, STORES_G)} Apple في ${o.place} جهاز iPhone Duo للاستلام.`,
+    headNoneOne: (place: string) => `${place} لا يعرض أي تكوين من iPhone Duo للاستلام.`,
+    headSome: (o) => <>معروض للاستلام في {N(o.k)} من {count(o.n, STORES_G)} Apple في {o.place}: {o.list}.</>,
+    headSomeOne: (o) => <>{o.place} يعرض {N(o.k)} من {count(o.total, CONFIGS)} iPhone Duo للاستلام: {o.list}.</>,
+    storeItem: (store: ReactNode, configs: number) => <>{store} ({count(configs, CONFIGS)})</>,
+    observed: (stamp: string) => `رُصد ${stamp}.`,
+    lastReturn: (o) => <>آخر عودة مؤكدة: <b className="text-ink">{o.config}</b>{o.store != null && <> في {o.store}</>}، {o.when}{o.lasted ? <>، {o.lasted}</> : null}.</>,
+    noReturnYet: (place: string, since: string) => `لا توجد عودة مؤكدة لـ iPhone Duo في ${place} منذ بدء السجل في ${since}.`,
+    others: (o) => (o.one ? `iPhone 18 Pro: ${N(o.pro)} من ${N(o.configs)} تكوينًا معروضة هنا؛ 18 Pro Max: ${N(o.max)} من ${N(o.configs)}.` : `iPhone 18 Pro: معروض في ${N(o.pro)} من هذه المتاجر؛ 18 Pro Max: في ${N(o.max)}.`),
+    mReturns: (since: string) => `عودات مؤكدة منذ ${since}`,
+    mStores: "متاجر شهدت عودة واحدة على الأقل",
+    mDays: "أيام متابَعة شهدت عودة",
+    mWindow: (pct: string) => `أكثر ساعتين نشاطًا · ${pct} من السجل`,
+    mPerDay: "عودات لكل يوم متابَع",
+    mMedian: "وسيط مدة العرض، من الظهور إلى الاختفاء",
+    mToday: "عودات اليوم حتى الآن",
+    secUnit: "ث",
+    minUnit: "د",
+    note: (o) => (o.one
+      ? `منذ ${o.since} سجّل ShelfSpring ${N(o.n)} عودة مؤكدة لـ iPhone Duo في ${o.place}، في ${N(o.days)} من ${N(o.tracked)} يومًا متابَعًا. كانت أكثر ساعتين نشاطًا ${o.range} (${o.pct} من السجل؛ ${o.morning} بين الثامنة صباحًا والظهر)، وأكثر ساعة منفردة ${o.busiest} بـ${N(o.busiestN)}.${o.median ? ` اختفى نصف العروض المقاسة خلال ${o.median}.` : ""}${o.config ? ` عاد ${o.config} أكثر من غيره (${N(o.top)} من ${N(o.n)}).` : ""}`
+      : `في ${count(o.stores, STORES_G)} Apple في ${o.place}، سجّل ShelfSpring ${N(o.n)} عودة مؤكدة لـ iPhone Duo منذ ${o.since}؛ شهد ${N(o.k)} منها عودة واحدة على الأقل. كانت أكثر ساعتين نشاطًا ${o.range} (${o.zone}؛ ${o.pct} من السجل؛ ${o.morning} بين الثامنة صباحًا والظهر)، وأكثر ساعة منفردة ${o.busiest} بـ${N(o.busiestN)}.${o.median ? ` اختفى نصف العروض المقاسة خلال ${o.median}.` : ""}${o.config ? ` عاد ${o.config} أكثر من غيره (${N(o.top)} من ${N(o.n)}).` : ""}`),
+    noteFew: (o) => `${N(o.n)} عودة مؤكدة لـ iPhone Duo ${o.one ? `في ${o.place}` : `في ${count(o.stores, STORES_G)} Apple في ${o.place}`} منذ ${o.since}، خلال ${count(o.days, DAYS)} — أقل من عتبة ${N(o.min)} عودات خلال ${N(o.minDays)} أيام التي يطبقها ShelfSpring قبل وصف ساعة معتادة.${o.median ? ` اختفى نصف العروض المقاسة خلال ${o.median}.` : ""} العودات نفسها مدرجة في السجل أدناه.`,
+    hourByHour: "افتح السجل ساعة بساعة ←",
+    ledger: (k: number) => (k === 1 ? "آخر عودة مسجلة" : `آخر ${N(k)} عودات مسجلة`),
+    col: { observed: "الرصد (بتوقيت المتجر)", config: "التكوين", store: "المتجر", listed: "مدة العرض" },
+    secs: (k: number) => `${N(k)} ث`,
+    mins: (k: number) => `${N(k)} د`,
+    listedRange: (low: string, high: string) => `عُرض ${low}–${high}`,
+    listedAbout: (x: string) => `عُرض نحو ${x}`,
+    stillListed: (x: string) => `ما زال معروضًا (${x})`,
+    method: (o) => `السجل منذ ${o.since} · ${o.note} · تُحسب العودة فقط عندما تتفق ملاحظتان متتاليتان؛ ولا يُحسب الظهور الأول لأي تكوين أبدًا.`,
+    delivered: (o) => (o.one
+      ? `خلال آخر ${N(o.days)} أيام أوصل ShelfSpring ${N(o.sent)} تنبيهًا إلى الأعضاء عن عودات في ${o.place}.`
+      : `خلال آخر ${N(o.days)} أيام أوصل ShelfSpring ${N(o.sent)} تنبيهًا إلى الأعضاء عن عودات في ${N(o.stores)} من ${count(o.total, STORES_G)} Apple في ${o.place}.`),
+    watch: (place: string) => `راقب تكوينًا في ${place} ←`,
+    watchOne: "راقب تكوينًا في هذا المتجر ←",
+    unknown: "تعذّرت قراءة سجل الرصد لهذا الطلب؛ العرض المباشر أعلاه غير متأثر.",
+    zone: () => "بالتوقيت المحلي",
+    allModels: (o) => `كل الطرازات معًا: ${N(o.n)} عودة مسجلة خلال ${N(o.days)} يومًا${o.peak ? `؛ وكانت الساعة الأكثر نشاطًا ${o.peak}` : ""}.`,
+  },
 };

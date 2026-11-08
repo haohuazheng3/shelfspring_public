@@ -195,4 +195,48 @@ export const modules: Dict["modules"] = {
     seen: (ago: ReactNode) => <>Visto {ago}</>,
     loading: "Cargando stock",
   },
+
+  /** DuoLedger: el registro de observaciones que abre las páginas de región, ciudad, tienda, país y del modelo Duo. `place` llega sin preposición. */
+  duoLedger: {
+    kicker: (place: string) => `Registro de observaciones · iPhone Duo · ${place}`,
+    headNone: (o) => `Ninguno de los ${n(o.n)} Apple Store de ${o.place} ofrece un iPhone Duo para recogida.`,
+    headNoneOne: (place: string) => `${place} no ofrece ninguna configuración del iPhone Duo para recogida.`,
+    headSome: (o) => <>Disponible para recogida en {n(o.k)} de los {n(o.n)} Apple Store de {o.place}: {o.list}.</>,
+    headSomeOne: (o) => <>{o.place} ofrece {n(o.k)} de las {n(o.total)} configuraciones del iPhone Duo para recogida: {o.list}.</>,
+    storeItem: (store: ReactNode, configs: number) => <>{store} ({n(configs)} {v(configs, "configuración", "configuraciones")})</>,
+    observed: (stamp: string) => `Observado el ${stamp}.`,
+    lastReturn: (o) => <>Última reposición confirmada: <b className="text-ink">{o.config}</b>{o.store != null && <> en {o.store}</>}, {o.when}{o.lasted ? <>, {o.lasted}</> : null}.</>,
+    noReturnYet: (place: string, since: string) => `Ninguna reposición confirmada del iPhone Duo en ${place} desde que el registro empezó el ${since}.`,
+    others: (o) => (o.one ? `iPhone 18 Pro: ${n(o.pro)} de ${n(o.configs)} configuraciones disponibles aquí; 18 Pro Max: ${n(o.max)} de ${n(o.configs)}.` : `iPhone 18 Pro: disponible en ${n(o.pro)} de estas tiendas; 18 Pro Max: en ${n(o.max)}.`),
+    mReturns: (since: string) => `reposiciones confirmadas desde el ${since}`,
+    mStores: "tiendas con al menos una reposición",
+    mDays: "días seguidos con alguna reposición",
+    mWindow: (pct: string) => `las dos horas más activas · ${pct} del registro`,
+    mPerDay: "reposiciones por día seguido",
+    mMedian: "duración mediana del anuncio, de aparecer a desaparecer",
+    mToday: "reposiciones de hoy, hasta ahora",
+    secUnit: "s",
+    minUnit: "min",
+    note: (o) => (o.one
+      ? `Desde el ${o.since}, ShelfSpring ha registrado ${reposiciones(o.n)} ${v(o.n, "confirmada", "confirmadas")} del iPhone Duo en ${o.place}, en ${n(o.days)} de los ${n(o.tracked)} días seguidos. Las dos horas más activas fueron ${o.range} (${o.pct} del registro; ${o.morning} entre las 8 y el mediodía), y la hora más activa ${o.busiest} con ${n(o.busiestN)}.${o.median ? ` La mitad de los anuncios medidos desapareció en ${o.median}.` : ""}${o.config ? ` ${o.config} fue la configuración que más se repuso (${n(o.top)} de ${n(o.n)}).` : ""}`
+      : `En los ${n(o.stores)} Apple Store de ${o.place}, ShelfSpring ha registrado ${reposiciones(o.n)} ${v(o.n, "confirmada", "confirmadas")} del iPhone Duo desde el ${o.since}; ${n(o.k)} tiendas han tenido al menos una. Las dos horas más activas fueron ${o.range} (${o.zone}; ${o.pct} del registro; ${o.morning} entre las 8 y el mediodía), y la hora más activa ${o.busiest} con ${n(o.busiestN)}.${o.median ? ` La mitad de los anuncios medidos desapareció en ${o.median}.` : ""}${o.config ? ` ${o.config} fue la configuración que más se repuso (${n(o.top)} de ${n(o.n)}).` : ""}`),
+    noteFew: (o) => `${reposiciones(o.n)} ${v(o.n, "confirmada", "confirmadas")} del iPhone Duo ${o.one ? `en ${o.place}` : `en los ${n(o.stores)} Apple Store de ${o.place}`} desde el ${o.since}, en ${dias(o.days)}: por debajo del umbral de ${n(o.min)} reposiciones en ${n(o.minDays)} días que ShelfSpring aplica antes de describir una hora habitual.${o.median ? ` La mitad de los anuncios medidos desapareció en ${o.median}.` : ""} Cada reposición figura en el registro de abajo.`,
+    hourByHour: "Abrir el registro hora por hora →",
+    ledger: (k: number) => (k === 1 ? "La última reposición registrada" : `Las ${n(k)} últimas reposiciones registradas`),
+    col: { observed: "Observado (hora de la tienda)", config: "Configuración", store: "Tienda", listed: "Anunciado durante" },
+    secs: (k: number) => `${n(k)} s`,
+    mins: (k: number) => `${n(k)} min`,
+    listedRange: (low: string, high: string) => `anunciado ${low}–${high}`,
+    listedAbout: (x: string) => `anunciado unos ${x}`,
+    stillListed: (x: string) => `sigue anunciado (${x})`,
+    method: (o) => `Registro desde el ${o.since} · ${o.note} · una reposición se cuenta solo cuando dos observaciones consecutivas coinciden; la primera aparición de una configuración nunca cuenta.`,
+    delivered: (o) => (o.one
+      ? `En los últimos ${n(o.days)} días, ShelfSpring entregó ${n(o.sent)} ${v(o.sent, "aviso", "avisos")} a sus miembros por reposiciones en ${o.place}.`
+      : `En los últimos ${n(o.days)} días, ShelfSpring entregó ${n(o.sent)} ${v(o.sent, "aviso", "avisos")} a sus miembros por reposiciones en ${n(o.stores)} de los ${n(o.total)} Apple Store de ${o.place}.`),
+    watch: (place: string) => `Vigilar una configuración en ${place} →`,
+    watchOne: "Vigilar una configuración en esta tienda →",
+    unknown: "No se pudo leer el registro de observaciones en esta petición; el anuncio en directo de arriba no se ve afectado.",
+    zone: () => "hora local",
+    allModels: (o) => `Todos los modelos juntos: ${reposiciones(o.n)} ${v(o.n, "registrada", "registradas")} en ${n(o.days)} días${o.peak ? `; la hora más activa fue ${o.peak}` : ""}.`,
+  },
 };

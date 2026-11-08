@@ -7,6 +7,8 @@ import type { Dict } from "../en";
 import { num, plural } from "@/lib/i18n/format";
 
 const n = (v: number) => num("fr", v);
+/** « de Paris » / « d’Île-de-France » : le lieu après « Apple Store ». */
+const deLieu = (p: string) => (/^[aeiouyàâäéèêëîïôöûüÀÂÉÈÊÎÔÛ]/.test(p) ? `d’${p}` : `de ${p}`);
 const restocks = (v: number) => plural("fr", v, { one: "# retour en stock", other: "# retours en stock" });
 const soldouts = (v: number) => plural("fr", v, { one: "# rupture", other: "# ruptures" });
 
@@ -191,5 +193,49 @@ export const modules: Dict["modules"] = {
     more: (k) => `+${n(k)}`,
     seen: (ago) => <>Vu {ago}</>,
     loading: "Chargement du stock",
+  },
+
+  /** DuoLedger : le registre d’observation qui ouvre les pages de région, de ville, de magasin, de pays et du modèle Duo. `place` arrive sans préposition. */
+  duoLedger: {
+    kicker: (place) => `Registre d’observation · iPhone Duo · ${place}`,
+    headNone: (o) => `Aucun des ${n(o.n)} Apple Store ${deLieu(o.place)} ne propose d’iPhone Duo au retrait.`,
+    headNoneOne: (place) => `${place} ne propose aucune configuration d’iPhone Duo au retrait.`,
+    headSome: (o) => <>Proposé au retrait dans {n(o.k)} des {n(o.n)} Apple Store {deLieu(o.place)} : {o.list}.</>,
+    headSomeOne: (o) => <>{o.place} propose {n(o.k)} des {n(o.total)} configurations d’iPhone Duo au retrait : {o.list}.</>,
+    storeItem: (store, configs) => <>{store} ({plural("fr", configs, { one: "# configuration", other: "# configurations" })})</>,
+    observed: (stamp) => `Observé le ${stamp}.`,
+    lastReturn: (o) => <>Dernier retour en stock confirmé : <b className="text-ink">{o.config}</b>{o.store != null && <> chez {o.store}</>}, {o.when}{o.lasted ? <>, {o.lasted}</> : null}.</>,
+    noReturnYet: (place, since) => `Aucun retour en stock d’iPhone Duo confirmé pour ${place} depuis l’ouverture du registre le ${since}.`,
+    others: (o) => (o.one ? `iPhone 18 Pro : ${n(o.pro)} configurations sur ${n(o.configs)} proposées ici ; 18 Pro Max : ${n(o.max)} sur ${n(o.configs)}.` : `iPhone 18 Pro : proposé dans ${n(o.pro)} de ces magasins ; 18 Pro Max : dans ${n(o.max)}.`),
+    mReturns: (since) => `retours confirmés depuis le ${since}`,
+    mStores: "magasins avec au moins un retour",
+    mDays: "jours suivis avec un retour",
+    mWindow: (pct) => `deux heures les plus actives · ${pct} du registre`,
+    mPerDay: "retours par jour suivi",
+    mMedian: "durée médiane d’affichage, de l’apparition à la disparition",
+    mToday: "retours aujourd’hui, pour l’instant",
+    secUnit: "s",
+    minUnit: "min",
+    note: (o) => (o.one
+      ? `Depuis le ${o.since}, ShelfSpring a enregistré ${plural("fr", o.n, { one: "# retour en stock confirmé", other: "# retours en stock confirmés" })} d’iPhone Duo chez ${o.place}, sur ${n(o.days)} des ${n(o.tracked)} jours suivis. Les deux heures les plus actives étaient ${o.range} (${o.pct} du registre ; ${o.morning} entre 8 h et midi), l’heure la plus active ${o.busiest} avec ${n(o.busiestN)}.${o.median ? ` La moitié des affichages mesurés avaient disparu en ${o.median}.` : ""}${o.config ? ` ${o.config} est revenu le plus souvent (${n(o.top)} sur ${n(o.n)}).` : ""}`
+      : `Dans les ${n(o.stores)} Apple Store ${deLieu(o.place)}, ShelfSpring a enregistré ${plural("fr", o.n, { one: "# retour en stock confirmé", other: "# retours en stock confirmés" })} d’iPhone Duo depuis le ${o.since} ; ${n(o.k)} magasins en ont eu au moins un. Les deux heures les plus actives étaient ${o.range} (${o.zone} ; ${o.pct} du registre ; ${o.morning} entre 8 h et midi), l’heure la plus active ${o.busiest} avec ${n(o.busiestN)}.${o.median ? ` La moitié des affichages mesurés avaient disparu en ${o.median}.` : ""}${o.config ? ` ${o.config} est revenu le plus souvent (${n(o.top)} sur ${n(o.n)}).` : ""}`),
+    noteFew: (o) => `${plural("fr", o.n, { one: "# retour en stock confirmé", other: "# retours en stock confirmés" })} d’iPhone Duo ${o.one ? `chez ${o.place}` : `dans les ${n(o.stores)} Apple Store ${deLieu(o.place)}`} depuis le ${o.since}, sur ${plural("fr", o.days, { one: "# jour", other: "# jours" })} — sous le seuil de ${n(o.min)} retours sur ${n(o.minDays)} jours que ShelfSpring applique avant de décrire une heure habituelle.${o.median ? ` La moitié des affichages mesurés avaient disparu en ${o.median}.` : ""} Chaque retour figure dans le registre ci-dessous.`,
+    hourByHour: "Ouvrir le registre heure par heure →",
+    ledger: (k) => (k === 1 ? "Le dernier retour enregistré" : `Les ${n(k)} derniers retours enregistrés`),
+    col: { observed: "Observé (heure du magasin)", config: "Configuration", store: "Magasin", listed: "Affiché pendant" },
+    secs: (k) => `${n(k)} s`,
+    mins: (k) => `${n(k)} min`,
+    listedRange: (low, high) => `affiché ${low}–${high}`,
+    listedAbout: (x) => `affiché environ ${x}`,
+    stillListed: (x) => `toujours affiché (${x})`,
+    method: (o) => `Registre ouvert le ${o.since} · ${o.note} · un retour n’est compté qu’après deux observations consécutives concordantes ; la première apparition d’une configuration ne compte jamais.`,
+    delivered: (o) => (o.one
+      ? `Ces ${n(o.days)} derniers jours, ShelfSpring a remis ${plural("fr", o.sent, { one: "# alerte", other: "# alertes" })} à ses membres pour des retours chez ${o.place}.`
+      : `Ces ${n(o.days)} derniers jours, ShelfSpring a remis ${plural("fr", o.sent, { one: "# alerte", other: "# alertes" })} à ses membres pour des retours dans ${n(o.stores)} des ${n(o.total)} Apple Store ${deLieu(o.place)}.`),
+    watch: (place) => `Surveiller une configuration pour ${place} →`,
+    watchOne: "Surveiller une configuration dans ce magasin →",
+    unknown: "Le registre d’observation n’a pas pu être lu pour cette requête ; l’affichage en direct ci-dessus n’est pas concerné.",
+    zone: () => "heure locale",
+    allModels: (o) => `Tous modèles confondus : ${plural("fr", o.n, { one: "# retour enregistré", other: "# retours enregistrés" })} en ${n(o.days)} jours${o.peak ? ` ; l’heure la plus active était ${o.peak}` : ""}.`,
   },
 };

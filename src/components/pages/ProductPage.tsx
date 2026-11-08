@@ -1,4 +1,7 @@
 import { FieldIntro,FieldMethod,FieldSection,fieldGuideCopy,fieldGuideQuestions } from "@/components/seo/FieldGuide";
+import { DuoLedger } from "@/components/stock/DuoLedger";
+import { alertsDelivered, duoLedgerFrom, stockFromRows } from "@/lib/content/duoLedger";
+import { duoRestockTimes, duoRestockTimesAt, restockTimesPath } from "@/lib/content/restockTimes";
 import { PickupPattern } from "@/components/seo/PickupPattern";
 import { withCuratedMetadata } from "@/lib/seo/curation";
 /**
@@ -25,7 +28,7 @@ import { LiveAgo } from "@/components/site/LiveAgo";
 import { LiveChecked } from "@/components/site/LiveChecked";
 import { PendingLink as Link } from "@/components/ui/PendingLink";
 import { pickupHelp } from "@/content/country-tax";
-import { STORE_INDEX,appleBuyUrl,cityPath,itemFor,mapPath,placeTarget,restocksPath,statePath,storePath,storesIndexPath } from "@/lib/apple/catalog";
+import { STORE_INDEX, appleBuyUrl, cityPath, itemFor, mapPath, placeTarget, restocksPath, statePath, storePath, storesIndexPath, catalogFor } from "@/lib/apple/catalog";
 import { prefixOf,theName,type Country } from "@/lib/apple/countries";
 import { emptyFacts } from "@/lib/content/facts";
 import { type Dict } from "@/lib/i18n/dict";
@@ -39,7 +42,7 @@ import { productJsonLdFor } from "@/lib/seo/productCopy";
 import { childPlaces,configGrid,facetsFor,indexStock,lastChecked,nearestWithStock,siblingPlaces,storeLines } from "@/lib/seo/productData";
 import { isIndexedProductPage,productPath,storePlace,type Place,type Product } from "@/lib/seo/products";
 import { treeOf } from "@/lib/seo/tree";
-import { modelStock,placeStats,restockFeed,restockReportStats,restockStats } from "@/lib/stock/queries";
+import { modelStock, placeStats, restockFeed, restockReportStats, restockStats, stockByStore, storesStock, storesWithStockNow } from "@/lib/stock/queries";
 import { sellouts } from "@/lib/stock/sellouts";
 import type { Metadata } from "next";
 import { notFound,permanentRedirect } from "next/navigation";
@@ -77,7 +80,19 @@ const load = cache(async (cc: Country["cc"], slug: string, path: string) => {
   // place-level product page and every exact configuration is noindex, follow: the /stores page of that place
   // is the one indexed page for "iPhone Duo in <place>", which keeps near-duplicates out of the index.
   const indexable = isIndexedProductPage(product, place);
-  return { kind: "page" as const, product, place, ix, lines, inStock, stats, clock, feed, reports, indexable, sell };
+  // The iPhone Duo model page opens with the observation ledger (lib/content/duoLedger.ts), at every level of the tree.
+  let ledger = null;
+  if (product.kind === "model" && product.model === "duo") {
+    const country = place.level === "country";
+    const [stock, others, times, alerts] = await Promise.all([
+      country ? stockByStore("duo", {}, cc).then(stockFromRows) : storesStock(numbers),
+      country ? storesWithStockNow(undefined, cc) : Promise.resolve(null),
+      country ? duoRestockTimes(cc) : duoRestockTimesAt(cc, place.stores),
+      alertsDelivered(numbers),
+    ]);
+    ledger = duoLedgerFrom({ stores: place.stores, stock, ...(others ? { others: { pro: others["18-pro"], max: others["18-pro-max"] } } : {}), times, sell, alerts, configsTotal: catalogFor("duo", cc).length });
+  }
+  return { kind: "page" as const, product, place, ix, lines, inStock, stats, clock, feed, reports, indexable, sell, ledger };
 });
 
 /** A place's name in the page's language (English: the tree's own name, or its breadcrumb label when `short`). */
@@ -136,7 +151,7 @@ export async function ProductPage({ country: c, params: p }: { country: Country;
   const V = D.views.product;
   const C = D.views.common;
   const inLoc = (path: string) => (loc.native ? pathInLocale(path, loc) : path);
-  const { product, place, ix, lines, inStock, stats, clock, feed, reports, sell } = d;
+  const { product, place, ix, lines, inStock, stats, clock, feed, reports, sell, ledger } = d;
   const top = place.level === "country";
   const atStore = place.level === "store";
   const line = lines[0];
@@ -184,6 +199,7 @@ export async function ProductPage({ country: c, params: p }: { country: Country;
         actions={<><Link href={placeAlert(product,place)} className="btn btn-primary btn-sm">{C.alertMe}</Link><Link href={placePagePath(place)} className="btn btn-ghost btn-sm">{top ? V.allStoresIn(c) : V.everyIphone(where)}</Link>{configItem && <a href={appleBuyUrl(configItem,c.cc)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">{V.buyOnApple}</a>}</>}>
         <div className="pane p-5"><p className="field-kicker">{Guide.coverage}</p><p className="mt-4 text-sm leading-relaxed text-ink-2">{V.checked(<LiveChecked iso={checked} model={product.model} stores={top ? null : place.stores.map(s=>s.storeNumber)} country={us ? undefined : c.cc} />,V.priceLabel(product),!us && c.cc!=="ca" ? ` · ${V.taxNote(c)}` : c.cc==="ca" ? ` · ${V.beforeTax}` : "")}</p><p className="mt-3 text-xs text-ink-3">{Guide.methodBody}</p></div>
       </FieldIntro>
+      {ledger && <div className="pt-8"><DuoLedger d={ledger} place={placeName(place, lang)} one={atStore} stores={place.stores} country={c.cc} hourHref={top ? `${prefixOf(c.cc)}/iphone-duo-restock-times` : atStore ? null : restockTimesPath(place.state!, place.level === "city" ? place.city : undefined, c.cc)} watchHref={placeAlert(product, place)} /></div>}
       <div className="field-layout">
         <div className="field-main">
           <FieldSection id="configuration" title={V.byStorageColor} caption={Guide.next}><div className="pane p-4 sm:p-6"><ProductNav facets={facets} place={place} unit={atStore ? V.unitConfigs : V.unitStores} /><div className="mt-5 border-t border-line pt-4"><ProductGrid grid={grid} place={place} current={product} /></div></div>{us && top && <div className="mt-5"><QuickCheckServer model={product.model} product={product} /></div>}</FieldSection>

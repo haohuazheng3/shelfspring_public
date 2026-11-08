@@ -134,7 +134,7 @@ export const baseViews = {
     restocksHint: (week: number, month: number, days: number) => `${week} in 7 d · ${month} in ${days} d`,
     sellOuts: (days: number) => `Sell-outs ${days} d`,
     /** Median restock → sell-out time, in ms. */
-    stays: (ms: number) => `stays ~${fmtDuration(ms)}`,
+    stays: (ms: number) => { const d = fmtDuration(ms); return /^under\b/.test(d) ? `stays ${d}` : `stays ~${d}`; },
     noPairs: "no pairs yet",
     lastRestock: "Last restock",
     noneYet: "none yet",

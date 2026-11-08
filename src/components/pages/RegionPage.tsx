@@ -1,4 +1,6 @@
 import { FieldCoverage,FieldIntro,FieldMethod,FieldSection,fieldGuideCopy,fieldGuideQuestions } from "@/components/seo/FieldGuide";
+import { DuoLedger } from "@/components/stock/DuoLedger";
+import { alertsDelivered, duoLedgerFrom } from "@/lib/content/duoLedger";
 import { PickupPattern } from "@/components/seo/PickupPattern";
 import { withCuratedMetadata } from "@/lib/seo/curation";
 /**
@@ -24,16 +26,16 @@ import { NearbyStores } from "@/components/stores/NearbyStores";
 import { PendingLink as Link } from "@/components/ui/PendingLink";
 import { pickupHelp } from "@/content/country-tax";
 import { SALES_TAX_SOURCE } from "@/content/sales-tax";
-import { DEFAULT_MODEL,MODELS,citiesWithStores,cityPath,distanceMiles,hasStatePage,mapPath,placeTarget,restocksPath,statesWithStores,storePath,storeTimeZone,storesIndexPath,storesOf,type ModelKey } from "@/lib/apple/catalog";
+import { DEFAULT_MODEL, MODELS, citiesWithStores, cityPath, distanceMiles, hasStatePage, mapPath, placeTarget, restocksPath, statesWithStores, storePath, storeTimeZone, storesIndexPath, storesOf, type ModelKey, catalogFor, partNumbersFor } from "@/lib/apple/catalog";
 import { prefixOf,type Country } from "@/lib/apple/countries";
 import { emptyFacts } from "@/lib/content/facts";
-import { restockTimesPath } from "@/lib/content/restockTimes";
+import { restockTimesPath, duoRestockTimesAt } from "@/lib/content/restockTimes";
 import { englishLocale,type Locale } from "@/lib/i18n/locales";
 import { namesFor } from "@/lib/i18n/names";
 import { pageLocale,t } from "@/lib/i18n/server";
 import { type IntlPlaceInput } from "@/lib/seo/countryCopy";
 import { regionRefs } from "@/lib/seo/countryLinks";
-import { alertHref,centroid,itemListJsonLd,nearestOutsideState } from "@/lib/seo/enrich";
+import { alertHref, centroid, itemListJsonLd, nearestOutsideState, peakOf } from "@/lib/seo/enrich";
 import { neighborStates } from "@/lib/seo/links";
 import { taxFaq,type PlaceCopyInput } from "@/lib/seo/placeCopy";
 import { placeStats,restockFeed,restockReportStats,restockStats,storesStatusFull,storesStock } from "@/lib/stock/queries";
@@ -62,7 +64,7 @@ const load = cache(async (cc: Country["cc"], slug: string) => {
   const thin = stores.length <= THIN;
   const outside = nearestOutsideState({ ...centroid(stores), state: s.name, country: cc }, 6);
   const extra = thin ? [...new Set([...outside, ...stores.flatMap((x) => nearestOutsideState(x, 4))].map((x) => x.storeNumber))] : outside.map((x) => x.storeNumber);
-  const [stock, feed, stats, pstats, full, duoStats, maxStats, reports, sell, recent] = await Promise.all([
+  const [stock, feed, stats, pstats, full, duoStats, maxStats, reports, sell, recent, duoClock, duoReports, duoSell, times, alerts] = await Promise.all([
     storesStock([...numbers, ...extra]),
     restockFeed({ state: s.name, limit: 12, country: cc }),
     restockStats(numbers, tz, 30),
@@ -73,12 +75,20 @@ const load = cache(async (cc: Country["cc"], slug: string) => {
     restockReportStats(numbers, tz, 30),
     sellouts({ storeNumbers: numbers, country: cc }),
     recentByConfig({ storeNumbers: numbers, country: cc }),
+    // The hour chart and the opening ledger follow the iPhone Duo only (2026-11-08): a chart mixing three models put the
+    // Pro Max's afternoon on a page whose first screen is about the Duo's morning.
+    restockStats(numbers, tz, 30, "duo"),
+    restockReportStats(numbers, tz, 30, "duo"),
+    sellouts({ storeNumbers: numbers, parts: partNumbersFor("duo", [], [], cc), country: cc }),
+    duoRestockTimesAt(cc, stores),
+    alertsDelivered(numbers),
   ]);
+  const ledger = duoLedgerFrom({ stores, stock, times, sell: duoSell, alerts, configsTotal: catalogFor("duo", cc).length });
   const stockNow = Object.fromEntries(MODELS.map((m) => [m.key, stores.filter((x) => (stock.get(x.storeNumber)?.perModel[m.key].available ?? 0) > 0).length])) as Record<ModelKey, number>;
   const duoStores = stores.filter((x) => (stock.get(x.storeNumber)?.perModel[DEFAULT_MODEL].available ?? 0) > 0);
   const copy: PlaceCopyInput = { kind: "state", name: s.name, state: s.name, stateSlug: s.slug, stores, cities: cities.length, stockNow, stock, duo: duoStats, max: maxStats };
   const intl: IntlPlaceInput | null = cc === "us" ? null : { cc, kind: "state", name: s.name, region: s.name, regionSlug: s.slug, stores, cities: cities.length, stockNow, stock, duo: duoStats, max: maxStats };
-  return { s, stores, cities, numbers, tz, thin, outside, stock, feed, stats, pstats, full, stockNow, duoStores, copy, intl, reports, sell, recent };
+  return { s, stores, cities, numbers, tz, thin, outside, stock, feed, stats, pstats, full, stockNow, duoStores, copy, intl, reports, sell, recent, duoClock, duoReports, ledger };
 });
 
 export async function regionMetadata(c: Country, p: { state: string }, loc: Locale = englishLocale(c.cc)): Promise<Metadata> {
@@ -119,7 +129,9 @@ export async function RegionPage({ country: c, params: p }: { country: Country; 
   const tq = us ? taxFaq(d.copy) : P.taxFaq(cc, name, cc === "ca" ? s.name : undefined);
   const questions = fieldGuideQuestions({place:name,stores:stores.length,kind:"region",lang});
   if (tq) questions.splice(2, 0, tq);
-  const facts = lang === "en" ? emptyFacts(cc) : { ...emptyFacts(cc), lang };
+  const facts = lang === "en" ? emptyFacts(cc, d.tz) : { ...emptyFacts(cc, d.tz), lang };
+  const W = t().modules.duoLedger;
+  const peakAll = peakOf(d.stats, lang);
   const index = placeTarget(cc);
   const crumbs: Crumb[] = us
     ? [{ href: "/stores", label: "Apple Stores" }, { label: s.name }]
@@ -135,16 +147,18 @@ export async function RegionPage({ country: c, params: p }: { country: Country; 
         actions={<><Link href={mapHref} className="btn btn-ghost btn-sm">{G.showOnMap}</Link><Link href={alert} className="btn btn-primary btn-sm">{G.alertIn(name)}</Link></>}>
         <FieldCoverage stores={stores} stock={d.stock} />
       </FieldIntro>
+      {/* The observation ledger first (lib/content/duoLedger.ts): listed or not as of the last observation, the last return, the record's measures, the last three returns. */}
+      <div className="pt-8"><DuoLedger d={d.ledger} place={name} stores={stores} country={cc} hourHref={restockTimesPath(s.name, undefined, cc)} watchHref={alert} /></div>
       <div className="field-layout">
         <div className="field-main">
           <FieldSection id="compare" title={F.compare} caption={R.counts(stores.length,cities.length)}>
             <nav className="field-index mb-6">{cities.map(x => <Link key={x.slug} href={cityPath(x.state,x.name,cc)} className="field-row"><span>{N.city(x.name)}</span><span className="font-mono text-sm">{x.stores.length} ↗</span></Link>)}</nav>
             {cities.map(x => <article key={x.slug} className="mb-7"><div className="mb-3 flex items-baseline justify-between gap-3"><h3 className="text-xl font-semibold">{N.city(x.name)}</h3><Link href={cityPath(x.state,x.name,cc)} className="text-sm underline underline-offset-4">{x.stores.length > 1 || us ? G.cityPage : G.storePage}</Link></div><div className="pane p-4 sm:p-5"><ModelStoreMatrix stores={[...x.stores].sort((a,b) => a.name.localeCompare(b.name))} stock={d.stock} showCity={false} /></div></article>)}
           </FieldSection>
-          <FieldSection id="recent" title={F.history} caption="24h"><Last24Hours data={d.recent} label={G.inPlace(name)} stores={stores} country={cc} stock={d.stock} lastBefore={d.copy.duo.lastRestock} alert={alert} /><PickupPattern data={d.recent} storeCount={stores.length} country={cc} window="24h" /></FieldSection>
-          <FieldSection id="timing" title={G.whenRestock(name)} caption={`${d.pstats.days}d`}><RestockClock stats={d.stats} label={G.inPlace(name)} reports={d.reports} />{us && <p className="mt-4"><Link href={restockTimesPath(s.name)} className="text-sm underline underline-offset-4">Read the {s.name} restock study →</Link></p>}</FieldSection>
+          <FieldSection id="recent" title={F.history} caption="24h"><Last24Hours data={d.recent} label={G.inPlace(name)} stores={stores} country={cc} stock={d.stock} lastBefore={d.copy.duo.lastRestock} alert={alert} compact /><PickupPattern data={d.recent} storeCount={stores.length} country={cc} window="24h" /></FieldSection>
+          <FieldSection id="timing" title={G.duoHours(name)} caption={`${d.pstats.days}d`}><RestockClock stats={d.duoClock} label={G.inPlace(name)} reports={d.duoReports} /><p className="mt-3 text-xs text-ink-3">{W.allModels({ n: d.pstats.month, days: d.pstats.days, peak: peakAll ? peakAll.hour : null })}</p>{/^(\/[a-z]{2})?\/iphone-duo-restock-times\//.test(restockTimesPath(s.name, undefined, cc)) && <p className="mt-4"><Link href={restockTimesPath(s.name, undefined, cc)} className="text-sm underline underline-offset-4">{lang === "en" ? `Read the ${name} restock study` : G.fullLog} →</Link></p>}</FieldSection>
           <FieldSection title={G.howFast(name)}><SellOutTimes data={d.sell} label={G.inPlace(name)} showStore /></FieldSection>
-          <FieldSection title={G.lastDays(d.pstats.days)}><DailyBars stats={d.pstats} label={G.inPlace(name)} /></FieldSection>
+          <FieldSection title={G.lastDays(d.pstats.days)}><DailyBars stats={d.copy.duo} label={G.inPlace(name)} /></FieldSection>
           <FieldSection title={G.restocksBy}><RestocksByConfig stats={d.pstats} label={G.inPlace(name)} country={us ? undefined : cc} /></FieldSection>
           <FieldSection title={G.latestIn(name)} action={<Link href={restocksHere} className="text-sm underline underline-offset-4">{G.fullLog}</Link>}><RestockFeed rows={d.feed} showModel emptyText={G.noneIn(name)} /></FieldSection>
         </div>

@@ -488,6 +488,16 @@ html:not([lang="en"]) .btn, html:not([lang="en"]) .chip { white-space: normal; m
 a.field-row:hover { color: var(--accent); }
 .pickup-pattern { border-color: color-mix(in srgb, var(--accent) 17%, var(--line)); }
 .pickup-pattern .eyebrow { color: var(--accent); }
+/* The iPhone Duo observation ledger (components/stock/DuoLedger.tsx): a warm rule and kicker, measures on the field-metrics grid. */
+.duo-ledger { border-color: color-mix(in srgb, var(--accent-2) 30%, var(--line)); border-inline-start: 4px solid var(--accent-2); }
+.duo-ledger .field-kicker { color: var(--accent-2); }
+.duo-ledger-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 1.25rem; }
+.duo-ledger-metrics .field-metric:nth-child(odd) { padding-inline-start: 0; border-inline-start: 0; }
+@media (min-width: 768px) {
+  .duo-ledger-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .duo-ledger-metrics .field-metric:nth-child(odd) { padding-inline-start: 1.25rem; border-inline-start: 1px solid var(--line); }
+  .duo-ledger-metrics .field-metric:first-child { padding-inline-start: 0; border-inline-start: 0; }
+}
 @media (min-width: 1024px) {
   .field-intro { grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr); align-items: end; }
   .field-layout { grid-template-columns: minmax(0, 1fr) 320px; gap: 2.5rem; }

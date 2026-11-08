@@ -195,4 +195,48 @@ export const modules: Dict["modules"] = {
     seen: (ago: ReactNode) => <>{ago}に確認</>,
     loading: "在庫を読み込み中",
   },
+
+  /** DuoLedger：地域・都市・店舗・国・Duo機種ページの冒頭に置く観測台帳。`place` は裸の地名・店名（「東京」「Apple 銀座」）。 */
+  duoLedger: {
+    kicker: (place: string) => `観測台帳 · iPhone Duo · ${place}`,
+    headNone: (o) => `${o.place}のアップルストア${N(o.n)}店舗のどこにも、受け取り可能なiPhone Duoの掲載はありません。`,
+    headNoneOne: (place: string) => `${place}には受け取り可能なiPhone Duoの構成が掲載されていません。`,
+    headSome: (o) => <>{o.place}のアップルストア{N(o.n)}店舗中{N(o.k)}店舗で、iPhone Duoが受け取り可能として掲載されています：{o.list}。</>,
+    headSomeOne: (o) => <>{o.place}では、iPhone Duo全{N(o.total)}構成のうち{N(o.k)}構成が受け取り可能です：{o.list}。</>,
+    storeItem: (store: ReactNode, configs: number) => <>{store}（{N(configs)}構成）</>,
+    observed: (stamp: string) => `${stamp}に観測。`,
+    lastReturn: (o) => <>直近の確認済み再入荷：<b className="text-ink">{o.config}</b>{o.store != null && <>・{o.store}</>}、{o.when}{o.lasted ? <>（{o.lasted}）</> : null}。</>,
+    noReturnYet: (place: string, since: string) => `記録を始めた${since}以降、${place}で確認済みのiPhone Duo再入荷はありません。`,
+    others: (o) => (o.one ? `iPhone 18 Pro：全${N(o.configs)}構成中${N(o.pro)}構成を掲載 · 18 Pro Max：${N(o.max)}構成。` : `iPhone 18 Pro：${N(o.pro)}店舗に掲載 · 18 Pro Max：${N(o.max)}店舗。`),
+    mReturns: (since: string) => `${since}以降の確認済み再入荷`,
+    mStores: "再入荷が1回以上あった店舗",
+    mDays: "再入荷があった日数（追跡日数中）",
+    mWindow: (pct: string) => `最も多い2時間帯 · 記録の${pct}`,
+    mPerDay: "追跡1日あたりの再入荷",
+    mMedian: "掲載時間の中央値（掲載から消えるまで）",
+    mToday: "本日の再入荷（現時点）",
+    secUnit: "秒",
+    minUnit: "分",
+    note: (o) => (o.one
+      ? `${o.since}以降、ShelfSpringは${o.place}で確認済みのiPhone Duo再入荷を${N(o.n)}回記録しました（追跡${N(o.tracked)}日のうち${N(o.days)}日）。最も多い2時間帯は${o.range}（記録の${o.pct}、8時〜12時が${o.morning}）、単独で最多の時間帯は${o.busiest}の${N(o.busiestN)}回です。${o.median ? `掲載の半数は${o.median}以内に消えました。` : ""}${o.config ? `最も多く再入荷したのは${o.config}（${N(o.n)}回中${N(o.top)}回）。` : ""}`
+      : `${o.since}以降、ShelfSpringは${o.place}のアップルストア${N(o.stores)}店舗で確認済みのiPhone Duo再入荷を${N(o.n)}回記録し、うち${N(o.k)}店舗で1回以上ありました。最も多い2時間帯は${o.range}（${o.zone}、記録の${o.pct}、8時〜12時が${o.morning}）、単独で最多の時間帯は${o.busiest}の${N(o.busiestN)}回です。${o.median ? `掲載の半数は${o.median}以内に消えました。` : ""}${o.config ? `最も多く再入荷したのは${o.config}（${N(o.n)}回中${N(o.top)}回）。` : ""}`),
+    noteFew: (o) => `${o.since}以降、${o.one ? o.place : `${o.place}のアップルストア${N(o.stores)}店舗`}で確認済みのiPhone Duo再入荷は${N(o.n)}回（${N(o.days)}日）。ShelfSpringが「よくある時間帯」を示す基準（${N(o.min)}回・${N(o.minDays)}日以上）には達していません。${o.median ? `掲載の半数は${o.median}以内に消えました。` : ""}個々の再入荷は下の台帳にあります。`,
+    hourByHour: "時間帯別の記録を開く →",
+    ledger: (n: number) => `直近${N(n)}件の再入荷記録`,
+    col: { observed: "観測（店舗の現地時間）", config: "構成", store: "店舗", listed: "掲載時間" },
+    secs: (n: number) => `${N(n)}秒`,
+    mins: (n: number) => `${N(n)}分`,
+    listedRange: (low: string, high: string) => `掲載${low}〜${high}`,
+    listedAbout: (x: string) => `掲載約${x}`,
+    stillListed: (x: string) => `掲載中（${x}）`,
+    method: (o) => `${o.since}からの記録 · ${o.note} · 再入荷は連続2回の観測が一致した時点で数えます。構成の初回出現は数えません。`,
+    delivered: (o) => (o.one
+      ? `過去${N(o.days)}日間に、ShelfSpringは${o.place}の再入荷について会員へ${N(o.sent)}件の通知を届けました。`
+      : `過去${N(o.days)}日間に、ShelfSpringは${o.place}のアップルストア${N(o.total)}店舗中${N(o.stores)}店舗の再入荷について会員へ${N(o.sent)}件の通知を届けました。`),
+    watch: (place: string) => `${place}の構成を見守る →`,
+    watchOne: "この店舗の構成を見守る →",
+    unknown: "観測記録をいま読み込めませんでした。上のライブ在庫には影響ありません。",
+    zone: () => "現地時間",
+    allModels: (o) => `全モデル合計：${N(o.days)}日間で${N(o.n)}回の再入荷${o.peak ? `、最多の時間帯は${o.peak}` : ""}。`,
+  },
 };

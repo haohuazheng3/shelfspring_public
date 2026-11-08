@@ -193,4 +193,48 @@ export const modules: Dict["modules"] = {
     seen: (ago: ReactNode) => <>{ago} 확인</>,
     loading: "재고 불러오는 중",
   },
+
+  /** DuoLedger: 지역·도시·매장·국가·Duo 모델 페이지 첫머리의 관측 장부. `place`는 조사 없는 지명·매장명. */
+  duoLedger: {
+    kicker: (place: string) => `관측 장부 · iPhone Duo · ${place}`,
+    headNone: (o) => `${o.place}의 Apple Store ${n(o.n)}곳 어디에도 픽업 가능한 iPhone Duo가 등록되어 있지 않습니다.`,
+    headNoneOne: (place: string) => `${place}에는 픽업 가능한 iPhone Duo 구성이 없습니다.`,
+    headSome: (o) => <>{o.place}의 Apple Store {n(o.n)}곳 중 {n(o.k)}곳에 iPhone Duo가 픽업 가능으로 등록되어 있습니다: {o.list}.</>,
+    headSomeOne: (o) => <>{o.place}에는 iPhone Duo {n(o.total)}개 구성 중 {n(o.k)}개가 픽업 가능으로 등록되어 있습니다: {o.list}.</>,
+    storeItem: (store: ReactNode, configs: number) => <>{store} ({n(configs)}개 구성)</>,
+    observed: (stamp: string) => `${stamp} 관측.`,
+    lastReturn: (o) => <>최근 확인된 재입고: <b className="text-ink">{o.config}</b>{o.store != null && <> · {o.store}</>}, {o.when}{o.lasted ? <> ({o.lasted})</> : null}.</>,
+    noReturnYet: (place: string, since: string) => `기록을 시작한 ${since} 이후 ${place}에서 확인된 iPhone Duo 재입고가 없습니다.`,
+    others: (o) => (o.one ? `iPhone 18 Pro: ${n(o.configs)}개 구성 중 ${n(o.pro)}개 등록 · 18 Pro Max: ${n(o.max)}개.` : `iPhone 18 Pro: ${n(o.pro)}곳에 등록 · 18 Pro Max: ${n(o.max)}곳.`),
+    mReturns: (since: string) => `${since} 이후 확인된 재입고`,
+    mStores: "재입고가 1회 이상 있었던 매장",
+    mDays: "재입고가 있었던 날 (추적일 기준)",
+    mWindow: (pct: string) => `가장 붐빈 2시간 · 기록의 ${pct}`,
+    mPerDay: "추적 1일당 재입고",
+    mMedian: "등록 유지 시간 중앙값 (등록부터 사라질 때까지)",
+    mToday: "오늘 재입고 (지금까지)",
+    secUnit: "초",
+    minUnit: "분",
+    note: (o) => (o.one
+      ? `${o.since} 이후 ShelfSpring은 ${o.place}에서 확인된 iPhone Duo 재입고 ${n(o.n)}건을 기록했습니다 (추적 ${n(o.tracked)}일 중 ${n(o.days)}일). 가장 붐빈 2시간은 ${o.range}로 기록의 ${o.pct}를 차지했고 (오전 8시~정오는 ${o.morning}), 단일 최다 시간대는 ${o.busiest}의 ${n(o.busiestN)}건입니다.${o.median ? ` 측정된 등록의 절반은 ${o.median} 안에 사라졌습니다.` : ""}${o.config ? ` 가장 자주 재입고된 구성은 ${o.config}입니다 (${n(o.n)}건 중 ${n(o.top)}건).` : ""}`
+      : `${o.since} 이후 ShelfSpring은 ${o.place}의 Apple Store ${n(o.stores)}곳에서 확인된 iPhone Duo 재입고 ${n(o.n)}건을 기록했고, 그중 ${n(o.k)}곳에서 1회 이상 있었습니다. 가장 붐빈 2시간은 ${o.range}(${o.zone})로 기록의 ${o.pct}를 차지했고 (오전 8시~정오는 ${o.morning}), 단일 최다 시간대는 ${o.busiest}의 ${n(o.busiestN)}건입니다.${o.median ? ` 측정된 등록의 절반은 ${o.median} 안에 사라졌습니다.` : ""}${o.config ? ` 가장 자주 재입고된 구성은 ${o.config}입니다 (${n(o.n)}건 중 ${n(o.top)}건).` : ""}`),
+    noteFew: (o) => `${o.since} 이후 ${o.one ? o.place : `${o.place}의 Apple Store ${n(o.stores)}곳`}에서 확인된 iPhone Duo 재입고는 ${n(o.n)}건 (${n(o.days)}일)으로, ShelfSpring이 자주 나오는 시간대를 말하기 전에 적용하는 기준 (${n(o.min)}건, ${n(o.minDays)}일)에 미치지 않습니다.${o.median ? ` 측정된 등록의 절반은 ${o.median} 안에 사라졌습니다.` : ""} 개별 재입고는 아래 장부에 있습니다.`,
+    hourByHour: "시간대별 기록 열기 →",
+    ledger: (k: number) => `최근 재입고 기록 ${n(k)}건`,
+    col: { observed: "관측 (매장 현지 시간)", config: "구성", store: "매장", listed: "등록 유지" },
+    secs: (k: number) => `${n(k)}초`,
+    mins: (k: number) => `${n(k)}분`,
+    listedRange: (low: string, high: string) => `등록 ${low}~${high}`,
+    listedAbout: (x: string) => `등록 약 ${x}`,
+    stillListed: (x: string) => `아직 등록됨 (${x})`,
+    method: (o) => `${o.since}부터의 기록 · ${o.note} · 재입고는 연속 두 번의 관측이 일치할 때 집계하며, 구성이 처음 나타난 것은 집계하지 않습니다.`,
+    delivered: (o) => (o.one
+      ? `지난 ${n(o.days)}일 동안 ShelfSpring은 ${o.place}의 재입고에 대해 회원에게 알림 ${n(o.sent)}건을 전달했습니다.`
+      : `지난 ${n(o.days)}일 동안 ShelfSpring은 ${o.place}의 Apple Store ${n(o.total)}곳 중 ${n(o.stores)}곳의 재입고에 대해 회원에게 알림 ${n(o.sent)}건을 전달했습니다.`),
+    watch: (place: string) => `${place}에서 구성 지켜보기 →`,
+    watchOne: "이 매장의 구성 지켜보기 →",
+    unknown: "지금은 관측 기록을 읽을 수 없습니다. 위의 실시간 등록 정보에는 영향이 없습니다.",
+    zone: () => "현지 시간",
+    allModels: (o) => `모든 모델 합계: ${n(o.days)}일 동안 재입고 ${n(o.n)}건${o.peak ? `, 최다 시간대 ${o.peak}` : ""}.`,
+  },
 };

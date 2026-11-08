@@ -191,4 +191,48 @@ export const modules: Dict["modules"] = {
     seen: (ago: ReactNode) => <>Sedd {ago}</>,
     loading: "Laddar lager",
   },
+
+  /** DuoLedger: observationsregistret som region-, stads-, butiks-, lands- och Duo-modellsidorna öppnar med. `place` kommer utan preposition. */
+  duoLedger: {
+    kicker: (place: string) => `Observationsregister · iPhone Duo · ${place}`,
+    headNone: (o) => `Ingen av de ${n(o.n)} Apple Store-butikerna i ${o.place} listar en iPhone Duo för hämtning.`,
+    headNoneOne: (place: string) => `${place} listar ingen iPhone Duo-variant för hämtning.`,
+    headSome: (o) => <>Listad för hämtning i {n(o.k)} av de {n(o.n)} Apple Store-butikerna i {o.place}: {o.list}.</>,
+    headSomeOne: (o) => <>{o.place} listar {n(o.k)} av {n(o.total)} iPhone Duo-varianter för hämtning: {o.list}.</>,
+    storeItem: (store: ReactNode, configs: number) => <>{store} ({pl(configs, "variant", "varianter")})</>,
+    observed: (stamp: string) => `Observerat ${stamp}.`,
+    lastReturn: (o) => <>Senaste bekräftade påfyllning: <b className="text-ink">{o.config}</b>{o.store != null && <> hos {o.store}</>}, {o.when}{o.lasted ? <>, {o.lasted}</> : null}.</>,
+    noReturnYet: (place: string, since: string) => `Ingen bekräftad påfyllning av iPhone Duo i ${place} sedan registret öppnade ${since}.`,
+    others: (o) => (o.one ? `iPhone 18 Pro: ${n(o.pro)} av ${n(o.configs)} varianter listade här; 18 Pro Max: ${n(o.max)} av ${n(o.configs)}.` : `iPhone 18 Pro: listad i ${n(o.pro)} av dessa butiker; 18 Pro Max: i ${n(o.max)}.`),
+    mReturns: (since: string) => `bekräftade påfyllningar sedan ${since}`,
+    mStores: "butiker med minst en påfyllning",
+    mDays: "följda dagar med en påfyllning",
+    mWindow: (pct: string) => `mest aktiva två timmarna · ${pct} av registret`,
+    mPerDay: "påfyllningar per följd dag",
+    mMedian: "medianlistning, från att den dyker upp till att den försvinner",
+    mToday: "påfyllningar i dag, hittills",
+    secUnit: "s",
+    minUnit: "min",
+    note: (o) => (o.one
+      ? `Sedan ${o.since} har ShelfSpring registrerat ${pl(o.n, "bekräftad påfyllning", "bekräftade påfyllningar")} av iPhone Duo hos ${o.place}, på ${n(o.days)} av ${n(o.tracked)} följda dagar. De två mest aktiva timmarna var ${o.range} (${o.pct} av registret; ${o.morning} föll mellan 8 och 12), den mest aktiva enskilda timmen ${o.busiest} med ${n(o.busiestN)}.${o.median ? ` Hälften av de mätta listningarna var borta inom ${o.median}.` : ""}${o.config ? ` ${o.config} kom tillbaka oftast (${n(o.top)} av ${n(o.n)}).` : ""}`
+      : `I de ${n(o.stores)} Apple Store-butikerna i ${o.place} har ShelfSpring registrerat ${pl(o.n, "bekräftad påfyllning", "bekräftade påfyllningar")} av iPhone Duo sedan ${o.since}; ${n(o.k)} butiker har haft minst en. De två mest aktiva timmarna var ${o.range} (${o.zone}; ${o.pct} av registret; ${o.morning} föll mellan 8 och 12), den mest aktiva enskilda timmen ${o.busiest} med ${n(o.busiestN)}.${o.median ? ` Hälften av de mätta listningarna var borta inom ${o.median}.` : ""}${o.config ? ` ${o.config} kom tillbaka oftast (${n(o.top)} av ${n(o.n)}).` : ""}`),
+    noteFew: (o) => `${pl(o.n, "bekräftad påfyllning", "bekräftade påfyllningar")} av iPhone Duo ${o.one ? `hos ${o.place}` : `i de ${n(o.stores)} Apple Store-butikerna i ${o.place}`} sedan ${o.since}, på ${pl(o.days, "dag", "dagar")} – under tröskeln på ${n(o.min)} påfyllningar under ${n(o.minDays)} dagar som ShelfSpring kräver innan en vanlig timme beskrivs.${o.median ? ` Hälften av de mätta listningarna var borta inom ${o.median}.` : ""} De enskilda påfyllningarna står i registret nedan.`,
+    hourByHour: "Öppna registret timme för timme →",
+    ledger: (k: number) => (k === 1 ? "Den senaste registrerade påfyllningen" : `De ${n(k)} senaste registrerade påfyllningarna`),
+    col: { observed: "Observerad (butikens tid)", config: "Variant", store: "Butik", listed: "Listad i" },
+    secs: (k: number) => `${n(k)} s`,
+    mins: (k: number) => `${n(k)} min`,
+    listedRange: (low: string, high: string) => `listad ${low}–${high}`,
+    listedAbout: (x: string) => `listad ungefär ${x}`,
+    stillListed: (x: string) => `fortfarande listad (${x})`,
+    method: (o) => `Register sedan ${o.since} · ${o.note} · en påfyllning räknas först när två observationer i rad stämmer överens; en variants första uppdykande räknas aldrig.`,
+    delivered: (o) => (o.one
+      ? `De senaste ${n(o.days)} dagarna levererade ShelfSpring ${pl(o.sent, "avisering", "aviseringar")} till medlemmar för påfyllningar hos ${o.place}.`
+      : `De senaste ${n(o.days)} dagarna levererade ShelfSpring ${pl(o.sent, "avisering", "aviseringar")} till medlemmar för påfyllningar i ${n(o.stores)} av de ${n(o.total)} Apple Store-butikerna i ${o.place}.`),
+    watch: (place: string) => `Bevaka en variant i ${place} →`,
+    watchOne: "Bevaka en variant i den här butiken →",
+    unknown: "Observationsregistret kunde inte läsas för den här begäran; livelistningen ovan påverkas inte.",
+    zone: () => "lokal tid",
+    allModels: (o) => `Alla modeller tillsammans: ${pl(o.n, "registrerad påfyllning", "registrerade påfyllningar")} på ${n(o.days)} dagar${o.peak ? `; den mest aktiva timmen var ${o.peak}` : ""}.`,
+  },
 };

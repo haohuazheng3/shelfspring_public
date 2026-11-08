@@ -198,4 +198,48 @@ export const modules: Dict["modules"] = {
     seen: (ago: ReactNode) => <>Gezien {ago}</>,
     loading: "Voorraad laden",
   },
+
+  /** DuoLedger: het waarnemingsregister waarmee regio-, stads-, store-, land- en Duo-modelpagina's openen. `place` komt zonder voorzetsel. */
+  duoLedger: {
+    kicker: (place: string) => `Waarnemingsregister · iPhone Duo · ${place}`,
+    headNone: (o) => `Geen van de ${n$(o.n)} Apple Stores in ${o.place} vermeldt een iPhone Duo om af te halen.`,
+    headNoneOne: (place: string) => `${place} vermeldt geen enkele iPhone Duo-uitvoering om af te halen.`,
+    headSome: (o) => <>Af te halen bij {n$(o.k)} van de {n$(o.n)} Apple Stores in {o.place}: {o.list}.</>,
+    headSomeOne: (o) => <>{o.place} vermeldt {n$(o.k)} van de {n$(o.total)} iPhone Duo-uitvoeringen om af te halen: {o.list}.</>,
+    storeItem: (store: ReactNode, configs: number) => <>{store} ({cnt(configs, "uitvoering", "uitvoeringen")})</>,
+    observed: (stamp: string) => `Waargenomen ${stamp}.`,
+    lastReturn: (o) => <>Laatste bevestigde aanvulling: <b className="text-ink">{o.config}</b>{o.store != null && <> bij {o.store}</>}, {o.when}{o.lasted ? <>, {o.lasted}</> : null}.</>,
+    noReturnYet: (place: string, since: string) => `Geen bevestigde iPhone Duo-aanvulling in ${place} sinds het register op ${since} begon.`,
+    others: (o) => (o.one ? `iPhone 18 Pro: ${n$(o.pro)} van ${n$(o.configs)} uitvoeringen hier vermeld; 18 Pro Max: ${n$(o.max)} van ${n$(o.configs)}.` : `iPhone 18 Pro: vermeld bij ${n$(o.pro)} van deze stores; 18 Pro Max: bij ${n$(o.max)}.`),
+    mReturns: (since: string) => `bevestigde aanvullingen sinds ${since}`,
+    mStores: "stores met minstens één aanvulling",
+    mDays: "gevolgde dagen met een aanvulling",
+    mWindow: (pct: string) => `drukste twee uur · ${pct} van het register`,
+    mPerDay: "aanvullingen per gevolgde dag",
+    mMedian: "mediane vermeldingsduur, van verschijnen tot verdwijnen",
+    mToday: "aanvullingen vandaag, tot nu toe",
+    secUnit: "s",
+    minUnit: "min",
+    note: (o) => (o.one
+      ? `Sinds ${o.since} heeft ShelfSpring ${cnt(o.n, "bevestigde iPhone Duo-aanvulling", "bevestigde iPhone Duo-aanvullingen")} bij ${o.place} vastgelegd, op ${n$(o.days)} van de ${n$(o.tracked)} gevolgde dagen. De drukste twee uur waren ${o.range} (${o.pct} van het register; ${o.morning} viel tussen 8 en 12 uur), het drukste uur ${o.busiest} met ${n$(o.busiestN)}.${o.median ? ` De helft van de gemeten vermeldingen was binnen ${o.median} weer weg.` : ""}${o.config ? ` ${o.config} kwam het vaakst terug (${n$(o.top)} van ${n$(o.n)}).` : ""}`
+      : `In de ${n$(o.stores)} Apple Stores in ${o.place} heeft ShelfSpring sinds ${o.since} ${cnt(o.n, "bevestigde iPhone Duo-aanvulling", "bevestigde iPhone Duo-aanvullingen")} vastgelegd; ${n$(o.k)} stores hadden er minstens één. De drukste twee uur waren ${o.range} (${o.zone}; ${o.pct} van het register; ${o.morning} viel tussen 8 en 12 uur), het drukste uur ${o.busiest} met ${n$(o.busiestN)}.${o.median ? ` De helft van de gemeten vermeldingen was binnen ${o.median} weer weg.` : ""}${o.config ? ` ${o.config} kwam het vaakst terug (${n$(o.top)} van ${n$(o.n)}).` : ""}`),
+    noteFew: (o) => `${cnt(o.n, "bevestigde iPhone Duo-aanvulling", "bevestigde iPhone Duo-aanvullingen")} ${o.one ? `bij ${o.place}` : `in de ${n$(o.stores)} Apple Stores in ${o.place}`} sinds ${o.since}, op ${cnt(o.days, "dag", "dagen")} – onder de drempel van ${n$(o.min)} aanvullingen op ${n$(o.minDays)} dagen die ShelfSpring hanteert voordat het een gebruikelijk uur noemt.${o.median ? ` De helft van de gemeten vermeldingen was binnen ${o.median} weer weg.` : ""} De afzonderlijke aanvullingen staan in het register hieronder.`,
+    hourByHour: "Open het register uur voor uur →",
+    ledger: (k: number) => (k === 1 ? "De laatste vastgelegde aanvulling" : `De laatste ${n$(k)} vastgelegde aanvullingen`),
+    col: { observed: "Waargenomen (storetijd)", config: "Uitvoering", store: "Store", listed: "Vermeld gedurende" },
+    secs: (k: number) => `${n$(k)} s`,
+    mins: (k: number) => `${n$(k)} min`,
+    listedRange: (low: string, high: string) => `vermeld ${low}–${high}`,
+    listedAbout: (x: string) => `vermeld ongeveer ${x}`,
+    stillListed: (x: string) => `nog vermeld (${x})`,
+    method: (o) => `Register sinds ${o.since} · ${o.note} · een aanvulling telt pas als twee opeenvolgende waarnemingen overeenkomen; de eerste verschijning van een uitvoering telt nooit.`,
+    delivered: (o) => (o.one
+      ? `In de afgelopen ${n$(o.days)} dagen bezorgde ShelfSpring ${cnt(o.sent, "melding", "meldingen")} aan leden voor aanvullingen bij ${o.place}.`
+      : `In de afgelopen ${n$(o.days)} dagen bezorgde ShelfSpring ${cnt(o.sent, "melding", "meldingen")} aan leden voor aanvullingen bij ${n$(o.stores)} van de ${n$(o.total)} Apple Stores in ${o.place}.`),
+    watch: (place: string) => `Volg een uitvoering in ${place} →`,
+    watchOne: "Volg een uitvoering in deze store →",
+    unknown: "Het waarnemingsregister kon voor deze aanvraag niet worden gelezen; de livevermelding hierboven is niet geraakt.",
+    zone: () => "lokale tijd",
+    allModels: (o) => `Alle modellen samen: ${cnt(o.n, "vastgelegde aanvulling", "vastgelegde aanvullingen")} in ${n$(o.days)} dagen${o.peak ? `; het drukste uur was ${o.peak}` : ""}.`,
+  },
 };

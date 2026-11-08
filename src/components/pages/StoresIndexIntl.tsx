@@ -1,4 +1,5 @@
 import { FieldCoverage,fieldGuideCopy,fieldGuideQuestions,FieldIntro,FieldMethod,FieldSection } from "@/components/seo/FieldGuide";
+import { DuoLedger } from "@/components/stock/DuoLedger";
 /** Another country's store index (/{cc}/stores): the live first screen plus every store in one matrix, then where they are, the keyword sections, charts, FAQ and sources. */
 import { AlertPanelFor } from "@/components/alerts/AlertPanelServer";
 import { SourceList } from "@/components/content/RichFaq";
@@ -19,7 +20,7 @@ import { pathInLocale } from "@/lib/i18n/locales";
 import { appleStoreLabel,cityLabel,countryLabel,regionLabel,storeLabel } from "@/lib/i18n/places";
 import { t as dictT,pageLocale } from "@/lib/i18n/server";
 import { topRegions } from "@/lib/seo/countryLinks";
-import { alertHref,itemListJsonLd } from "@/lib/seo/enrich";
+import { alertHref, itemListJsonLd, peakOf } from "@/lib/seo/enrich";
 import { treeOf } from "@/lib/seo/tree";
 import { permanentRedirect } from "next/navigation";
 import { loadIndex } from "./StoresIndexPage";
@@ -53,6 +54,8 @@ async function IntlStoresIndex({ c }: { c: Country }) {
   const countQ = { a: V.countAnswer(stores.length, P.spreadPhrase(cc), tops) };
   const questions = [...fieldGuideQuestions({place:where,stores:stores.length,kind:"country",lang}),P.taxFaq(cc,where)];
   const facts = emptyFacts(cc);
+  const W = D.modules.duoLedger;
+  const peakAll = peakOf(d.stats, lang);
   const ld = itemListJsonLd(C.appleStoresIn(c), stores);
   // A native version lists its own store pages, by the names Apple uses in that language.
   const itemList = loc.native ? { ...ld, itemListElement: stores.map((x, i) => ({ "@type": "ListItem", position: i + 1, name: appleStoreLabel(x, lang), url: `https://shelfspring.com${pathInLocale(storePath(x), loc)}` })) } : ld;
@@ -63,6 +66,7 @@ async function IntlStoresIndex({ c }: { c: Country }) {
       <Breadcrumbs items={[{href:prefixOf(cc),label:short},{label:V.crumb}]} />
       <FieldIntro title={lang === "en" ? `${short}: choose a pickup stop` : `${short} · ${F.next}`} description={lang === "en" ? `Plan around the places you can reach, not a countrywide stock headline. Start with the ${stores.length} Apple Stores in this directory, then compare the exact configuration and observation time before opening Apple's checkout.` : F.lead}
         actions={<><Link href={`${mapPath(cc)}?model=${DEFAULT_MODEL}`} className="btn btn-primary btn-sm">{C.liveMap}</Link><Link href={alert} className="btn btn-ghost btn-sm">{C.alertMe}</Link></>}><FieldCoverage stores={stores} stock={d.stock} /></FieldIntro>
+      <div className="pt-8"><DuoLedger d={d.ledger} place={where} stores={stores} country={cc} hourHref={`${prefixOf(cc)}/iphone-duo-restock-times`} watchHref={alert} /></div>
       <div className="field-layout">
         <div className="field-main">
           <FieldSection id="places" title={hasRegions ? V.locationsBy(c) : V.locationsIn(c)} caption={F.next}>
@@ -74,7 +78,7 @@ async function IntlStoresIndex({ c }: { c: Country }) {
           </FieldSection>
           <FieldSection id="compare" title={F.compare}><div className="pane p-4 sm:p-6"><ModelStoreMatrix stores={[...stores].sort((a,b)=>a.city.localeCompare(b.city)||a.name.localeCompare(b.name))} stock={d.stock} /></div></FieldSection>
           <FieldSection title={V.matrixH2(c)}><ModelPlaceCards place={treeOf(cc).root} stockNow={d.stockNow} of={stores.length} unit={C.storesWithIt} /></FieldSection>
-          <FieldSection title={V.whenRestock(c)} caption={F.evidence}><RestockClock stats={d.stats} label={C.inCountry(c)} reports={d.reports} /></FieldSection>
+          <FieldSection title={D.pages.common.duoHours(where)} caption={F.evidence}><RestockClock stats={d.duoClock} label={C.inCountry(c)} reports={d.duoReports} /><p className="mt-3 text-xs text-ink-3">{W.allModels({ n: d.pstats.month, days: d.pstats.days, peak: peakAll ? peakAll.hour : null })}</p></FieldSection>
           <FieldSection title={V.howFast(c)}><SellOutTimes data={d.sell} label={C.inCountry(c)} showStore /></FieldSection>
           <FieldSection title={C.lastDays(d.pstats.days)}><DailyBars stats={d.pstats} label={C.inCountry(c)} /></FieldSection>
         </div>

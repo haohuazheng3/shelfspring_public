@@ -162,6 +162,7 @@ describe("one place's restock times (a state or a city)", async () => {
     expect(restockTimesPath("Delaware")).toBe(storePath(delaware));
     const oneStoreCity = STORES.find((s) => STORES.filter((x) => x.state === s.state && x.city === s.city).length === 1)!;
     expect(restockTimesPath(oneStoreCity.state, oneStoreCity.city)).toBe(storePath(oneStoreCity));
-    expect(restockTimesPath("Ontario", undefined, "ca")).toBe("/ca/iphone-duo-restock-times");
+    expect(restockTimesPath("Ontario", undefined, "ca")).toBe("/ca/iphone-duo-restock-times/ontario");
+    expect(restockTimesPath("Singapore", undefined, "sg")).toBe("/sg/iphone-duo-restock-times");
   });
 });

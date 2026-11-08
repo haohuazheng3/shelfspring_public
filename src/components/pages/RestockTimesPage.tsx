@@ -18,6 +18,8 @@ import { catalogFor,storeByNumber,storePath,storesOf } from "@/lib/apple/catalog
 import { ALL_CODES,COUNTRIES,prefixOf,type Country } from "@/lib/apple/countries";
 import { emptyFacts } from "@/lib/content/facts";
 import { busiestWindow,duoRestockTimes } from "@/lib/content/restockTimes";
+import { restockPlacePages } from "@/lib/content/restockPlaces";
+import { cityLabel } from "@/lib/i18n/places";
 import type { Faq,Source } from "@/lib/content/types";
 import type { RestockTimesView } from "@/lib/i18n/dict/en/views";
 import { englishLocale,pathInLocale,type Lang,type Locale } from "@/lib/i18n/locales";
@@ -203,6 +205,9 @@ export async function RestockTimesPage({ country: c }: { country: Country }) {
         {/* The US page hands down to its states and cities: "When does the iPhone Duo restock in Los Angeles?" (project documentation §8.3 B). */}
         {us && <LinkRow curated title="By state" links={restockPlaces().states.map((p) => ({ href: p.href, label: p.label, meta: String(p.stores.length) }))} />}
         {us && <LinkRow curated title="By city" links={restockPlaces().cities.map((p) => ({ href: p.href, label: `${p.label}, ${p.stateCode}`, meta: String(p.stores.length) }))} />}
+        {/* Another country hands down to its regions and two-plus-store cities with a /stores page of their own (content/restockPlaces.ts). */}
+        {!us && restockPlacePages(cc).regions.length > 0 && <LinkRow title={dictT().views.product.byRegion(c)} links={restockPlacePages(cc).regions.map((p) => ({ href: loc.native ? pathInLocale(p.path, loc) : p.path, label: region(p.region), meta: String(p.stores.length) }))} />}
+        {!us && restockPlacePages(cc).cities.length > 0 && <LinkRow title={dictT().views.product.byCity} links={restockPlacePages(cc).cities.map((p) => ({ href: loc.native ? pathInLocale(p.path, loc) : p.path, label: cityLabel(cc, p.city!, lang), meta: String(p.stores.length) }))} />}
       </RelatedBlock>
 
       <div className="mt-10"><RichFaq items={faq} facts={facts} title={V.faqTitle} /></div>

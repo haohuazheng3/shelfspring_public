@@ -192,4 +192,48 @@ export const modules: Dict["modules"] = {
     seen: (ago: ReactNode) => <>{ago}看到</>,
     loading: "載入現貨中",
   },
+
+  /** DuoLedger：地區、城市、門市、國家與 Duo 機型頁開頭的觀測帳冊。`place` 是不帶介詞的地名或店名。 */
+  duoLedger: {
+    kicker: (place: string) => `觀測帳冊 · iPhone Duo · ${place}`,
+    headNone: (o) => zs(`${o.place} ${n(o.n)} 家 Apple 直營店目前都沒有上架可取貨的 iPhone Duo。`),
+    headNoneOne: (place: string) => zs(`${place}目前沒有上架任何可取貨的 iPhone Duo 規格。`),
+    headSome: (o) => <>{zs(`${o.place} ${n(o.n)} 家 Apple 直營店中有 ${n(o.k)} 家上架可取貨的 iPhone Duo：`)}{o.list}。</>,
+    headSomeOne: (o) => <>{zs(`${o.place}上架了 iPhone Duo 全部 ${n(o.total)} 種規格中的 ${n(o.k)} 種：`)}{o.list}。</>,
+    storeItem: (store: ReactNode, configs: number) => <>{store}（{n(configs)} 種規格）</>,
+    observed: (stamp: string) => `觀測時間 ${stamp}。`,
+    lastReturn: (o) => <>最近一次確認補貨：<b className="text-ink">{o.config}</b>{o.store != null && <>，{o.store}</>}，{o.when}{o.lasted ? <>（{o.lasted}）</> : null}。</>,
+    noReturnYet: (place: string, since: string) => zs(`自 ${since} 開始記錄以來，${place}沒有確認過 iPhone Duo 補貨。`),
+    others: (o) => (o.one ? `iPhone 18 Pro：${n(o.configs)} 種規格中上架 ${n(o.pro)} 種 · 18 Pro Max：${n(o.max)} 種。` : `iPhone 18 Pro：${n(o.pro)} 家門市有貨 · 18 Pro Max：${n(o.max)} 家。`),
+    mReturns: (since: string) => `${since} 以來的確認補貨`,
+    mStores: "至少補貨一次的門市",
+    mDays: "有補貨的天數（追蹤天數中）",
+    mWindow: (pct: string) => `最密集的兩小時 · 占紀錄 ${pct}`,
+    mPerDay: "每個追蹤日的補貨次數",
+    mMedian: "上架時間中位數（從上架到下架）",
+    mToday: "今天的補貨（截至目前）",
+    secUnit: "秒",
+    minUnit: "分",
+    note: (o) => zs(o.one
+      ? `自 ${o.since} 起，ShelfSpring 在${o.place}記錄了 ${n(o.n)} 次確認的 iPhone Duo 補貨（追蹤 ${n(o.tracked)} 天中有 ${n(o.days)} 天）。最密集的兩小時是 ${o.range}，占紀錄 ${o.pct}（上午 8 點到中午占 ${o.morning}）；單一最多的時段是 ${o.busiest}，共 ${n(o.busiestN)} 次。${o.median ? `一半的上架在 ${o.median} 內下架。` : ""}${o.config ? `補貨最多的規格是 ${o.config}（${n(o.n)} 次中有 ${n(o.top)} 次）。` : ""}`
+      : `自 ${o.since} 起，ShelfSpring 在${o.place} ${n(o.stores)} 家 Apple 直營店記錄了 ${n(o.n)} 次確認的 iPhone Duo 補貨，其中 ${n(o.k)} 家至少補貨一次。最密集的兩小時是 ${o.range}（${o.zone}），占紀錄 ${o.pct}（上午 8 點到中午占 ${o.morning}）；單一最多的時段是 ${o.busiest}，共 ${n(o.busiestN)} 次。${o.median ? `一半的上架在 ${o.median} 內下架。` : ""}${o.config ? `補貨最多的規格是 ${o.config}（${n(o.n)} 次中有 ${n(o.top)} 次）。` : ""}`),
+    noteFew: (o) => zs(`自 ${o.since} 起，${o.one ? o.place : `${o.place} ${n(o.stores)} 家 Apple 直營店`}確認的 iPhone Duo 補貨只有 ${n(o.n)} 次（${n(o.days)} 天），未達 ShelfSpring 描述常見時段所要求的門檻（${n(o.min)} 次、${n(o.minDays)} 天）。${o.median ? `一半的上架在 ${o.median} 內下架。` : ""}每一次補貨都列在下方帳冊。`),
+    hourByHour: "開啟逐小時紀錄 →",
+    ledger: (k: number) => `最近 ${n(k)} 次補貨紀錄`,
+    col: { observed: "觀測（門市當地時間）", config: "規格", store: "門市", listed: "上架時間" },
+    secs: (k: number) => `${n(k)} 秒`,
+    mins: (k: number) => `${n(k)} 分鐘`,
+    listedRange: (low: string, high: string) => `上架 ${low}–${high}`,
+    listedAbout: (x: string) => `上架約 ${x}`,
+    stillListed: (x: string) => `仍在架上（${x}）`,
+    method: (o) => zs(`紀錄自 ${o.since} 起 · ${o.note} · 連續兩次觀測一致才計為一次補貨；規格首次出現不計。`),
+    delivered: (o) => zs(o.one
+      ? `過去 ${n(o.days)} 天，ShelfSpring 為${o.place}的補貨向會員送出了 ${n(o.sent)} 則提醒。`
+      : `過去 ${n(o.days)} 天，ShelfSpring 為${o.place} ${n(o.total)} 家 Apple 直營店中 ${n(o.stores)} 家的補貨向會員送出了 ${n(o.sent)} 則提醒。`),
+    watch: (place: string) => zs(`追蹤${place}的規格 →`),
+    watchOne: "追蹤這家門市的規格 →",
+    unknown: "暫時讀不到觀測紀錄；上方的即時上架資訊不受影響。",
+    zone: () => "當地時間",
+    allModels: (o) => zs(`全部型號合計：${n(o.days)} 天內 ${n(o.n)} 次補貨${o.peak ? `，最多的時段是 ${o.peak}` : ""}。`),
+  },
 };

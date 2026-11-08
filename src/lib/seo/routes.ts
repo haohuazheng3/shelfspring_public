@@ -1,4 +1,5 @@
 import { MODELS, STORES, citySlug, citiesWithStores, stateSlug, statesWithStores, storePath, statePath, hasStatePage, storesOf, placeTarget } from "@/lib/apple/catalog";
+import { restockPlaceTarget } from "@/lib/content/restockPlaces";
 import { countryFromPrefix, type CountryCode } from "@/lib/apple/countries";
 import { nativeLocale, pathInLocale } from "@/lib/i18n/locales";
 import { productBySlug, productFor, productPath, resolvePlace } from "./products";
@@ -185,6 +186,13 @@ function countryRouteCheck(cc: CountryCode, rest: string[], search: string): { n
     if (!place) return { notFound: true };
     if ("redirect" in place) return { redirect: `${productPath(product, { segments: place.redirect, country: cc })}${search}` };
     return null;
+  }
+  // /{cc}/iphone-duo-restock-times/{region}[/{city}]: the /stores rules (content/restockPlaces.ts), so a wrong slug is a
+  // real 404 and a place without a page of its own a real 308 (to its store, its city's page or the country's page).
+  if (head === "iphone-duo-restock-times" && (tail.length === 1 || tail.length === 2)) {
+    const r = restockPlaceTarget(cc, tail[0], tail[1]);
+    if (!r) return { notFound: true };
+    return "page" in r ? null : { redirect: r.redirect + search };
   }
   if ((head === "restocks" || head === "map" || COUNTRY_QUESTION_PAGES.has(head)) && tail.length === 0) return null;
   return { notFound: true };

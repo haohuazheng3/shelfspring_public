@@ -11,6 +11,8 @@
 import type { ReactNode } from "react";
 
 const s = (n: number) => (n === 1 ? "" : "s");
+/** Thousands grouped ("3,891"): the ledger's numbers are quoted, so they read as prose, not as raw counters. */
+const ledgerN = (n: number) => n.toLocaleString("en-US");
 
 export const modules = {
   /** DailyBars: 30 days of restocks (bars) and sell-outs (stacked under them). */
@@ -242,5 +244,68 @@ export const modules = {
     more: (n: number) => `+${n}`,
     seen: (ago: ReactNode) => <>Seen {ago}</>,
     loading: "Loading stock",
+  },
+
+  /**
+   * DuoLedger: the observation ledger a place page opens with (region, city, store, country home, store index and the
+   * Duo model pages). `place` arrives as the bare name in the page's language ("Michigan", "Tokyo", "Apple Somerset").
+   * Written for an answer engine to lift: a dated verdict, the last confirmed return, four measures of the record,
+   * one field note and the last three returns with how long each stayed listed.
+   */
+  duoLedger: {
+    kicker: (place: string) => `Observation ledger · iPhone Duo · ${place}`,
+    /** The verdict. `list`: the listing stores (storeItem), joined with "; ". */
+    headNone: (o: { n: number; place: string }) => `Not listed for pickup at any of the ${ledgerN(o.n)} Apple Store${s(o.n)} in ${o.place}.`,
+    headNoneOne: (place: string) => `${place} currently shows no iPhone Duo configuration available for pickup.`,
+    headSome: (o: { k: number; n: number; place: string; list: ReactNode }) => <>Listed for pickup at {ledgerN(o.k)} of the {ledgerN(o.n)} Apple Store{s(o.n)} in {o.place}: {o.list}.</>,
+    headSomeOne: (o: { k: number; total: number; place: string; list: string }) => <>{o.place} lists {o.k} of {o.total} iPhone Duo configuration{s(o.total)} for pickup: {o.list}.</>,
+    storeItem: (store: ReactNode, configs: number) => <>{store} ({configs} configuration{s(configs)})</>,
+    observed: (stamp: string) => `Observed ${stamp}.`,
+    /** `lasted`: "listed 5–7 min" / "still listed (12 min)" / null when unknown. */
+    lastReturn: (o: { config: string; store: ReactNode | null; when: string; lasted: string | null }) => <>Last confirmed return: <b className="text-ink">{o.config}</b>{o.store != null && <> at {o.store}</>}, {o.when}{o.lasted ? <>, {o.lasted}</> : null}.</>,
+    noReturnYet: (place: string, since: string) => `No confirmed iPhone Duo return in ${place} since the record opened on ${since}.`,
+    /** The other two models in one clause: stores with any configuration (a place) / configurations here (a store). */
+    others: (o: { pro: number; max: number; one: boolean; configs: number }) => (o.one ? `iPhone 18 Pro: ${o.pro} of ${o.configs} configurations listed here; 18 Pro Max: ${o.max} of ${o.configs}.` : `iPhone 18 Pro: listed at ${ledgerN(o.pro)} of these stores; 18 Pro Max: at ${ledgerN(o.max)}.`),
+    /* The four measures: breadth and pace of the record, not a fixed hour band */
+    mReturns: (since: string) => `confirmed returns since ${since}`,
+    mStores: "stores with at least one return",
+    mDays: "tracked days with a return",
+    mWindow: (pct: string) => `busiest two local hours · ${pct} of the record`,
+    mPerDay: "returns per tracked day",
+    mMedian: "median listing, from appearing to gone",
+    mToday: "returns today, so far",
+    secUnit: "s",
+    minUnit: "min",
+    /** The quotable field note. `range` "9–11 AM", `zone` "Eastern time", `median` "roughly 95 seconds". */
+    note: (o: { n: number; stores: number; k: number; place: string; since: string; range: string; zone: string; pct: string; morning: string; busiest: string; busiestN: number; median: string | null; config: string | null; top: number; one: boolean; days: number; tracked: number }) =>
+      o.one
+        ? `Since ${o.since} ShelfSpring has recorded ${ledgerN(o.n)} confirmed iPhone Duo return${s(o.n)} at ${o.place}, on ${ledgerN(o.days)} of ${ledgerN(o.tracked)} tracked days. The two busiest local hours were ${o.range} (${o.pct} of the record; ${o.morning} fell between 8 AM and noon), the single busiest ${o.busiest} with ${ledgerN(o.busiestN)}.${o.median ? ` Half of the measured listings were gone within ${o.median}.` : ""}${o.config ? ` ${o.config} returned most often (${ledgerN(o.top)} of ${ledgerN(o.n)}).` : ""}`
+        : `Across the ${ledgerN(o.stores)} Apple Store${s(o.stores)} in ${o.place}, ShelfSpring has recorded ${ledgerN(o.n)} confirmed iPhone Duo return${s(o.n)} since ${o.since}; ${ledgerN(o.k)} of the stores have had at least one. The two busiest local hours were ${o.range} ${o.zone} (${o.pct} of the record; ${o.morning} fell between 8 AM and noon), the single busiest ${o.busiest} with ${ledgerN(o.busiestN)}.${o.median ? ` Half of the measured listings were gone within ${o.median}.` : ""}${o.config ? ` ${o.config} returned most often (${ledgerN(o.top)} of ${ledgerN(o.n)}).` : ""}`,
+    noteFew: (o: { n: number; place: string; since: string; one: boolean; stores: number; days: number; min: number; minDays: number; median: string | null }) =>
+      `${ledgerN(o.n)} confirmed iPhone Duo return${s(o.n)} ${o.one ? `at ${o.place}` : `across the ${ledgerN(o.stores)} Apple Store${s(o.stores)} in ${o.place}`} since ${o.since}, on ${ledgerN(o.days)} day${s(o.days)} — under the ${o.min}-return, ${o.minDays}-day threshold ShelfSpring applies before describing a usual hour.${o.median ? ` Half of the measured listings were gone within ${o.median}.` : ""} The returns themselves are in the ledger below.`,
+    hourByHour: "Open the hour-by-hour record →",
+    ledger: (n: number) => (n === 1 ? "The most recent recorded return" : `The ${n} most recent recorded returns`),
+    col: { observed: "Observed (store time)", config: "Configuration", store: "Store", listed: "Listed for" },
+    /** Lifetimes: "listed 5–7 min", "listed about 2 min", "still listed (12 min)". */
+    secs: (n: number) => `${n} s`,
+    mins: (n: number) => `${n} min`,
+    listedRange: (low: string, high: string) => `listed ${low}–${high}`,
+    listedAbout: (x: string) => `listed about ${x}`,
+    stillListed: (x: string) => `still listed (${x})`,
+    /** `note` is the check-cadence phrase (pages.common.checkNote). */
+    method: (o: { since: string; note: string }) => `Record since ${o.since} · ${o.note} · a return is counted once two consecutive observations agree; a configuration's first appearance never counts.`,
+    delivered: (o: { sent: number; stores: number; total: number; days: number; place: string; one: boolean }) => (o.one
+      ? `ShelfSpring delivered ${ledgerN(o.sent)} alert${s(o.sent)} to members for returns at ${o.place} in the last ${o.days} days.`
+      : `ShelfSpring delivered ${ledgerN(o.sent)} alert${s(o.sent)} to members for returns at ${ledgerN(o.stores)} of the ${ledgerN(o.total)} Apple Store${s(o.total)} in ${o.place} in the last ${o.days} days.`),
+    watch: (place: string) => `Watch a configuration in ${place} →`,
+    watchOne: "Watch a configuration at this store →",
+    unknown: "The observation record could not be read for this request; the live listing above is unaffected.",
+    /** "Eastern time" for a US zone the note can name, else "store-local time". */
+    zone: (tz: string | null): string => {
+      const z: Record<string, string> = { "America/New_York": "Eastern", "America/Detroit": "Eastern", "America/Kentucky/Louisville": "Eastern", "America/Indiana/Indianapolis": "Eastern", "America/Chicago": "Central", "America/Denver": "Mountain", "America/Boise": "Mountain", "America/Phoenix": "Arizona", "America/Los_Angeles": "Pacific", "America/Anchorage": "Alaska", "Pacific/Honolulu": "Hawaii", "America/Puerto_Rico": "Atlantic" };
+      return tz && z[tz] ? `${z[tz]} time` : "store-local time";
+    },
+    /** Under the Duo-only hour chart: every model in one line. */
+    allModels: (o: { n: number; days: number; peak: string | null }) => `Every model combined: ${ledgerN(o.n)} recorded return${s(o.n)} over ${o.days} days${o.peak ? `; the largest hour was ${o.peak}` : ""}.`,
   },
 };

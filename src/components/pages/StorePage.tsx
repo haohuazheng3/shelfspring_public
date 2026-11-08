@@ -1,4 +1,6 @@
 import { fieldGuideCopy,fieldGuideQuestions,FieldIntro,FieldMethod,FieldSection } from "@/components/seo/FieldGuide";
+import { DuoLedger } from "@/components/stock/DuoLedger";
+import { alertsDelivered, duoLedgerFrom } from "@/lib/content/duoLedger";
 import { PickupPattern } from "@/components/seo/PickupPattern";
 import { withCuratedMetadata } from "@/lib/seo/curation";
 /**
@@ -27,15 +29,15 @@ import { HoursTable,StoreInfo } from "@/components/stores/StoreInfo";
 import { PendingLink as Link } from "@/components/ui/PendingLink";
 import { pickupHelp } from "@/content/country-tax";
 import { SALES_TAX,SALES_TAX_SOURCE,withTax } from "@/content/sales-tax";
-import { catalogFor,cityPath,citySlug,DEFAULT_MODEL,hasStatePage,mapPath,modelByKey,modelKeyFor,MODELS,placeTarget,restocksPath,stateCodeOf,statePath,stateSlug,storePath,storesIndexPath,storesOf,storeTimeZone,type ModelKey,type Store } from "@/lib/apple/catalog";
+import { catalogFor, cityPath, citySlug, DEFAULT_MODEL, hasStatePage, mapPath, modelByKey, modelKeyFor, MODELS, placeTarget, restocksPath, stateCodeOf, statePath, stateSlug, storePath, storesIndexPath, storesOf, storeTimeZone, type ModelKey, type Store, partNumbersFor } from "@/lib/apple/catalog";
 import { prefixOf,type Country } from "@/lib/apple/countries";
 import { emptyFacts } from "@/lib/content/facts";
-import { restockTimesPath } from "@/lib/content/restockTimes";
+import { restockTimesPath, duoRestockTimesAt } from "@/lib/content/restockTimes";
 import { englishLocale,type Locale } from "@/lib/i18n/locales";
 import { namesFor } from "@/lib/i18n/names";
 import { pageLocale,t } from "@/lib/i18n/server";
 import { cityRefs as intlCityRefs,nearbyCitiesIn,nearestStoresIn } from "@/lib/seo/countryLinks";
-import { alertHref,distText,fitTitle,nearestInState,nearestOutsideState,normalizeHours,storeJsonLd,todayLabel } from "@/lib/seo/enrich";
+import { alertHref, distText, fitTitle, nearestInState, nearestOutsideState, normalizeHours, storeJsonLd, todayLabel, peakOf } from "@/lib/seo/enrich";
 import { cityLabel,cityRef,nearbyCities,nearestStores,neighborStates } from "@/lib/seo/links";
 import { pickupLookupOff,placeStats,restockFeed,restockReportStats,restockStats,storesStock,storeStatus } from "@/lib/stock/queries";
 import { recentByConfig } from "@/lib/stock/recent";
@@ -63,7 +65,7 @@ const load = cache(async (s: Store) => {
   const outside = nearestOutsideState(s, 3);
   const inState = nearestInState(s, 4, { excludeCity: true });
   const others = [...new Set([...nearby, ...outside, ...inState].map((n) => n.storeNumber))];
-  const [rows, stock, feed, stats, pstats, reports, lookupOff, sell, recent] = await Promise.all([
+  const [rows, stock, feed, stats, pstats, reports, lookupOff, sell, recent, duoClock, duoReports, duoStats, duoSell, times, alerts] = await Promise.all([
     storeStatus(s.storeNumber),
     storesStock([s.storeNumber, ...others]),
     restockFeed({ storeNumber: s.storeNumber, kind: "all", limit: 30, country: s.country }),
@@ -73,14 +75,23 @@ const load = cache(async (s: Store) => {
     pickupLookupOff(s.storeNumber),
     sellouts({ storeNumbers: [s.storeNumber], country: s.country }),
     recentByConfig({ storeNumbers: [s.storeNumber], country: s.country }),
+    // iPhone Duo only for the opening ledger, the hour chart and the daily bars (2026-11-08): three models in one chart
+    // put the Pro Max's afternoon on the Duo's page.
+    restockStats([s.storeNumber], tz, 30, "duo"),
+    restockReportStats([s.storeNumber], tz, 30, "duo"),
+    placeStats({ storeNumbers: [s.storeNumber], model: "duo", tz }),
+    sellouts({ storeNumbers: [s.storeNumber], parts: partNumbersFor("duo", [], [], s.country), country: s.country }),
+    duoRestockTimesAt(s.country, [s]),
+    alertsDelivered([s.storeNumber]),
   ]);
+  const ledger = duoLedgerFrom({ stores: [s], stock, times, sell: duoSell, alerts, configsTotal: catalogFor("duo", s.country).length });
   const summary = stock.get(s.storeNumber);
   const stockNow = Object.fromEntries(MODELS.map((m) => [m.key, summary?.perModel[m.key].available ?? 0])) as Record<ModelKey, number>;
   const configs = Object.fromEntries(MODELS.map((m) => [m.key, rows.filter((r) => modelKeyFor(r.item.model) === m.key).length || catalogFor(m.key, s.country).length])) as Record<ModelKey, number>;
   // The last Duo restock in the feed (30 rows, all models): what the 24-hour block names on a quiet day.
   const lastDuo = feed.find((r) => r.kind === "restock" && modelKeyFor(r.item.model) === "duo");
   const lastDuoRestock = lastDuo ? { storeNumber: lastDuo.storeNumber, partNumber: lastDuo.partNumber, at: lastDuo.at.toISOString() } : null;
-  return { tz, nearby, outside, inState, rows, stock, summary, feed, stats, pstats, reports, lookupOff, stockNow, configs, sell, recent, lastDuoRestock };
+  return { tz, nearby, outside, inState, rows, stock, summary, feed, stats, pstats, reports, lookupOff, stockNow, configs, sell, recent, lastDuoRestock, duoClock, duoReports, duoStats, ledger };
 });
 
 /** True when this is the only Apple Store in its city (the city query lands here). */
@@ -140,12 +151,14 @@ export async function StorePage({ country: c, params: p }: { country: Country; p
   if (!us) { const tf = P.taxFaq(cc, place, cc === "ca" ? s.state : undefined); questions.push({ q: cc === "ca" ? S.taxQ(place) : tf.q, a: tf.a }); }
   questions.push({ q: S.pickupQ(place), a: S.pickupA(place) });
   const alone = onlyInCity(s);
-  // The restock-times page of this store's city (two-plus stores) or state (with a page of its own), US only.
-  const rtLink = us ? [{ href: restockTimesPath(s.state, s.city), place: s.city }, { href: restockTimesPath(s.state), place: s.state }].find((l) => l.href.startsWith("/iphone-duo-restock-times/")) : undefined;
+  // The restock-times page of this store's city (two-plus stores) or state/region (with a page of its own), every country.
+  const rtLink = [{ href: restockTimesPath(s.state, s.city, cc), place: N.city(s.city) }, { href: restockTimesPath(s.state, undefined, cc), place: N.region(s.state) }].find((l) => /^(\/[a-z]{2})?\/iphone-duo-restock-times\//.test(l.href));
   const taxLine = us
     ? (!tax ? "" : tax.combined === 0 ? `${s.state} has no sales tax, so a 256GB iPhone Duo costs $1,999 out the door here.` : `With ${s.state}'s average ${tax.combined}% sales tax, a 256GB iPhone Duo comes to about $${duoTaxed!.total.toLocaleString("en-US")} here.`)
     : P.taxSentence(cc, cc === "ca" ? s.state : undefined);
-  const facts = lang === "en" ? emptyFacts(cc) : { ...emptyFacts(cc), lang };
+  const facts = lang === "en" ? emptyFacts(cc, d.tz) : { ...emptyFacts(cc, d.tz), lang };
+  const W = t().modules.duoLedger;
+  const peakAll = peakOf(d.stats, lang);
   const help = us ? pickupHelp(cc) : P.sources(cc as Exclude<typeof cc, "us">).pickupHelp;
   const index = placeTarget(cc);
   const crumbs: Crumb[] = us
@@ -162,6 +175,8 @@ export async function StorePage({ country: c, params: p }: { country: Country; p
         actions={<><Link href={alert} className="btn btn-primary btn-sm">{S.alertHere(duo.short)}</Link><Link href={`${mapPath(cc)}?store=${s.storeNumber}&model=${DEFAULT_MODEL}`} className="btn btn-ghost btn-sm">{G.showOnMap}</Link></>}>
         <div className="pane p-5 sm:p-6"><p className="field-kicker">{s.storeNumber} · {sCity}</p><div className="mt-4"><StoreInfo store={s} showMapLink={false} /></div><p className="mt-4 border-t border-line pt-3 text-sm text-ink-3">{today.label}</p>{taxLine && <p className="mt-2 text-xs leading-relaxed text-ink-3">{taxLine}</p>}</div>
       </FieldIntro>
+      {/* The observation ledger first (lib/content/duoLedger.ts): configurations listed as of the last observation, the last return, the record, the last three. */}
+      <div className="pt-8"><DuoLedger d={d.ledger} place={place} one stores={[s]} country={cc} hourHref={rtLink?.href ?? null} watchHref={alert} /></div>
       <div className="field-layout">
         <div className="field-main">
           <FieldSection id="configs" title={F.compare} caption={S.stockNowH2}>
@@ -169,10 +184,10 @@ export async function StorePage({ country: c, params: p }: { country: Country; p
             <p className="mb-4 text-sm text-ink-3">{S.checked} <LiveChecked iso={d.summary?.lastCheckedAt ?? null} stores={[s.storeNumber]} /> · {G.checkNote}</p>
             <ConfigTable store={s} rows={d.rows} {...(d.lookupOff ? {lookupOff:true} : {})} />
           </FieldSection>
-          <FieldSection id="recent" title={F.history} caption="24h"><Last24Hours data={d.recent} label={G.atPlace(place)} stores={[s]} country={cc} stock={d.stock} lastBefore={d.lastDuoRestock} alert={alert} /><PickupPattern data={d.recent} storeCount={1} country={cc} window="24h" /></FieldSection>
-          <FieldSection id="timing" title={S.whenRestock(N.store(s))} caption={`${d.pstats.days}d`}><RestockClock stats={d.stats} label={G.here} reports={d.reports} />{rtLink && <p className="mt-4"><Link href={rtLink.href} className="text-sm underline underline-offset-4">Read the {rtLink.place} restock study →</Link></p>}</FieldSection>
+          <FieldSection id="recent" title={F.history} caption="24h"><Last24Hours data={d.recent} label={G.atPlace(place)} stores={[s]} country={cc} stock={d.stock} lastBefore={d.lastDuoRestock} alert={alert} compact /><PickupPattern data={d.recent} storeCount={1} country={cc} window="24h" /></FieldSection>
+          <FieldSection id="timing" title={S.duoHours(N.store(s))} caption={`${d.pstats.days}d`}><RestockClock stats={d.duoClock} label={G.here} reports={d.duoReports} /><p className="mt-3 text-xs text-ink-3">{W.allModels({ n: d.pstats.month, days: d.pstats.days, peak: peakAll ? peakAll.hour : null })}</p>{rtLink && <p className="mt-4"><Link href={rtLink.href} className="text-sm underline underline-offset-4">{lang === "en" ? `Read the ${rtLink.place} restock study` : G.fullLog} →</Link></p>}</FieldSection>
           <FieldSection title={S.howFast(N.store(s))}><SellOutTimes data={d.sell} label={G.here} /></FieldSection>
-          <FieldSection title={G.lastDays(d.pstats.days)}><DailyBars stats={d.pstats} label={G.here} /></FieldSection>
+          <FieldSection title={G.lastDays(d.pstats.days)}><DailyBars stats={d.duoStats} label={G.here} /></FieldSection>
           <FieldSection title={G.restocksBy}><RestocksByConfig stats={d.pstats} label={G.here} store={s.storeNumber} country={cc} /></FieldSection>
           <FieldSection title={S.history} action={<Link href={restocksAll} className="text-sm underline underline-offset-4">{G.allOfArrow(sRegion)}</Link>}><RestockFeed rows={d.feed} showModel emptyText={S.historyEmpty} /></FieldSection>
         </div>
