@@ -49,13 +49,9 @@ export const account: CDict["account"] = {
     signIn: "ログイン",
     installApp: "アプリを追加",
     turnOn: "通知をオンにする",
-    previewHere: "ここでプレビュー",
-    previewNow: "今",
-    previewShown: "通知はこのように表示されます。実際の通知はアプリを閉じていてもロック画面に届きます。配信時間は変動します。",
     turnOff: "オフにする",
     setupGuide: "設定ガイド",
     miniSteps: ["Safariで共有をタップ", "ホーム画面に追加", "アプリを開いて通知を許可"],
-    preview: { title: "iPhone Duo 256GB ブラック", body: "Apple 銀座 · 東京：本日受け取り可能。タップしてapple.comで受け取りを予約。" },
     test: {
       gone: "プッシュサービスによると、この端末の登録は無効になっています。その端末で通知をオフにして、もう一度オンにしてください。",
       none: "テストを受け取った端末はありません{error}。通知をオフにして、もう一度オンにしてください。",
