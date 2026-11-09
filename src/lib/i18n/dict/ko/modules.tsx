@@ -115,7 +115,7 @@ export const modules: Dict["modules"] = {
     title: "구성별 진열 점검",
     titleAt: (store: string) => `구성별 진열 점검 · ${store}`,
     lookupOff: (hasRows: boolean) => `Apple이 이 매장의 픽업 조회를 잠시 멈췄어요${hasRows ? ". 아래 줄은 마지막으로 받은 답이에요" : ""}`,
-    tracked: (k: number) => `관찰 목록의 구성 ${n(k)}개`,
+    tracked: (k: number) => `기록 중인 구성 ${n(k)}개`,
     firstSweep: "관측을 여는 중이에요. 첫 상태는 1분 안에 들어와요",
     inStock: (k: number, total: number) => `진열 중: 추적하는 ${n(total)}개 중 ${n(k)}개`,
     available: "진열 중",

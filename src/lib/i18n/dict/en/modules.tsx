@@ -162,7 +162,7 @@ export const modules = {
     titleAt: (store: string) => `Shelf check by configuration · ${store}`,
     /** `hasRows`: earlier answers are listed below. */
     lookupOff: (hasRows: boolean) => `Apple has paused pickup lookups for this store${hasRows ? "; the rows below are its last answers" : ""}`,
-    tracked: (n: number) => `${n} configurations on the watchlist`,
+    tracked: (n: number) => `${n} configurations in the record`,
     firstSweep: "Opening observations now; the first statuses land within a minute",
     inStock: (n: number, total: number) => `on the shelf: ${n} of ${total} tracked`,
     /** The status word of a row (Apple's quote, when there is one, follows separately). */

@@ -115,7 +115,7 @@ export const modules: Dict["modules"] = {
     title: "逐一組合查架",
     titleAt: (store: string) => zs(`逐一組合查架 · ${store}`),
     lookupOff: (hasRows: boolean) => `這家門市的取貨查詢被 Apple 暫停了${hasRows ? "；下方各列是它最後的回覆" : ""}`,
-    tracked: (k: number) => `追蹤清單上的組合：${k} 種`,
+    tracked: (k: number) => `記錄中的組合：${k} 種`,
     firstSweep: "正在開始觀測，一分鐘內會出現第一批狀態",
     inStock: (k: number, total: number) => `上架中：${k}/${total} 種組合`,
     available: "上架中",

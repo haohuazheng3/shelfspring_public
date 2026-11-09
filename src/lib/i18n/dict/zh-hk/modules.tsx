@@ -113,7 +113,7 @@ export const modules: Dict["modules"] = {
     title: "逐個配置查架",
     titleAt: (store: string) => `逐個配置查架 · ${store}`,
     lookupOff: (hasRows: boolean) => `Apple 已暫停這間店的取貨查詢${hasRows ? "；下面各行是它最後的回覆" : ""}`,
-    tracked: (k: number) => `監察清單上有 ${n(k)} 個配置`,
+    tracked: (k: number) => `記錄中的配置：${n(k)} 個`,
     firstSweep: "正在開始觀察；一分鐘內會有第一批狀態",
     inStock: (k: number, total: number) => `在架：${n(k)}/${n(total)} 個配置`,
     available: "在架",

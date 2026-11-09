@@ -122,7 +122,7 @@ export const modules: Dict["modules"] = {
     title: "Controllo dello scaffale, configurazione per configurazione",
     titleAt: (store: string) => `Controllo dello scaffale per configurazione · ${store}`,
     lookupOff: (hasRows: boolean) => `Apple ha sospeso le verifiche di ritiro per questo negozio${hasRows ? "; le righe qui sotto riportano le sue ultime risposte" : ""}`,
-    tracked: (n: number) => `${N(n)} configurazioni nella lista d'osservazione`,
+    tracked: (n: number) => `${N(n)} configurazioni nel registro`,
     firstSweep: "Osservazioni in apertura: i primi stati arrivano entro un minuto",
     inStock: (n: number, total: number) => `a scaffale: ${N(n)} su ${N(total)} seguite`,
     available: "A scaffale",

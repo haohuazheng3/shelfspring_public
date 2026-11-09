@@ -120,7 +120,7 @@ export const modules: Dict["modules"] = {
     title: "Relevé des rayons par configuration",
     titleAt: (store) => `Relevé des rayons par configuration · ${store}`,
     lookupOff: (hasRows) => `Apple a suspendu la consultation du retrait pour ce magasin${hasRows ? " ; les lignes ci-dessous sont ses dernières réponses" : ""}`,
-    tracked: (k) => `${cfgs(k)} sur la liste de veille`,
+    tracked: (k) => `${cfgs(k)} ${k === 1 ? "suivie" : "suivies"} dans le registre`,
     firstSweep: "Premières observations en cours ; les premiers statuts arrivent d’ici une minute",
     inStock: (k, total) => `en rayon : ${n(k)} sur ${n(total)} suivies`,
     available: "En rayon",

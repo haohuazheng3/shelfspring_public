@@ -121,7 +121,7 @@ export const modules: Dict["modules"] = {
     title: "Schapcontrole per uitvoering",
     titleAt: (store: string) => `Schapcontrole per uitvoering · ${store}`,
     lookupOff: (hasRows: boolean) => `Apple heeft de afhaalopvraging voor deze winkel stilgelegd${hasRows ? "; de rijen hieronder zijn de laatste antwoorden" : ""}`,
-    tracked: (n: number) => `${n$(n)} uitvoeringen op de volglijst`,
+    tracked: (n: number) => `${n$(n)} uitvoeringen in het register`,
     firstSweep: "De eerste waarnemingen lopen; binnen een minuut staat hier per rij een status",
     inStock: (n: number, total: number) => `in het schap: ${n$(n)} van ${n$(total)} gevolgd`,
     available: "In het schap",

@@ -116,7 +116,7 @@ export const modules: Dict["modules"] = {
     title: "معاينة الرف حسب التكوين",
     titleAt: (store: string) => `معاينة الرف حسب التكوين · ${store}`,
     lookupOff: (hasRows: boolean) => `أوقفت Apple الاستعلام عن الاستلام لهذا المتجر${hasRows ? "؛ الصفوف أدناه آخر ما أجابت به" : ""}`,
-    tracked: (n: number) => `${count(n, CONFIGS)} في قائمة المراقبة`,
+    tracked: (n: number) => `${count(n, CONFIGS)} في السجل`,
     firstSweep: "نفتح الملاحظات الأولى الآن؛ تصل أولى الحالات خلال دقيقة",
     inStock: (n: number, total: number) => `على الرف: ${N(n)} من ${N(total)} متابَعة`,
     available: "على الرف",

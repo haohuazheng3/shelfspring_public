@@ -119,7 +119,7 @@ export const modules: Dict["modules"] = {
     title: "Revisión del estante por configuración",
     titleAt: (store: string) => `Revisión del estante por configuración · ${store}`,
     lookupOff: (hasRows: boolean) => `Apple ha pausado las consultas de recogida en esta tienda${hasRows ? "; las filas de abajo son sus últimas respuestas" : ""}`,
-    tracked: (k: number) => `${configuraciones(k)} en la lista de seguimiento`,
+    tracked: (k: number) => `${configuraciones(k)} en el registro`,
     firstSweep: "Abriendo las observaciones; los primeros estados llegan en menos de un minuto",
     inStock: (k: number, total: number) => `en el estante: ${n(k)} de ${n(total)} seguidas`,
     available: "En el estante",

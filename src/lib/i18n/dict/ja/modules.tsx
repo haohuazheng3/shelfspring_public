@@ -119,7 +119,7 @@ export const modules: Dict["modules"] = {
     title: "構成ごとの棚の確認",
     titleAt: (store: string) => `構成ごとの棚の確認 · ${store}`,
     lookupOff: (hasRows: boolean) => `Appleはこの店舗の受け取り照会を止めています${hasRows ? "。下の行は止まる前の最後の回答です" : ""}`,
-    tracked: (n: number) => `見守りの対象：${N(n)}構成`,
+    tracked: (n: number) => `記録している構成：${N(n)}`,
     firstSweep: "観測を始めたところです。1分ほどで最初の状態が並びます",
     inStock: (n: number, total: number) => `棚にあり：${N(n)}/${N(total)}`,
     available: "棚にあり",
