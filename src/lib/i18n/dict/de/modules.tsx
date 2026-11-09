@@ -89,7 +89,7 @@ export const modules: Dict["modules"] = {
   },
 
   sellout: {
-    typical: (label: string, band: string) => `Mittlere Regalzeit einer iPhone-Duo-Rückkehr ${label}: rund ${band}.`,
+    typical: (label: string, band: string) => `Mittlere Regalzeit einer iPhone-Duo-Rückkehr ${label}: rund ${band}${band.endsWith(".") ? "" : "."}`,
     half: (label: string, duration: string) => `Die Hälfte der gemessenen Rückkehren ${label} war nach ${duration} wieder aus dem Regal.`,
     none: (label: string, days: number) => `Keine Rückkehr ${label} ist in den vergangenen ${days} Tagen aus dem Regal verschwunden.`,
     whatDuo: "iPhone Duo",

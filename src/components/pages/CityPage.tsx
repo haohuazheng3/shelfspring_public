@@ -172,7 +172,7 @@ export async function CityPage({ country, params: p }: { country: Country; param
             <Last24Hours data={d.recent} label={G.inPlace(cname)} stores={stores} country={cc} stock={d.stock} lastBefore={d.copy.duo.lastRestock} alert={alert} compact />
           </FieldSection>
           <FieldSection id="timing" title={G.duoHours(cname)} caption={`${d.pstats.days}d`}>
-            {/^(\/[a-z]{2})?\/iphone-duo-restock-times\//.test(restockTimesPath(c.state, c.name, cc)) && <p className="mb-4"><Link href={restockTimesPath(c.state, c.name, cc)} className="text-sm underline underline-offset-4">{lang === "en" ? `${cname} return study, hour by hour` : G.fullLog} →</Link></p>}
+            {/^(\/[a-z]{2})?\/iphone-duo-restock-times\//.test(restockTimesPath(c.state, c.name, cc)) && <p className="mb-4"><Link href={restockTimesPath(c.state, c.name, cc)} className="text-sm underline underline-offset-4">{lang === "en" ? `${cname} return study, hour by hour →` : G.fullLog}</Link></p>}
             <RestockClock stats={d.duoClock} label={G.inPlace(cname)} reports={d.duoReports} />
             <p className="mt-3 text-xs text-ink-3">{W.allModels({ n: d.pstats.month, days: d.pstats.days, peak: peakAll ? peakAll.hour : null })}</p>
           </FieldSection>
