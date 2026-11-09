@@ -17,7 +17,7 @@ describe("URL-derived public locale rendering", () => {
   });
   it("keeps the English public 404 independent of personal preferences", () => {
     const html = renderToStaticMarkup(createElement(LangProvider, { loc: EN_US, app: null, d: null, children: createElement(NotFound) }));
-    expect(html).toContain("Nothing here");
+    expect(html).toContain("No page at this address");
     expect(html).toContain('href="/stores"');
   });
   it("accepts only known native preference cookies without confusing similarly named cookies", () => {

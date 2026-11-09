@@ -46,8 +46,8 @@ describe("llms-full.txt — every store's restock pattern", () => {
   it("has one line per store, with the pattern where there is one", async () => {
     const t = await llmsFullTxt();
     expect(t.split("\n").filter((l) => l.startsWith("- [Apple ") && l.includes("/stores/")).length).toBe(ALL_STORES.length);
-    expect(t).toMatch(/Apple Fifth Avenue\]\(https:\/\/shelfspring\.com\/stores\/new-york\/new-york\/fifthavenue\) — New York, NY\. Usually restocks around 8 AM local time, busiest on Friday; 30 confirmed restocks/);
-    expect(t).toMatch(/Belfast, UK\. 3 confirmed restocks in the last 30 days on 1 day — too few to call a pattern yet/);
+    expect(t).toMatch(/Apple Fifth Avenue\]\(https:\/\/shelfspring\.com\/stores\/new-york\/new-york\/fifthavenue\) — New York, NY\. Returns cluster near 8 AM local time, most often on Friday; 30 confirmed returns/);
+    expect(t).toMatch(/Belfast, UK\. 3 confirmed returns over 30 days, all on 1 day: not enough separate days to call out a typical hour/);
   });
 });
 
@@ -60,13 +60,13 @@ describe("store patterns", () => {
     const at = (d: number) => `2026-10-${String(10 + d).padStart(2, "0")}T13:05:00.000Z`;
     const five = patternsFrom([0, 1, 2, 3, 4].map((d) => ({ storeNumber: "R095", at: at(d) })), { R095: 4 }, () => "America/New_York");
     expect(five.R095).toMatchObject({ restocks: 5, days: 5, peakHour: 9, peakWeekday: null, medianStayMin: 4 });
-    expect(patternSentence(five.R095)).toMatch(/^Usually restocks around 9 AM local time; 5 confirmed/);
+    expect(patternSentence(five.R095)).toMatch(/^Returns cluster near 9 AM local time; 5 confirmed/);
     const span = patternsFrom([0, 7, 14, 15, 16].map((d) => ({ storeNumber: "R095", at: at(d) })), {}, () => "America/New_York");
     expect(span.R095.peakWeekday).not.toBeNull();
     // ten restocks in one burst are one day's event, not a habit (the other countries' first day)
     const burst = patternsFrom(Array.from({ length: 10 }, () => ({ storeNumber: "R092", at: "2026-11-02T14:00:00.000Z" })), {}, () => "Europe/London");
     expect(burst.R092).toMatchObject({ restocks: 10, days: 1, peakHour: null, peakWeekday: null });
-    expect(patternSentence(burst.R092)).toBe("10 confirmed restocks in the last 30 days on 1 day — too few to call a pattern yet.");
-    expect(patternSentence(undefined)).toBe("No confirmed restock in the last 30 days.");
+    expect(patternSentence(burst.R092)).toBe("10 confirmed returns over 30 days, all on 1 day: not enough separate days to call out a typical hour.");
+    expect(patternSentence(undefined)).toBe("The 30-day ledger holds no confirmed return.");
   });
 });

@@ -84,7 +84,7 @@ export async function RestocksPage({ country: c, searchParams: sp }: { country: 
         models={MODELS.map(({ key, name }) => ({ key, name }))}
         states={states.map((s) => ({ slug: s.slug, label: regionName(cc, s.name, lang) }))}
         labels={{ allModels: V.allModels, restocks: V.restocks, withSoldOut: V.withSoldOut,
-          region: us ? "State" : V.regionLabel(c), allRegions: us ? "All states" : V.allRegions(c), filter: V.filter }}>
+          region: us ? "State" : V.regionLabel(c), allRegions: us ? "Any state" : V.allRegions(c), filter: V.filter }}>
         <RestockFeed rows={rows} model={model} showModel={!model} />
         <div className="mt-3 flex items-center justify-between text-xs text-ink-3">
           <span>{V.page(page + 1)}</span>
@@ -101,7 +101,7 @@ export async function RestocksPage({ country: c, searchParams: sp }: { country: 
       </aside>
       </div>
       <RelatedBlock title={V.byPlace}>
-        {us ? <BrowseStates current={state} title="By state" /> : states.length > 1 ? <BrowseCountryRegions country={c} current={state} title={V.byRegion(c)} /> : <BrowseCountryPopular country={c} />}
+        {us ? <BrowseStates current={state} title="Split by state" /> : states.length > 1 ? <BrowseCountryRegions country={c} current={state} title={V.byRegion(c)} /> : <BrowseCountryPopular country={c} />}
         {us ? <BrowseModels current={model} /> : <BrowseCountryModels country={c} current={model} />}
         {loc.native && <LinkRow title={D.common.more} links={[{ href: `${prefixOf(cc)}/iphone-duo-restock-times`, label: t().place.home.restockTimesChip }]} />}
       </RelatedBlock>

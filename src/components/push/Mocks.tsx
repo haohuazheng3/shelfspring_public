@@ -111,23 +111,23 @@ export function SafariShareMock({ t = EN }: { t?: MockText }) {
 
 export function ShareSheetMock({ t = EN }: { t?: MockText }) {
   const l = t.shareSheet;
-  const rows: [React.ReactNode, string, boolean?][] = [
-    [<svg key="c" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>, l.copy],
-    [<svg key="r" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9" /><path d="M8 12h8M12 8v8" /></svg>, l.readingList],
-    [<Book key="b" className="h-4 w-4" />, l.bookmark],
-    [<svg key="f" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z" /></svg>, l.favorites],
-    [<PlusSquare key="h" className="h-4 w-4" />, l.addToHome, true],
-    [<svg key="m" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 20l4-1 10-10-3-3L5 16z" /></svg>, l.markup],
+  // Only the row the step is about carries words; the sheet's other actions are drawn as blank bars (their order and
+  // wording change between iOS versions, and the step text names the one row to look for).
+  const rows: [React.ReactNode, string | null, string][] = [
+    [<svg key="c" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>, null, "w-1/3"],
+    [<Book key="b" className="h-4 w-4" />, null, "w-1/2"],
+    [<PlusSquare key="h" className="h-4 w-4" />, l.addToHome, ""],
+    [<svg key="m" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 20l4-1 10-10-3-3L5 16z" /></svg>, null, "w-2/5"],
   ];
   return (
     <Screen>
       <div className="mock-sheet">
         <div className="mock-sheet-head"><AppIcon size={28} /><div><div className="text-[11px] font-semibold leading-tight">ShelfSpring</div><div className="text-[10px] text-ink-3">shelfspring.com</div></div></div>
         <ul className="mock-list">
-          {rows.map(([icon, label, hl]) => (
-            <li key={label} className={hl ? "mock-row mock-row-hl" : "mock-row"}>
-              <span>{label}</span>
-              {hl ? <Hl><span className="text-accent">{icon}</span></Hl> : <span className="text-ink-2">{icon}</span>}
+          {rows.map(([icon, label, bar], i) => (
+            <li key={i} className={label ? "mock-row mock-row-hl" : "mock-row"}>
+              {label ? <span>{label}</span> : <span className={`mock-skel ${bar}`} />}
+              {label ? <Hl><span className="text-accent">{icon}</span></Hl> : <span className="text-ink-3">{icon}</span>}
             </li>
           ))}
         </ul>
@@ -141,9 +141,10 @@ export function AddDialogMock({ t = EN }: { t?: MockText }) {
   return (
     <Screen>
       <div className="mock-sheet mock-sheet-tall">
-        <div className="mock-dialog-bar"><span className="text-accent-2">{l.cancel}</span><span className="font-semibold">{l.title}</span><Hl label={l.add} below><span className="font-semibold text-accent">{l.add}</span></Hl></div>
-        <div className="mock-add-row"><AppIcon size={40} /><div className="min-w-0 flex-1"><div className="mock-field">ShelfSpring</div><div className="truncate text-[10px] text-ink-3">https://shelfspring.com/account</div></div></div>
-        <p className="px-3 pt-2 text-[10px] leading-snug text-ink-3">{l.note}</p>
+        <div className="mock-dialog-bar"><span className="text-accent-2">{l.cancel}</span><span className="font-semibold">{l.title}</span><Hl><span className="font-semibold text-accent">{l.add}</span></Hl></div>
+        <div className="mock-add-row"><AppIcon size={40} /><div className="min-w-0 flex-1"><div className="mock-field">ShelfSpring</div><div className="truncate text-[10px] text-ink-3">shelfspring.com</div></div></div>
+        {/* iOS explains the icon here in a sentence of its own; the drawing keeps the space, not the words. */}
+        <div className="space-y-1.5 px-3 pt-2"><div className="mock-skel w-5/6" /><div className="mock-skel w-1/2" /></div>
       </div>
     </Screen>
   );
@@ -171,8 +172,8 @@ export function IosPermissionMock({ t = EN }: { t?: MockText }) {
       </div>
       <div className="mock-alert">
         <div className="mock-alert-title">{l.title}</div>
-        <div className="mock-alert-text">{l.text}</div>
-        <div className="mock-alert-buttons"><span>{l.dontAllow}</span><Hl label={l.allow} below><span className="font-semibold text-accent">{l.allow}</span></Hl></div>
+        <div className="mock-alert-text space-y-1.5"><div className="mock-skel mx-auto w-5/6" /><div className="mock-skel mx-auto w-2/3" /></div>
+        <div className="mock-alert-buttons"><span>{l.dontAllow}</span><Hl><span className="font-semibold text-accent">{l.allow}</span></Hl></div>
       </div>
     </Screen>
   );

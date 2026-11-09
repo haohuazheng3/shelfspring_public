@@ -1,5 +1,5 @@
 /**
- * "In the last 24 hours": restocks of one model at a set of stores (or a whole country), per configuration — the
+ * The past-day block: restocks of one model at a set of stores (or a whole country), per configuration — the
  * answer block at the top of every state, city, country and store page ("Has the iPhone Duo restocked anywhere in
  * Michigan in the last 24 hours? 512GB, Night Sky or Star White" is the question people put to an answer engine).
  * One grouped query, cached a minute; JSON-safe (ISO strings).

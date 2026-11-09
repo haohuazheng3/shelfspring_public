@@ -20,7 +20,14 @@ export const STORES = forms({ one: "متجر واحد", two: "متجران", few
 export const STORES_G = forms({ one: "متجر واحد", two: "متجرين", few: "# متاجر", many: "# متجرًا", other: "# متجر" });
 export const TIMES = forms({ one: "مرة واحدة", two: "مرتين", few: "# مرات", many: "# مرة", other: "# مرة" });
 export const DAYS = forms({ one: "يوم واحد", two: "يومين", few: "# أيام", many: "# يومًا", other: "# يوم" });
-export const CONFIGS = forms({ one: "خيار واحد", two: "خياران", few: "# خيارات", many: "# خيارًا", other: "# خيار" });
+/** A configuration (model × capacity × finish) is «تكوين» in ShelfSpring's Arabic, never «خيار». */
+export const CONFIGS = forms({ one: "تكوين واحد", two: "تكوينان", few: "# تكوينات", many: "# تكوينًا", other: "# تكوين" });
+/** The same after a preposition or as an object ("من تكوينين"). */
+export const CONFIGS_G = forms({ one: "تكوين واحد", two: "تكوينين", few: "# تكوينات", many: "# تكوينًا", other: "# تكوين" });
+/** A logged return (ShelfSpring's word for a restock): «عودة»، «عودتان»، «5 عودات»، «12 عودة». */
+export const RETURNS = forms({ one: "عودة واحدة", two: "عودتان", few: "# عودات", many: "# عودة", other: "# عودة" });
+/** The same after a preposition or as an object ("بعد عودتين"). */
+export const RETURNS_G = forms({ one: "عودة واحدة", two: "عودتين", few: "# عودات", many: "# عودة", other: "# عودة" });
 export const CITIES = forms({ one: "مدينة واحدة", two: "مدينتان", few: "# مدن", many: "# مدينة", other: "# مدينة" });
 export const SECONDS = forms({ one: "ثانية واحدة", two: "ثانيتين", few: "# ثوانٍ", many: "# ثانية", other: "# ثانية" });
 export const MINUTES = forms({ one: "دقيقة واحدة", two: "دقيقتين", few: "# دقائق", many: "# دقيقة", other: "# دقيقة" });
@@ -97,12 +104,12 @@ export function taxAr(c: Country): string {
   const t = taxName(c);
   return t === "VAT" ? "ضريبة القيمة المضافة" : t === "GST" ? "ضريبة السلع والخدمات" : t === "consumption tax" ? "ضريبة الاستهلاك" : "ضريبة المبيعات";
 }
-/** "شامل ضريبة القيمة المضافة 5%" / "قبل الضريبة" (Canada) / "بلا ضريبة مبيعات" (Hong Kong). */
+/** "تدخل فيه ضريبة القيمة المضافة بنسبة 5%" / "دون الضريبة" (Canada) / "لا ضريبة مبيعات عليه" (Hong Kong). */
 export function taxNoteAr(c: Country): string {
-  if (c.cc === "us") return "قبل الضريبة (تختلف حسب الولاية)";
-  if (c.cc === "ca") return "قبل الضريبة";
+  if (c.cc === "us") return "دون الضريبة، ونسبتها تتبع الولاية";
+  if (c.cc === "ca") return "دون الضريبة";
   const r = includedRate(c);
-  return r == null ? "بلا ضريبة مبيعات" : `شامل ${taxAr(c)} ${r}%`;
+  return r == null ? "لا ضريبة مبيعات عليه" : `تدخل فيه ${taxAr(c)} بنسبة ${r}%`;
 }
 
 /* ---------------------------------------------------------------- the UAE's stores in Arabic */
@@ -132,7 +139,8 @@ export const liCountry = (cc: CountryCode): string => { const n = country(cc); r
 export const apple = (name: string): string => (/^apple\b/i.test(name) ? name : `Apple ${name}`);
 /** The currency in words where Arabic readers say it. */
 export const currencyAr = (code: string): string => ({ AED: "الدرهم الإماراتي", USD: "الدولار الأمريكي", EUR: "اليورو", GBP: "الجنيه الإسترليني", JPY: "الين الياباني" } as Record<string, string>)[code] ?? code;
-export const SELLOUTS = forms({ one: "حالة نفاد واحدة", two: "حالتي نفاد", few: "# حالات نفاد", many: "# حالة نفاد", other: "# حالة نفاد" });
+/** Returns whose time on the shelf was measured end to end ("from 14 timed returns"). */
+export const SELLOUTS = forms({ one: "عودة واحدة مقيسة", two: "عودتين مقيستين", few: "# عودات مقيسة", many: "# عودة مقيسة", other: "# عودة مقيسة" });
 /** "المتجرين" / "المتاجر الخمسة" / "المتاجر الـ39": a place's stores, all of them. */
 export function allWord(n: number): string {
   if (n === 1) return "المتجر";

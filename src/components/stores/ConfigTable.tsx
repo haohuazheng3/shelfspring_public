@@ -33,10 +33,12 @@ function Line({ r, store, lookupOff, d, lang }: { r: Row; store: Store; lookupOf
           <span className="text-xs text-ink-3">{lang !== "en" ? price(lang, COUNTRIES[store.country], r.item.price) : store.country === "us" ? fmtPrice(r.item.price) : formatPrice(COUNTRIES[store.country], r.item.price)}</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-2 text-xs text-ink-3">
-          <span className={`inline-flex items-center gap-1.5 ${ok ? "text-accent" : ""}`}><Dot state={ok ? "ok" : unknown ? "warn" : "idle"} live={ok} />{ok ? (st?.quote ?? d.available) : unknown ? (lookupOff ? d.noLookup : d.notChecked) : (st?.quote ?? d.unavailable)}</span>
+          <span className={`inline-flex items-center gap-1.5 ${ok ? "text-accent" : ""}`}><Dot state={ok ? "ok" : unknown ? "warn" : "idle"} live={ok} />{ok ? d.available : unknown ? (lookupOff ? d.noLookup : d.notChecked) : d.unavailable}</span>
           {ok && st?.since && <span>{d.since(<LiveAgo iso={st.since} />)}</span>}
           {!ok && st?.lastAvailableAt && <span>{d.lastAvailable(<LiveAgo iso={st.lastAvailableAt} />)}</span>}
           {!ok && st && !st.lastAvailableAt && !unknown && <span>{d.neverHere}</span>}
+          {/* Apple's own pickup wording ("Available Today") only where it adds something: a listing on the shelf. */}
+          {ok && st?.quote && <span className="rounded-full bg-ink/6 px-1.5">“{st.quote}”</span>}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3 text-xs">
@@ -48,8 +50,9 @@ function Line({ r, store, lookupOff, d, lang }: { r: Row; store: Store; lookupOf
 }
 
 /**
- * Every tracked configuration at one store: storage, colour, price, status, since / last available, and an alert
- * link per row. `lookupOff`: Apple offers no pickup lookups at this store right now (stock/notOffered.ts).
+ * The shelf check at one store, every tracked configuration: configuration and price, our status word and its time
+ * (appeared / last seen), Apple's own pickup wording when on the shelf, then order and watch links.
+ * `lookupOff`: Apple offers no pickup lookups at this store right now (stock/notOffered.ts).
  */
 export function ConfigTable({ store, rows, title, lookupOff = false }: { store: Store; rows: StoreStatusRow[]; title?: string; lookupOff?: boolean }) {
   const d = t().modules.configTable;

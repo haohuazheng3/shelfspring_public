@@ -166,9 +166,9 @@ export function DuoLedger({ d, place, one = false, stores, country = "us", hourH
             <table className="w-full border-collapse text-sm" style={{ minWidth: one ? "20rem" : "30rem" }}>
               <caption className="mb-2 text-start text-xs text-ink-3">{w.ledger(d.lastThree.length)}</caption>
               <thead><tr>
-                <th scope="col" className="border-b border-line-2 py-2 pe-3 text-start font-semibold text-ink">{w.col.observed}</th>
                 <th scope="col" className="border-b border-line-2 py-2 pe-3 text-start font-semibold text-ink">{w.col.config}</th>
                 {!one && <th scope="col" className="border-b border-line-2 py-2 pe-3 text-start font-semibold text-ink">{w.col.store}</th>}
+                <th scope="col" className="border-b border-line-2 py-2 pe-3 text-start font-semibold text-ink">{w.col.observed}</th>
                 <th scope="col" className="border-b border-line-2 py-2 pe-3 text-start font-semibold text-ink">{w.col.listed}</th>
               </tr></thead>
               <tbody>
@@ -176,9 +176,9 @@ export function DuoLedger({ d, place, one = false, stores, country = "us", hourH
                   const s = storeOf(r.storeNumber);
                   return (
                     <tr key={`${r.storeNumber}-${r.partNumber}-${r.at}`} className="border-b border-line">
-                      <td className="py-2 pe-3 align-top font-mono tabular-nums"><time dateTime={r.at}>{stampIn(r.at, s ? storeTimeZone(s) : tz, lang)}</time></td>
                       <td className="py-2 pe-3 align-top">{cfg(r.partNumber)}</td>
                       {!one && <td className="py-2 pe-3 align-top">{s ? storeLink(r.storeNumber) : r.storeNumber}</td>}
+                      <td className="py-2 pe-3 align-top font-mono tabular-nums"><time dateTime={r.at}>{stampIn(r.at, s ? storeTimeZone(s) : tz, lang)}</time></td>
                       <td className="py-2 pe-3 align-top tabular-nums text-ink-2">{lifetime(r, w) ?? "—"}</td>
                     </tr>
                   );

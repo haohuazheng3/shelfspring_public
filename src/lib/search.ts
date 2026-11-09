@@ -17,15 +17,15 @@ export interface SearchEntry { k: SearchKind; l: string; s: string; h: string; q
 
 
 const PAGES: [string, string, string, string][] = [
-  ["Live stock map", "All 269 stores, live", "/map", "map live stock stores near me"],
-  ["Restock log", "Restocks and sell-outs, newest first", "/restocks", "restocks restock log history sold out feed"],
-  ["Get the app", "Home Screen app for phone notifications", "/install", "install app home screen notifications push alerts iphone android get the app"],
-  ["Set up an alert", "One store × one exact phone per alert", "/#notify", "alert alerts notify get notified new watch"],
-  ["My alerts", "Alerts, devices, plan", "/account", "account my alerts rules devices plan billing sign in"],
-  ["Pricing", "$5 · $10 · $20 a month", "/pricing", "pricing plans plus pro max price cost subscription upgrade"],
-  ["How it works", "What we check and how fast", "/how-it-works", "how it works faq about speed"],
-  ["Stores by state", "All 269 US Apple Stores", "/stores", "stores states cities all list directory"],
-  ["Contact", "hello@shelfspring.com", "/contact", "contact support help email"],
+  ["Shelf map", "Every one of the 269 stores, live", "/map", "map live stock stores near me shelf"],
+  ["Return log", "Returns and sell-outs, latest at the top", "/restocks", "restocks restock log history sold out feed returns"],
+  ["Home Screen app", "Install it for phone notifications", "/install", "install app home screen notifications push alerts iphone android get the app"],
+  ["Start a watch", "Each watch: one store × one exact iPhone", "/#notify", "alert alerts notify get notified new watch"],
+  ["Watchlist", "Watches, devices and plan", "/account", "account my alerts rules devices plan billing sign in watchlist"],
+  ["Plans", "$5 · $10 · $20 per month", "/pricing", "pricing plans plus pro max price cost subscription upgrade"],
+  ["How the record is kept", "What is checked, and how it is logged", "/how-it-works", "how it works faq about speed record"],
+  ["Store directory", "All 269 US Apple Stores", "/stores", "stores states cities all list directory"],
+  ["Write to us", "contact@shelfspring.com", "/contact", "contact support help email"],
 ];
 
 export function buildSearchIndex(): SearchEntry[] {
@@ -33,11 +33,11 @@ export function buildSearchIndex(): SearchEntry[] {
   for (const [l, s, h, q] of PAGES) out.push({ k: "page", l, s, h, q });
   for (const m of MODELS) {
     const base = `${norm(m.name)} ${norm(m.short)} ${norm(m.blurb)}`;
-    out.push({ k: "model", l: `${m.name} stock`, s: "Live pickup stock by store", h: `/stock/${m.slug}`, q: `${base} stock live` });
-    out.push({ k: "model", l: `${m.name} restocks`, s: "Restock log", h: `/restocks?model=${m.key as ModelKey}`, q: `${base} restocks restock log` });
-    out.push({ k: "model", l: `${m.name} map`, s: "Where it is in stock right now", h: `/map?model=${m.key as ModelKey}`, q: `${base} map` });
+    out.push({ k: "model", l: `${m.name} stock`, s: "Every store's shelf, checked live", h: `/stock/${m.slug}`, q: `${base} stock live` });
+    out.push({ k: "model", l: `${m.name} returns`, s: "Return log", h: `/restocks?model=${m.key as ModelKey}`, q: `${base} restocks restock log returns` });
+    out.push({ k: "model", l: `${m.name} on the map`, s: "Stores listing it at this moment", h: `/map?model=${m.key as ModelKey}`, q: `${base} map` });
   }
-  for (const p of PRODUCTS) if (p.kind !== "model") out.push({ k: "model", l: p.name, s: "Live pickup stock", h: productPath(p), q: `${norm(p.name)} ${norm(p.short)} stock` });
+  for (const p of PRODUCTS) if (p.kind !== "model") out.push({ k: "model", l: p.name, s: "Shelves by store", h: productPath(p), q: `${norm(p.name)} ${norm(p.short)} stock` });
   for (const st of stateRefs()) out.push({ k: "state", l: st.name, s: `${st.count} store${st.count === 1 ? "" : "s"}`, h: st.href, q: `${norm(st.name)} ${st.code.toLowerCase()} state` });
   for (const c of cityRefs()) out.push({ k: "city", l: `${c.name}, ${c.stateCode}`, s: `${c.count} store${c.count === 1 ? "" : "s"} · ${c.state}`, h: c.href, q: `${norm(c.name)} ${c.stateCode.toLowerCase()} ${norm(c.state)}` });
   for (const s of STORES) {

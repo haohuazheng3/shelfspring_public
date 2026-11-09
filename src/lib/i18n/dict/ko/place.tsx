@@ -18,7 +18,7 @@ import { hourLabel } from "@/lib/content/siteFacts";
 import type { Block, Faq, Source } from "@/lib/content/types";
 import type { KeywordSection } from "@/components/content/KeywordSections";
 import type { Dict } from "../en";
-import { eulReul, eunNeun } from "./common";
+import { eulReul } from "./common";
 
 const L = "ko" as const;
 const n = (x: number) => num(L, x);
@@ -37,9 +37,9 @@ const taxKo = (code: CountryCode) => {
 };
 /** "부가세 10% 포함" / "세전" / "판매세 없음". */
 const taxNote = (code: CountryCode) => {
-  if (code === "ca") return "세전";
+  if (code === "ca") return "세금 전";
   const r = includedRate(COUNTRIES[code]);
-  return r == null ? "판매세 없음" : `${taxKo(code)} ${r}% 포함`;
+  return r == null ? "판매세 없음" : `${taxKo(code)} ${r}% 들어 있음`;
 };
 /** 장소 이름(영어 데이터 → 한국어). */
 const nameOf = (i: IntlPlaceInput) => {
@@ -54,9 +54,9 @@ const cfgKo = (label: string) => {
 };
 
 /** 한국 부가가치세율(10%)의 근거: 부가가치세법 제30조. */
-const KR_TAX: Source = { label: "국가법령정보센터: 부가가치세법 제30조(세율 10%)", url: "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EB%B6%80%EA%B0%80%EA%B0%80%EC%B9%98%EC%84%B8%EB%B2%95" };
+const KR_TAX: Source = { label: "부가가치세법 제30조, 세율 10% · 국가법령정보센터", url: "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EB%B6%80%EA%B0%80%EA%B0%80%EC%B9%98%EC%84%B8%EB%B2%95" };
 const taxSource = (code: Exclude<CountryCode, "us">): Source => (code === "kr" ? KR_TAX : TAX_SOURCES[code]);
-const helpSource = (code: CountryCode): Source => ({ label: "Apple: 배송 및 픽업 도움말(픽업할 때 챙길 것)", url: pickupHelp(code).url });
+const helpSource = (code: CountryCode): Source => ({ label: "Apple 도움말 · 픽업 주문을 받을 때 가져갈 것", url: pickupHelp(code).url });
 
 /* ------------------------------------------------------------------ 기간, 이름, 시각 */
 
@@ -81,12 +81,12 @@ function taxSentence(code: CountryCode, region?: string): string {
   if (duo == null) return "";
   if (code === "ca") {
     const t = region ? withProvinceTax(duo, region) : null;
-    if (t) return `256GB iPhone Duo의 Apple 캐나다 가격 ${money(code, duo)}은 세전이에요. ${regionLabel(code, region!, L)}에서는 ${t.rate}% ${CA_PROVINCE_TAX[region!].label}가 붙어 약 ${money(code, t.total)}이 돼요.`;
-    return `256GB iPhone Duo의 Apple 캐나다 가격 ${money(code, duo)}은 세전이에요. 주에 따라 5%~15%가 더 붙어요.`;
+    if (t) return `Apple 캐나다의 iPhone Duo 256GB 표시가는 세금 전 금액(${money(code, duo)})이에요. 이 매장이 있는 ${regionLabel(code, region!, L)}의 ${CA_PROVINCE_TAX[region!].label} ${t.rate}%를 얹으면 대략 ${money(code, t.total)}.`;
+    return `Apple 캐나다의 iPhone Duo 256GB 표시가는 세금 전 금액(${money(code, duo)})이고, 매장이 있는 주에 따라 5~15%가 얹혀요.`;
   }
   const r = includedRate(COUNTRIES[code]);
-  if (r == null) return `256GB iPhone Duo는 ${money(code, duo)}이고, 홍콩은 판매세가 없어서 픽업할 때도 이 금액 그대로예요.`;
-  return `256GB iPhone Duo의 ${dom(code)} 가격은 ${money(code, duo)}(${taxKo(code)} ${r}% 포함)이에요. 매장 픽업이라고 따로 붙는 금액은 없어요.`;
+  if (r == null) return `홍콩에는 판매세가 없어요. 그래서 iPhone Duo 256GB는 매장에서 받아도 표시가 ${money(code, duo)} 그대로예요.`;
+  return `${dom(code)} 표시가에는 ${taxKo(code)} ${r}%가 이미 들어 있어요: iPhone Duo 256GB ${money(code, duo)}. 매장 픽업을 고른다고 계산대에서 금액이 달라지지 않아요.`;
 }
 
 const PRICE_ROWS: [ModelKey, string][] = [["duo", "256GB"], ["duo", "1TB"], ["18-pro-max", "256GB"], ["18-pro-max", "1TB"], ["18-pro", "256GB"]];
@@ -104,11 +104,11 @@ function priceSection(code: CountryCode, placeName: string, region?: string, mod
       const rk = regionLabel(code, region!, L);
       return {
         id: "price-with-tax",
-        h2: `${placeName} ${m.name} 세금 포함 가격`,
-        lead: `256GB ${eunNeun(m.name)} **세전 ${money(code, base)}**이고, ${rk}의 ${t.total}% ${t.label}를 더하면 ${placeName} 매장에서 약 **${money(code, withProvinceTax(base, region!)!.total)}**이에요.`,
+        h2: `${m.name}, ${placeName}에서 세금까지 내면 얼마?`,
+        lead: `${placeName} 매장에서 256GB를 받으면 대략 **${money(code, withProvinceTax(base, region!)!.total)}**: 세금 전 표시가 **${money(code, base)}**에 ${rk}의 ${t.label} ${t.total}%가 얹힌 값이에요.`,
         blocks: [
-          { t: "note", text: "**세금은 픽업하는 곳 기준:** 집 주소가 아니라 매장이 있는 주의 세율이 붙어요." },
-          { t: "table", head: ["iPhone", "apple.com 가격", `${t.total}% ${t.label} 포함`], rows: rows.map(([label, p]) => [label, money(code, p), money(code, withProvinceTax(p, region!)!.total)]), caption: `${rk}: Apple 캐나다 가격 + ${t.label}(${t.total}%)`, source: `[${src.label}](${src.url}); 가격: apple.com/ca` },
+          { t: "note", text: "**세율을 정하는 건 매장 위치:** 사는 곳이 아니라, 픽업하는 매장이 속한 주의 세율이 적용돼요." },
+          { t: "table", head: ["구성", "세금 전 표시가", `${t.label} ${t.total}% 얹은 값`], rows: rows.map(([label, p]) => [label, money(code, p), money(code, withProvinceTax(p, region!)!.total)]), caption: `${rk} 기준 · Apple 캐나다 표시가에 ${t.label} ${t.total}%를 더함`, source: `[${src.label}](${src.url}) · 표시가 출처 apple.com/ca` },
         ],
       };
     }
@@ -117,14 +117,14 @@ function priceSection(code: CountryCode, placeName: string, region?: string, mod
     const dearest = provinces.reduce((a, b) => (CA_PROVINCE_TAX[b].total > CA_PROVINCE_TAX[a].total ? b : a));
     return {
       id: "price-with-tax",
-      h2: `캐나다 ${m.name} 주별 세금 포함 가격`,
-      lead: `256GB ${m.name}의 Apple 가격 **${money(code, base)}**은 세전이에요. 픽업 매장이 있는 주의 세금이 붙어, ${regionLabel(code, cheapest, L)}(${CA_PROVINCE_TAX[cheapest].total}%) **${money(code, withProvinceTax(base, cheapest)!.total)}**부터 ${regionLabel(code, dearest, L)}(${CA_PROVINCE_TAX[dearest].total}%) **${money(code, withProvinceTax(base, dearest)!.total)}**까지예요.`,
+      h2: `${m.name}, 캐나다에서는 주마다 최종가가 달라요`,
+      lead: `표시가 **${money(code, base)}**(256GB)는 세금 전 금액이라, 실제로 내는 돈은 매장이 있는 주가 정해요. 가장 싼 곳은 ${regionLabel(code, cheapest, L)}(${CA_PROVINCE_TAX[cheapest].total}%) **${money(code, withProvinceTax(base, cheapest)!.total)}**, 가장 비싼 곳은 ${regionLabel(code, dearest, L)}(${CA_PROVINCE_TAX[dearest].total}%) **${money(code, withProvinceTax(base, dearest)!.total)}**.`,
       blocks: [{
         t: "table",
-        head: ["주", "세금", "세율", `${m.short} 256GB 세금 포함`],
+        head: ["주", "붙는 세금", "%", `${m.short} 256GB 최종가`],
         rows: provinces.map((p) => [regionLabel(code, p, L), CA_PROVINCE_TAX[p].label, `${CA_PROVINCE_TAX[p].total}%`, money(code, withProvinceTax(base, p)!.total)]),
-        caption: "Apple Store가 있는 주: 매장 픽업에 붙는 판매세",
-        source: `[${CA_TAX_SOURCE.label}](${CA_TAX_SOURCE.url}); 가격: apple.com/ca`,
+        caption: "매장이 있는 주만 · 픽업 주문에 얹히는 판매세",
+        source: `[${CA_TAX_SOURCE.label}](${CA_TAX_SOURCE.url}) · 표시가 출처 apple.com/ca`,
       }],
     };
   }
@@ -133,17 +133,17 @@ function priceSection(code: CountryCode, placeName: string, region?: string, mod
   return {
     id: "price",
     h2: model === "duo" && code === "kr"
-      ? `iPhone Duo(아이폰 듀오) 가격: ${money(code, base)}부터, ${taxNote(code)}`
-      : `${dom(code)} ${m.name} 가격: ${money(code, base)}부터, ${taxNote(code)}`,
+      ? `iPhone Duo(아이폰 듀오) 값은 ${money(code, base)}에서 시작 · ${taxNote(code)}`
+      : `${dom(code)}에서 ${m.name} 값은 ${money(code, base)}에서 시작 · ${taxNote(code)}`,
     lead: r == null
-      ? `apple.com의 256GB ${m.name} 가격 **${money(code, base)}**이 ${placeName}에서 픽업할 때 내는 금액 그대로예요. 홍콩은 **판매세도 부가세도 없어요**.`
-      : `256GB ${eunNeun(m.name)} apple.com ${dom(code)} 가격이 **${money(code, base)}**이고 **${tk} ${r}%가 포함**돼 있어요(세전 ${money(code, beforeTax(c, base))}). ${placeName}에서 매장 픽업해도 더 붙는 금액은 없어요.`,
+      ? `${placeName}에서 픽업할 때 내는 돈은 apple.com 표시가와 같아요: 256GB **${money(code, base)}**. 홍콩에는 **판매세도 부가세도 없기** 때문이에요.`
+      : `${placeName} 매장에서 받아도 표시가 그대로: 256GB **${money(code, base)}**. 이 금액 안에 **${tk} ${r}%가 이미 들어 있고**, 세금을 뺀 값: ${money(code, beforeTax(c, base))}.`,
     blocks: [{
       t: "table",
-      head: r == null ? ["iPhone", "apple.com 가격"] : ["iPhone", "apple.com 가격", `${tk} ${r}% 제외`],
+      head: r == null ? ["구성", "표시가"] : ["구성", "표시가", `${tk} ${r}% 뺀 값`],
       rows: rows.map(([label, p]) => (r == null ? [label, money(code, p)] : [label, money(code, p), money(code, beforeTax(c, p))])),
-      caption: `Apple ${dom(code)} 가격${r == null ? "" : `, ${tk} 포함`}`,
-      source: `[${src.label}](${src.url}); 가격: ${shop}`,
+      caption: `${dom(code)} Apple 표시가${r == null ? "" : ` · ${tk} 들어 있음`}`,
+      source: `[${src.label}](${src.url}) · 표시가 출처 ${shop}`,
     }],
   };
 }
@@ -153,13 +153,13 @@ function taxFaq(code: CountryCode, placeName: string, region?: string): FaqItem 
   if (code === "ca") {
     const t = region ? withProvinceTax(duo, region) : null;
     return t
-      ? { q: `${placeName}에서 iPhone Duo는 세금 포함 얼마인가요?`, a: `256GB 기준 약 ${money(code, t.total)}이에요. Apple 가격 ${money(code, duo)}에 ${regionLabel(code, region!, L)}의 ${t.rate}% ${CA_PROVINCE_TAX[region!].label}가 픽업하는 곳 기준으로 붙어요.` }
-      : { q: "Apple 캐나다 가격에 세금이 포함돼 있나요?", a: `아니요. 256GB iPhone Duo는 세전 ${money(code, duo)}이고, 매장이 있는 주에 따라 GST, HST 또는 주 판매세가 붙어요. 앨버타 5%부터 퀘벡 14.975%까지예요.` };
+      ? { q: `${placeName}에서 iPhone Duo를 받으면 세금까지 얼마가 되나요?`, a: `256GB라면 대략 ${money(code, t.total)}. 표시가 ${money(code, duo)}에, 픽업하는 매장이 속한 ${regionLabel(code, region!, L)}의 ${CA_PROVINCE_TAX[region!].label} ${t.rate}%가 얹혀요.` }
+      : { q: "Apple 캐나다 표시가는 세금이 빠진 금액인가요?", a: `맞아요. iPhone Duo 256GB 표시가(${money(code, duo)})는 세금 전이고, 매장이 있는 주에 따라 GST, HST 또는 주 판매세가 더해져요. 범위는 앨버타 5%에서 퀘벡 14.975%.` };
   }
   const r = includedRate(COUNTRIES[code]);
   return r == null
-    ? { q: "홍콩에서 iPhone에 판매세가 붙나요?", a: `아니요. 홍콩은 판매세와 부가세가 없어서 256GB iPhone Duo는 픽업할 때도 apple.com 가격 그대로 ${money(code, duo)}이에요.` }
-    : { q: `iPhone Duo ${dom(code)} 가격에 ${taxKo(code)}가 포함돼 있나요?`, a: `네. 256GB iPhone Duo ${money(code, duo)}에는 ${taxKo(code)} ${r}%가 포함돼 있어서, 매장에서 받을 때 더 내는 금액은 없어요.` };
+    ? { q: "홍콩에서 iPhone을 사면 세금이 더 붙나요?", a: `붙지 않아요. 판매세도 부가세도 없는 곳이라, iPhone Duo 256GB는 픽업 카운터에서도 apple.com 표시가 ${money(code, duo)} 그대로예요.` }
+    : { q: `${dom(code)} iPhone Duo 표시가는 ${taxKo(code)}를 넣은 금액인가요?`, a: `넣은 금액이에요. iPhone Duo 256GB ${money(code, duo)} 안에 ${taxKo(code)} ${r}%가 들어 있으니, 카운터에서 따로 계산할 세금은 없어요.` };
 }
 
 /* ------------------------------------------------------------------ 지역·도시 페이지 */
@@ -279,7 +279,7 @@ function homeH1(code: CountryCode): string {
 
 function allStoresPhrase(code: CountryCode): string {
   const k = storesOf(code).length;
-  return k === 1 ? `${cn(code)}의 Apple Store` : `${dom(code)} Apple Store ${n(k)}곳 전체`;
+  return k === 1 ? `${cn(code)}에 하나뿐인 Apple Store` : `${dom(code)} 곳곳의 Apple Store ${n(k)}곳`;
 }
 
 /** 매장이 있는 곳 한 줄: "서울 6곳 · 경기도 1곳" / "8개 시·도, 22개 도시". */
@@ -288,13 +288,13 @@ function spreadPhrase(code: CountryCode): string {
   const cities = citiesWithStores(code);
   const stores = storesOf(code);
   if (stores.length === 1) return cityLabel(code, cities[0].name, L);
-  if (cities.length === 1) return `모두 ${cityLabel(code, cities[0].name, L)}`;
+  if (cities.length === 1) return `전부 ${cityLabel(code, cities[0].name, L)}에`;
   if (!COUNTRIES[code].regionNoun || regions.length === 1) {
-    if (cities.length <= 4) return cities.map((x) => ({ name: cityLabel(code, x.name, L), k: stores.filter((s) => s.city === x.name).length })).sort((a, b) => b.k - a.k).map((x) => `${x.name} ${n(x.k)}곳`).join(" · ");
-    return `${n(cities.length)}개 도시`;
+    if (cities.length <= 4) return cities.map((x) => ({ name: cityLabel(code, x.name, L), k: stores.filter((s) => s.city === x.name).length })).sort((a, b) => b.k - a.k).map((x) => `${x.name}에 ${n(x.k)}곳`).join(", ");
+    return `도시 ${n(cities.length)}곳에 흩어져`;
   }
-  if (regions.length <= 4) return regions.map((r) => ({ name: regionLabel(code, r.name, L), k: stores.filter((s) => s.state === r.name).length })).sort((a, b) => b.k - a.k).map((r) => `${r.name} ${n(r.k)}곳`).join(" · ");
-  return `${n(regions.length)}개 ${regionWord(code)}, ${n(cities.length)}개 도시`;
+  if (regions.length <= 4) return regions.map((r) => ({ name: regionLabel(code, r.name, L), k: stores.filter((s) => s.state === r.name).length })).sort((a, b) => b.k - a.k).map((r) => `${r.name}에 ${n(r.k)}곳`).join(", ");
+  return `${regionWord(code)} ${n(regions.length)}곳, 도시 ${n(cities.length)}곳에 흩어져`;
 }
 
 function modelPageTitles(code: CountryCode, model: ModelKey): { title: string; h2: string[] } {
@@ -355,7 +355,7 @@ function homeSections(i: HomeCopyInput): KeywordSection[] {
       h2: `${dom(code)} iPhone 재고 확인: Duo, 18 Pro, Pro Max 매장별`,
       lead: `ShelfSpring는 ${allStoresPhrase(code)}에서 모든 구성의 apple.com 매장 픽업 가능 여부를 15초마다 읽고, 매장별${k > 1 ? `·${regionWord(code)}별` : ""}·구성별로 보여 줘요.`,
       blocks: [
-        { t: "table", head: ["모델", "구성", "지금 재고 있는 매장", "기록된 재입고"], rows: cc.modelRows(code, i.storesNow, i.restocks), caption: `${dom(code)} 확인 범위, {{asOf}} 기준` },
+        { t: "table", head: ["iPhone", "추적 구성", "지금 진열한 매장", "장부의 재진열"], rows: cc.modelRows(code, i.storesNow, i.restocks), caption: `{{asOf}} 스냅숏 · ${dom(code)} 관측 범위` },
         { t: "ul", items: [
           `**범위:** ${spreadPhrase(code)} · 가격과 부품 번호는 Apple ${dom(code)} 기준`,
           "**모든 매장 15초마다**, 알림을 건 매장은 5초마다",
@@ -377,7 +377,7 @@ function homeSections(i: HomeCopyInput): KeywordSection[] {
           "iPhone에서는 ShelfSpring를 홈 화면에 추가하고 알림을 허용하세요([설치 방법](/install)).",
           "푸시가 오면 거기서 apple.com을 열고, 그 매장의 매장 픽업으로 결제하세요.",
         ] },
-        { t: "table", head: ["요금제", "가격(USD)", "알림"], rows: [["Plus", "$5 / 월", "10"], ["Pro", "$10 / 월", "20"], ["Max", "$20 / 월", "50"]], caption: "알림 하나 = 매장 하나 × 정확한 구성 하나 · 둘러보기는 무료([요금제](/pricing))" },
+        { t: "table", head: ["플랜", "한 달(USD)", "알림 규칙"], rows: [["Plus", "$5", "10"], ["Pro", "$10", "20"], ["Max", "$20", "50"]], caption: "규칙 하나가 맡는 건 매장 하나와 정확한 구성 하나 · 둘러보기는 돈이 들지 않아요([플랜 비교](/pricing))" },
         { t: "note", text: "**저희 생각:** Duo는 갈 수 있는 모든 매장에 알림을 걸 만해요. 18 Pro와 Pro Max는 실시간 수치부터 먼저 보세요." },
         { t: "img", id: "apple-store-pickup-counter" },
       ],
@@ -404,16 +404,16 @@ function homeFaq(code: CountryCode, rt: RestockTimesBrief): Faq[] {
 }
 
 const homeLabels: Dict["place"]["home"] = {
-  appName: (code: CountryCode) => `ShelfSpring iPhone 재고 확인 · ${cn(code)}`,
-  offer: "실시간 재고, 지도, 재입고 기록은 무료, 알림은 월 $5부터",
-  itemList: (code: CountryCode) => `${cn(code)} Apple Store`,
-  restockTimesChip: "재입고 시간",
-  storesByRegion: (code: CountryCode) => `${regionWord(code)}별 매장`,
-  browse: (code: CountryCode) => `${dom(code)} 재고 둘러보기`,
-  selloutH2: (code: CountryCode) => `${dom(code)} iPhone 재입고는 얼마나 빨리 품절되나요?`,
-  selloutLabel: (code: CountryCode) => `${dom(code)} Apple Store`,
+  appName: (code: CountryCode) => `ShelfSpring 진열 노트 · ${cn(code)}`,
+  offer: "진열 현황, 지도, 재진열 장부는 무료 · 알림은 한 달 $5부터",
+  itemList: (code: CountryCode) => `${cn(code)}의 Apple Store`,
+  restockTimesChip: "Duo 재진열 시각",
+  storesByRegion: (code: CountryCode) => `${regionWord(code)}마다 매장`,
+  browse: (code: CountryCode) => `${dom(code)} 진열대 둘러보기`,
+  selloutH2: (code: CountryCode) => `${dom(code)}에서 다시 진열된 iPhone은 얼마나 버텼나`,
+  selloutLabel: (code: CountryCode) => `${dom(code)} 매장`,
   last24Label: (code: CountryCode) => dom(code),
-  newsroom: "Apple Newsroom: iPhone Duo, 전 세계 Apple Store 출시(2026년 10월 23일)",
+  newsroom: "Apple Newsroom (2026년 10월 23일): 전 세계 Apple Store에 iPhone Duo 출시",
 };
 
 /** 매장 페이지 <title>·H1: "Apple 가로수길: 오늘 iPhone 재고·매장 픽업·영업시간" (도시의 유일한 매장이면 괄호에 도시). */
@@ -447,7 +447,7 @@ const basePlace: Dict["place"] = {
   homeFaq,
   home: homeLabels,
   storeTitle,
-  sources: (code: Exclude<CountryCode, "us">) => ({ pickupHelp: helpSource(code), storeList: { label: `Apple: 매장 목록(${cn(code)})`, url: storeListSource(code).url }, tax: taxSource(code) }),
+  sources: (code: Exclude<CountryCode, "us">) => ({ pickupHelp: helpSource(code), storeList: { label: `Apple 매장 목록 · ${cn(code)}`, url: storeListSource(code).url }, tax: taxSource(code) }),
 };
 
 

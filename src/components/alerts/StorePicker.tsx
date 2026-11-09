@@ -182,6 +182,9 @@ export function StorePicker({ value, onToggle, onPretick, room, owned = [], pref
     const name = (r: string) => regionLabel(active, r, lang);
     return all.sort((a, b) => name(a).localeCompare(name(b), LANG_TAG[lang]));
   }, [list, en, active, lang]);
+  // How many stores each region holds: the region list reads as a small directory ("Michigan · 7"), which also tells
+  // someone choosing a region how much of a list they are about to open.
+  const perRegion = useMemo(() => list.reduce((m, s) => m.set(s.state, (m.get(s.state) ?? 0) + 1), new Map<string, number>()), [list]);
   const regionNoun = d.regionNoun[active];
   const full = room <= 0;
   // A ZIP in another language: "ZIP 78701" said its way (the anchor's own label is English).
@@ -240,7 +243,7 @@ export function StorePicker({ value, onToggle, onPretick, room, owned = [], pref
       {(!anchor || anchor.kind === "state") && !q.trim() && loc !== "asking" && states.length > 1 && (
         <select className="input mt-2" value={state} onChange={(e) => setState(e.target.value)} aria-label={regionNoun[0].toUpperCase() + regionNoun.slice(1)}>
           <option value="">{fill(d.pickRegion, { noun: regionNoun })}</option>
-          {states.map((s) => <option key={s} value={s}>{regionName(s)}</option>)}
+          {states.map((s) => <option key={s} value={s}>{`${regionName(s)} · ${num(lang, perRegion.get(s) ?? 0)}`}</option>)}
         </select>
       )}
       <div className="mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line" role="group" aria-label={d.storesLabel}>

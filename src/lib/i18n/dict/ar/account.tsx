@@ -1,36 +1,38 @@
 /**
- * العربية: account (صفحة «تنبيهاتي» ووحدات التوفر فيها، و/install و/checkout/success و/pricing). تتبع الشخص لا المتجر،
- * فقد تكون متاجره في أي دولة. **الخط العريض** و[النص](الرابط) عبر <Md>. أسماء الباقات ومبالغ الدولار لا تُترجم.
+ * العربية: account (صفحة «قائمة المراقبة» ووحدات العودات فيها، و/install و/checkout/success و/pricing). تتبع الشخص لا المتجر،
+ * فقد تكون متاجره في أي دولة. **الخط العريض** و[النص](الرابط) عبر <Md>. أسماء الخطط ومبالغ الدولار لا تُترجم.
  */
 import type { Dict } from "../en";
-import { ALERTS, ALERTS_G, DAYS, HOURS, N, STORES, TIMES, count, forms } from "./util";
+import { ALERTS, ALERTS_G, DAYS, HOURS, N, RETURNS, STORES, STORES_G, count, forms } from "./util";
 
 /** "من 8 ثوانٍ إلى 15 دقيقة". */
 const OTHER_STORES = forms({ one: "متجر آخر", two: "متجران آخران", few: "# متاجر أخرى", many: "# متجرًا آخر", other: "# متجر آخر" });
+/** "10 قواعد تنبيه" / "20 قاعدة تنبيه". */
+const RULES = forms({ one: "قاعدة تنبيه واحدة", two: "قاعدتا تنبيه", few: "# قواعد تنبيه", many: "# قاعدة تنبيه", other: "# قاعدة تنبيه" });
 const yours = (n: number) => (n === 1 ? "متجرك" : n === 2 ? "متجريك" : `متاجرك (${N(n)})`);
 
 export const account: Dict["account"] = {
-  loading: "جارٍ التحميل",
-  meta: { title: "تنبيهاتي" },
-  signedInAs: (email: string) => `مسجّل الدخول: ${email}`,
-  title: "تنبيهاتي",
-  units: { s: "ث", min: "د", taps: "نقرات" },
+  loading: "جارٍ فتح اللوحة",
+  meta: { title: "قائمة مراقبتي" },
+  signedInAs: (email: string) => `الحساب · ${email}`,
+  title: "قائمة مراقبتك، في مكان واحد.",
+  units: { s: "ث", min: "د", taps: "لمسات" },
 
   plan: {
-    title: "الباقة",
-    none: "لا باقة بعد: التنبيهات متوقفة",
-    summary: (plan: string, on: number, limit: number) => `${plan} · ${N(on)} من ${count(limit, ALERTS)} مفعّلة`,
-    renews: (date: string) => ` · تتجدد في ${date}`,
-    ends: (date: string) => ` · تنتهي في ${date}`,
+    title: "العضوية والفوترة",
+    none: "لا خطة نشطة · التنبيهات مدوّنة لكنها لا تُرسل",
+    summary: (plan: string, on: number, limit: number) => `${plan} · ${N(on)}/${N(limit)} تنبيهات نشطة`,
+    renews: (date: string) => ` · التجديد القادم ${date}`,
+    ends: (date: string) => ` · نشطة حتى ${date}`,
   },
 
   sent: {
-    title: "التنبيهات المرسلة",
-    last: (ago: string) => `آخرها ${ago}`,
-    none: "لم يُرسَل شيء بعد",
-    empty: "لم يُرسَل شيء بعد.",
+    title: "سجل إشعاراتك",
+    last: (ago: string) => `الأحدث ${ago}`,
+    none: "لا تسليمات بعد",
+    empty: "لم يُسلَّم أي تنبيه حتى الآن.",
     channel: { push: "إشعار", email: "بريد إلكتروني" },
-    status: { sent: "أُرسل", failed: "فشل", skipped: "تُخطّي" },
+    status: { sent: "سُلّم", failed: "لم يُسلَّم", skipped: "تُرك" },
   },
 
   fast: {
@@ -38,7 +40,7 @@ export const account: Dict["account"] = {
     sub: "قائمة قصيرة قبل ظهور خيار مناسب آخر",
     lasts: "وسيط مدة توفر Duo في السجلات",
     push: "يختلف وقت التسليم؛ أكد المخزون لدى Apple",
-    tapsLeft: "تحققات قبل تأكيد الطلب",
+    tapsLeft: "باقية لك بعد أن يصل الإشعار",
     steps: [
       { title: "حدد نطاق التنقل الممكن", hint: "احتفظ فقط بالمتاجر التي تستطيع الوصول إليها بعد تأكيد الاستلام." },
       { title: "اعرف المواصفات الدقيقة", hint: "جهّز الطراز والسعة واللون قبل فتح موقع Apple." },
@@ -46,52 +48,52 @@ export const account: Dict["account"] = {
       { title: "تحقق من العرض مرة أخرى", hint: "لا تحجز لك الملاحظة السابقة أو رسالة التنبيه هاتفًا." },
       { title: "انتظر تأكيد جاهزية الاستلام", hint: "اذهب بعد أن تؤكد Apple أن طلبك جاهز للاستلام." },
     ],
-    guide: "دليل التحضير للاستلام (بالإنجليزية)",
-    window: "سجل المتاجر التي اخترتها",
+    guide: "اقرأ قائمة التحضير للاستلام (بالإنجليزية)",
+    window: "ساعات العودة لديك",
   },
 
   restock: {
-    title: "متى تتوفر متاجرك",
+    title: "ساعات العودة في متاجرك",
     anyIphone: "iPhone",
     and: " و",
     yours,
     Yours: yours,
     otherStores: (n: number) => count(n, OTHER_STORES),
-    meta: (what: string, stores: number, days: number, zone: string) => `${what} · ${count(stores, STORES)} · آخر ${count(days, DAYS)} · ${zone}`,
-    busiest: (y: string, then: string | null) => (then ? `أكثر ساعة في ${y} · ثم ${then}` : `أكثر ساعة في ${y}`),
-    busiestArea: (stores: number, zone: string) => `الأكثر في كل المتاجر الـ${N(stores)} على ${zone}`,
-    next: (inHours: number) => `النافذة التالية · ${inHours === 0 ? "هذه الساعة" : `بعد ${count(inHours, HOURS)}`}`,
-    typical: "مدة العرض المعتادة قبل النفاد",
-    count: (y: string, days: number, total: number, pattern: boolean) => (total === 0 ? `لا توفر في ${y} بعد · آخر ${count(days, DAYS)}` : `التوفر في ${y} · آخر ${count(days, DAYS)}${pattern ? "" : " · أقل من أن يكشف نمطًا"}`),
-    byHour: (busiestInGreen: boolean) => `حسب الساعة${busiestInGreen ? " · الأكثر بالأخضر" : ""}`,
-    byWeekday: (busiest: string | null) => `حسب يوم الأسبوع${busiest ? ` · الأكثر ${busiest}` : ""}`,
-    hourChart: (y: string, zone: string, items: string) => `التوفر حسب الساعة في ${y}، ${zone}: ${items}`,
-    weekdayChart: (y: string, items: string) => `التوفر حسب يوم الأسبوع في ${y}: ${items}`,
-    chartItem: (label: string, n: number, reported: number) => `${label} ${N(n)}${reported ? ` (+${N(reported)} أبلغت عنها متتبعات أخرى)` : ""}`,
+    meta: (what: string, stores: number, days: number, zone: string) => `${what} · ${count(stores, STORES)} · سجل ${count(days, DAYS)} · ${zone}`,
+    busiest: (y: string, then: string | null) => (then ? `أكثر العودات في ${y} · يليه ${then}` : `أكثر العودات في ${y}`),
+    busiestArea: (stores: number, zone: string) => `الذروة عبر ${count(stores, STORES_G)} تعمل على ${zone}`,
+    next: (inHours: number) => `النافذة القادمة · ${inHours === 0 ? "خلال هذه الساعة" : `بعد ${count(inHours, HOURS)}`}`,
+    typical: "وسيط المكوث على الرف",
+    count: (y: string, days: number, total: number, pattern: boolean) => (total === 0 ? `لا عودات مدوّنة في ${y} · سجل ${count(days, DAYS)}` : `عودات مدوّنة في ${y} · سجل ${count(days, DAYS)}${pattern ? "" : " · لا تكفي لنمط"}`),
+    byHour: (busiestInGreen: boolean) => `ساعات اليوم${busiestInGreen ? " · الذروة بالأخضر" : ""}`,
+    byWeekday: (busiest: string | null) => `أيام الأسبوع${busiest ? ` · الذروة ${busiest}` : ""}`,
+    hourChart: (y: string, zone: string, items: string) => `العودات حسب ساعة اليوم في ${y}، ${zone}: ${items}`,
+    weekdayChart: (y: string, items: string) => `العودات حسب يوم الأسبوع في ${y}: ${items}`,
+    chartItem: (label: string, n: number, reported: number) => `${label} ${N(n)}${reported ? ` (+${N(reported)} من طرف ثالث)` : ""}`,
     barTitle: (label: string, n: number, y: string, area: { n: number; zone: string } | null, reported: number) =>
-      `${label}: توفر ${count(n, TIMES)} في ${y}${area ? ` · ${N(area.n)} على ${area.zone}` : ""}${reported ? ` · ${N(reported)} أبلغت عنها متتبعات أخرى` : ""}`,
+      `${label}: ${count(n, RETURNS)} مدوّنة في ${y}${area ? ` · ${N(area.n)} عبر ${area.zone}` : ""}${reported ? ` · ${N(reported)} من طرف ثالث` : ""}`,
     now: "الآن",
-    allZone: (stores: number, zone: string) => `كل المتاجر الـ${N(stores)} على ${zone}`,
+    allZone: (stores: number, zone: string) => `كل متجر يعمل على ${zone} (${N(stores)})`,
     reportMarkBars: "الأعمدة المتقطعة",
-    reportMarkDots: "النقاط المفرغة",
-    sellTitle: "كم يصمد التوفر في متاجرك",
-    sellMeta: (what: string, stores: number, days: number) => `${what} · ${count(stores, STORES)} · آخر ${count(days, DAYS)}`,
+    reportMarkDots: "الدوائر المفتوحة",
+    sellTitle: "كم تبقى العودات على الرف",
+    sellMeta: (what: string, stores: number, days: number) => `${what} · ${count(stores, STORES)} · سجل ${count(days, DAYS)}`,
     sellLabel: (y: string) => `في ${y}`,
   },
 
   success: {
     metaTitle: "التنبيهات مفعّلة",
-    isOn: (plan: string) => `${plan} مفعّلة`,
-    yourPlan: "باقتك",
-    received: "تم استلام الدفع",
-    onPlan: (limit: number) => `${count(limit, ALERTS)} في باقتك.`,
-    planOn: "باقتك مفعّلة.",
-    pending: "سيظهر اشتراكك في حسابك خلال دقيقة.",
-    open: "افتح تنبيهاتي",
-    another: "أضف تنبيهًا آخر",
-    saved: (n: number) => `تم حفظ ${count(n, ALERTS_G)} · الإيصال من Stripe`,
+    isOn: (plan: string) => `${plan} نشطة`,
+    yourPlan: "خطتك",
+    received: "تأكد الدفع",
+    onPlan: (limit: number) => `في قائمة مراقبتك متسع لـ${count(limit, ALERTS_G)}.`,
+    planOn: "خطتك نشطة.",
+    pending: "ما زالت Stripe تؤكد الدفع؛ ستظهر الخطة في حسابك خلال دقيقة.",
+    open: "افتح قائمة مراقبتي",
+    another: "أضف إلى قائمة المراقبة",
+    saved: (n: number) => `دُوِّن ${count(n, ALERTS)} · ترسل Stripe الإيصال بالبريد`,
     pushOn: "الإشعارات",
-    pushNext: "التالي: التنبيهات على هاتفك",
+    pushNext: "الخطوة التالية: شغّل جهازًا",
   },
 
   install: {
@@ -112,16 +114,16 @@ export const account: Dict["account"] = {
     band: (range: string) => `${range} ثانية`,
     aboutMinute: "دقيقة تقريبًا",
     sameSpeed: "تحديثات منتظمة للمخزون",
-    rechecked: "إعادة فحص متاجرك",
-    toPhone: "من تأكيد التوفر إلى هاتفك",
-    listing: "وسيط مدة توفر Duo في السجلات",
-    note: { plus: "iPhone واحد × 10 متاجر", pro: "جهازا iPhone × 10 متاجر", max: "5 أجهزة iPhone × 10 متاجر" },
-    month: "/ الشهر",
-    alerts: (n: number) => count(n, ALERTS),
+    rechecked: "كم مرة تُعايَن متاجرك",
+    toPhone: "من عودة مؤكدة إلى جهازك",
+    listing: "وسيط مكوث Duo على الرف",
+    note: { plus: "مثلًا: تكوين واحد يُراقَب في عشرة متاجر", pro: "مثلًا: تكوينان، عشرة متاجر لكل منهما", max: "مثلًا: خمسة تكوينات، عشرة متاجر لكل منها" },
+    month: "في الشهر",
+    alerts: (n: number) => count(n, RULES),
     perks: ["اختيار السعة واللون بدقة","تعديل المتاجر وفق الأماكن التي يمكنك زيارتها","إشعارات المتصفح مع البريد الإلكتروني كقناة بديلة"],
-    cancel: "ألغِ في أي وقت",
-    get: (plan: string) => `اشترك في ${plan}`,
-    billing: "الدفع عبر Stripe · بطاقة أو Link · تغيير الباقة يُحتسب بالتناسب",
-    refund: "لم تناسبك؟ [استرداد كامل خلال 7 أيام](/refunds) إن لم يصلك أي تنبيه توفر بعد",
+    cancel: "يمكن إيقاف التجديد في أي وقت",
+    get: (plan: string) => `ابدأ ${plan}`,
+    billing: "يمر الدفع عبر Stripe ببطاقة أو Link، والانتقال بين الخطط يُحسب بالتناسب.",
+    refund: "شروط الاسترداد: الدفعة التي تمت خلال آخر 7 أيام ولم يُسلَّم بعدها أي تنبيه عودة تُسترد كاملة ([سياسة الاسترداد](/refunds)).",
   },
 };

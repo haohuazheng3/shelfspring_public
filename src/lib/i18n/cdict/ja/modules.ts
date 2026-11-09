@@ -1,18 +1,18 @@
 import type { CDict } from "../en";
 
-/** 日本語クライアント文言: modules（ミニマップと、他サイトの報告に関する注記）。 */
+/** 日本語クライアント文言: modules（ミニマップと、台帳の外に置く外部の報告の注記）。 */
 export const modules: CDict["modules"] = {
   minimap: {
-    aria: "{label}を在庫マップで開く",
-    cta: "在庫マップで開く →",
+    aria: "棚マップで{label}を見る",
+    cta: "この店舗を棚マップで見る →",
   },
   reports: {
-    legend: "他サイトの報告（{sources}）、{range}",
-    note: "{mark}：{links}が{range}に公開した{what}です。これらは各サイト自身の観測で、ShelfSpringが確認した入荷ではなく、当サイトの数値には一切含めていません。",
-    what: "{models}の入荷",
-    whatAny: "入荷",
-    markDashed: "破線",
-    markDashedRings: "破線の円",
-    markHollowDots: "白抜きの点",
+    legend: "外部の報告 · {sources} · {range}",
+    note: "{mark}＝{links}が{range}について出した{what}。ShelfSpring自身が観測したものではないため台帳には入れず、ここに出ている数字にも一切含めていません。",
+    what: "{models}の再入荷報告",
+    whatAny: "再入荷の報告",
+    markDashed: "破線の枠",
+    markDashedRings: "破線の丸",
+    markHollowDots: "中抜きの丸",
   },
 };

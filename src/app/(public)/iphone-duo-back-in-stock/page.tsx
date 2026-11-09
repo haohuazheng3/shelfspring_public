@@ -412,17 +412,17 @@ export default async function DuoBackInStock() {
           { href: "/iphone-duo-stock-checker", label: "iPhone Duo stock checker" },
           { href: "/where-to-buy-iphone-duo", label: "Where to buy an iPhone Duo" },
           { href: "/iphone-duo-restock-times", label: "When Apple restocks the iPhone Duo" },
-          { href: "/iphone-duo-sell-out-times", label: "How fast it sells out" },
+          { href: "/iphone-duo-sell-out-times", label: "How long a return stays listed" },
           { href: "/iphone-duo-stock-alerts", label: "Stock alerts" },
           { href: "/iphone-duo-near-me", label: "iPhone Duo near me" },
           { href: "/how-to-get-an-iphone-duo", label: "How to get an iPhone Duo" },
           { href: "/how-to-grab-an-iphone-duo-restock", label: "Prepare a pickup order" },
-          { href: "/which-iphone-duo-restocks-most", label: "Which configuration restocks most" },
+          { href: "/which-iphone-duo-restocks-most", label: "Which configuration returns most often" },
           { href: "/apple-store-pickup-availability-explained", label: "Pickup availability explained" },
         ]} />
         <LinkRow title="Live pages" links={[
           { href: "/stock/iphone-duo", label: "iPhone Duo stock by store" },
-          { href: "/restocks", label: "Restock log" },
+          { href: "/restocks", label: "Return record" },
           { href: "/map", label: "Map" },
           { href: "/stores", label: "Apple Stores by state" },
         ]} />

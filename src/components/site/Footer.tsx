@@ -26,7 +26,10 @@ const READING: DirectoryLink[] = [
   { href: "/where-to-buy-iphone-duo", label: "Explore buying options" },
 ];
 
-/** A task directory and colophon. Native pages retain their own country and language links. */
+/**
+ * A task directory and colophon. English and native pages share one shape — 01 shelves by model, 02 places on
+ * record (A–Z), 03 about the notebook — and the dictionary words; native pages link into their own country tree.
+ */
 export function Footer({ loc }: { loc: Locale }) {
   const D = dict(loc.lang);
   const F = D.chrome.footer;
@@ -37,26 +40,29 @@ export function Footer({ loc }: { loc: Locale }) {
     ...regionPages(cc).map((r) => ({ href: r.href, label: regionLabel(cc, r.name, loc.lang) })),
     ...cityPages(cc).map((c) => ({ href: c.href, label: cityLabel(cc, c.name, loc.lang) })),
   ];
-  const places = native
+  // Which places: the same picks as always (a native version's regions and cities, else its stores; the US's eight
+  // biggest states). In what order: A–Z, so the column reads as an index rather than a ranking.
+  const picked = native
     ? (localPlaces.length ? localPlaces : storeRefs(cc).map((x) => ({ href: x.href, label: storeLabel(x.store, loc.lang) }))).slice(0, 8)
     : topStates(8).map((s) => ({ href: s.href, label: s.name }));
-  const stock: DirectoryLink[] = [
-    { href: `${p}/stock/iphone-duo`, label: native ? F.duoStock : "iPhone Duo" },
-    { href: `${p}/stock/iphone-18-pro`, label: native ? F.proStock : "iPhone 18 Pro" },
-    { href: `${p}/stock/iphone-18-pro-max`, label: native ? F.proMaxStock : "iPhone 18 Pro Max" },
-    { href: `${p}/restocks`, label: native ? F.restockLog : "Recent stock changes" },
-    { href: `${p}/map`, label: native ? F.liveMap : "Explore the pickup map" },
+  const places = [...picked].sort((a, b) => a.label.localeCompare(b.label, native ? loc.tag : "en"));
+  const shelves: DirectoryLink[] = [
+    { href: `${p}/stock/iphone-duo`, label: F.duoStock },
+    { href: `${p}/stock/iphone-18-pro`, label: F.proStock },
+    { href: `${p}/stock/iphone-18-pro-max`, label: F.proMaxStock },
+    { href: `${p}/map`, label: F.liveMap },
+    { href: `${p}/restocks`, label: F.restockLog },
     ...(native ? [{ href: `${p}/iphone-duo-restock-times`, label: F.restockTimes }] : []),
   ];
   const product: DirectoryLink[] = [
-    { href: "/watch-speed-report", label: native ? "Watch-speed evidence · English" : "Watch-speed field notes" },
-    { href: "/pickup-planning", label: native ? "Pickup planning · English" : "Pickup planning worksheets" },
-    { href: "/how-it-works", label: native ? `${F.howItWorks} · ${F.englishOnly}` : "How ShelfSpring works" },
-    { href: "/pricing", label: native ? F.pricing : "Plans & alerts" },
-    { href: "/install", label: native ? F.getApp : "Keep it on your home screen", className: "not-in-app" },
-    { href: "/about", label: native ? F.about : "About the project" },
+    { href: "/how-it-works", label: native ? `${F.howItWorks} · ${F.englishOnly}` : F.howItWorks },
+    { href: "/watch-speed-report", label: native ? `Watch-speed evidence · ${F.englishOnly}` : "Watch-speed field notes" },
+    { href: "/pickup-planning", label: native ? `Pickup planning · ${F.englishOnly}` : "Pickup planning worksheets" },
     { href: "/blog", label: native ? `Journal · ${F.englishOnly}` : "The ShelfSpring journal" },
-    { href: "/contact", label: native ? F.contact : "Talk to us" },
+    { href: "/pricing", label: native ? F.pricing : "Plans & alerts" },
+    { href: "/install", label: F.getApp, className: "not-in-app" },
+    { href: "/about", label: F.about },
+    { href: "/contact", label: F.contact },
   ];
   return (
     <footer className="site-footer" lang={loc.tag}>
@@ -69,8 +75,8 @@ export function Footer({ loc }: { loc: Locale }) {
           <p className="footer-statement">{native ? F.blurbIn(D.place.allStoresPhrase(cc)) : "A little less refreshing. A clearer path to pickup."}</p>
         </div>
         <div className="footer-directory">
-          <Directory title={native ? F.product : "Find your configuration"} number="01" links={stock} />
-          <Directory title={native ? F.storesIn : "Explore a place"} number="02" links={[...places, { href: `${p}/stores`, label: native ? F.allStores : "All stores & cities →" }]} />
+          <Directory title={F.product} number="01" links={shelves} />
+          <Directory title={F.storesIn} number="02" links={[...places, { href: `${p}/stores`, label: F.allStores }]} />
           <Directory title={native ? F.company : "Make it yours"} number="03" links={product} />
         </div>
         {!native && <details className="footer-disclosure">
@@ -82,15 +88,15 @@ export function Footer({ loc }: { loc: Locale }) {
           <ul className="footer-markets">{switchCountries().map((c) => <li key={c.cc}><Link href={c.cc === "us" ? "/" : `/${c.cc}`}><span className="footer-market-code" aria-hidden="true">{c.cc.toUpperCase()}</span>{native ? c.names?.[loc.lang] ?? c.name : c.name}</Link></li>)}</ul>
         </details>
         <div className="footer-colophon">
-          <p className="footer-trademark">{native ? F.trademark : "Independent of Apple. Apple, iPhone and Apple Store are trademarks of Apple Inc. Availability is a snapshot; confirm your order with Apple."}</p>
+          <p className="footer-trademark">{F.trademark}</p>
           <div className="footer-bottom">
             <span>© {new Date().getFullYear()} ShelfSpring</span>
             <ul className="footer-legal">
-              <li><Link href="/privacy">{native ? F.privacy : "Privacy"}</Link></li>
-              <li><Link href="/terms">{native ? F.terms : "Terms"}</Link></li>
-              <li><Link href="/refunds">{native ? F.refunds : "Refunds"}</Link></li>
+              <li><Link href="/terms">{F.terms}</Link></li>
+              <li><Link href="/privacy">{F.privacy}</Link></li>
+              <li><Link href="/refunds">{F.refunds}</Link></li>
+              <li><Link href="/api/health">{F.status} <span aria-hidden="true">↗</span></Link></li>
               <li><TrackingChoice /></li>
-              <li><Link href="/api/health">{native ? F.status : "System status"} <span aria-hidden="true">↗</span></Link></li>
             </ul>
           </div>
         </div>

@@ -24,18 +24,18 @@ export const baseContent = {
   /* ------------------------------------------------------------ lib/seo/enrich.ts: opening hours (24-hour times) */
   hours: {
     closed: "Closed",
-    /** All seven days the same: "Every day 10:00–21:00". */
-    everyDay: (hours: string) => `Every day ${hours}`,
+    /** All seven days the same: "Daily 10:00–21:00". */
+    everyDay: (hours: string) => `Daily ${hours}`,
     tomorrow: "tomorrow",
-    /** The next opening on a later day: "Sun at 11:00" (`day` is a short weekday name). */
-    dayAt: (day: string, time: string) => `${day} at ${time}`,
-    /** `next`: "tomorrow at 10:00" / "Sun at 11:00". */
-    closedTodayOpens: (next: string) => `Closed today · opens ${next}`,
-    closedToday: "Closed today",
-    opensAt: (time: string) => `Opens at ${time}`,
-    openNow: (closes: string) => `Open now · closes ${closes}`,
-    closedNowOpens: (next: string) => `Closed now · opens ${next}`,
-    closedNow: "Closed now",
+    /** The next opening on a later day: "Sunday 11:00" (`day` is a weekday name). */
+    dayAt: (day: string, time: string) => `${day} ${time}`,
+    /** `next`: "tomorrow 10:00" / "Sunday 11:00". */
+    closedTodayOpens: (next: string) => `Shut today · reopens ${next}`,
+    closedToday: "Shut all day today",
+    opensAt: (time: string) => `Doors open ${time}`,
+    openNow: (closes: string) => `Open until ${closes}`,
+    closedNowOpens: (next: string) => `Shut for now · reopens ${next}`,
+    closedNow: "Shut for now",
   },
 
   /* ------------------------------------------------------------ enrich.ts: small formatters */
@@ -54,65 +54,65 @@ export const baseContent = {
   faq: {
     /** How answers name the page: "at Apple The Summit", "for the iPhone Duo", "in Texas". */
     where: (kind: Kind, place: string) => (kind === "store" ? `at ${place}` : kind === "model" ? `for the ${place}` : `in ${place}`),
-    nRestocks: f({ one: "# restock", other: "# restocks" }),
+    nRestocks: f({ one: "# confirmed return", other: "# confirmed returns" }),
     /**
-     * How often a place restocks. `count`: "31 restocks", or null when none was logged; `where` from faq.where;
+     * How often a place sees returns. `count`: "31 confirmed returns", or null when none was logged; `where` from faq.where;
      * `peak`: the usual local hour ("10 AM") and busiest weekday ("Tuesday"), when the data shows one.
      */
     restockA: ({ count, where, days, week, peak }: { count: string | null; where: string; days: string; week: string; peak: { hour: string; day: string | null } | null }) =>
-      `${count == null ? `No restock logged ${where} in the last ${days} days` : `${count} ${where} in the last ${days} days, ${week} this week`}${peak ? `, most of them around ${peak.hour} local time${peak.day ? ` and most often on ${peak.day}s` : ""}` : ""}; Apple publishes no schedule.`,
-    lastsNone: (where: string) => `Too few restock-to-sell-out pairs ${where} yet to measure.`,
+      `${count == null ? `The ${days}-day ledger holds no return ${where}` : `The ${days}-day ledger holds ${count} ${where}, ${week} of them this week`}${peak ? `; they cluster near ${peak.hour} local time${peak.day ? `, with ${peak.day} the busiest weekday` : ""}` : ""}, and Apple publishes no delivery calendar.`,
+    lastsNone: (where: string) => `Not enough completed return-to-sell-out listings ${where} to measure yet.`,
     /** `duration`: "2 h 15 min". */
-    lasts: (days: string, duration: string) => `Over the last ${days} days a restocked configuration stayed available about ${duration} (median) before selling out again.`,
-    /** One nearby store in an answer: "Apple Bridge Street in Huntsville, AL (90 mi)". */
-    storeIn: (store: string, line: string) => `${store} in ${line}`,
+    lasts: (days: string, duration: string) => `Median shelf time across the ${days}-day ledger: about ${duration} between a return and the next sell-out.`,
+    /** One nearby store in an answer: "Apple Bridge Street · Huntsville, AL (90 mi)". */
+    storeIn: (store: string, line: string) => `${store} · ${line}`,
     /** The answer listing the nearest stores ("A, B and C"). */
-    nearestA: (stores: string) => `${stores}.`,
+    nearestA: (stores: string) => `Closest alternatives: ${stores}.`,
 
     // model pages (the US)
-    modelStockQ: (model: string) => `Which Apple Stores have the ${model} in stock right now?`,
-    modelStockNone: (model: string) => `None at the last check; the list on this page updates as soon as a US Apple Store lists the ${model} for pickup.`,
+    modelStockQ: (model: string) => `Where is the ${model} on the shelf at the moment?`,
+    modelStockNone: (model: string) => `Nowhere in the latest observation; this page updates its list once a US Apple Store puts the ${model} up for pickup.`,
     nUsStores: f({ one: "# US Apple Store", other: "# US Apple Stores" }),
     /** `count`: "3 US Apple Stores". */
-    modelStockSome: (count: string) => `${count} at the last check, each named on this page with the configurations it has.`,
-    priceQ: (model: string) => `How much does the ${model} cost?`,
+    modelStockSome: (count: string) => `At ${count} in the latest observation; each is named below along with the configurations it lists.`,
+    priceQ: (model: string) => `What does the ${model} cost on apple.com?`,
     /** `storages`: "256GB, 512GB, 1TB"; `colors`: "Night Sky and Star White". */
-    priceA: (low: string, high: string, storages: string, colors: string) => `From ${low} to ${high} unlocked depending on storage (${storages}), in ${colors}.`,
-    modelRestockQ: (model: string) => `How often does the ${model} restock?`,
-    modelLastsQ: (model: string) => `How long does ${model} stock last once it appears?`,
-    reserveQ: (model: string) => `Can I reserve the ${model} for pickup?`,
-    reserveA: "No; once a store lists a configuration you buy it on apple.com with in-store pickup selected, and it is then held for your time slot.",
+    priceA: (low: string, high: string, storages: string, colors: string) => `Unlocked list prices run ${low} to ${high} by capacity (${storages}), with ${colors} as the finishes.`,
+    modelRestockQ: (model: string) => `How often does the ${model} return to the shelf?`,
+    modelLastsQ: (model: string) => `How long does a returned ${model} stay listed?`,
+    reserveQ: (model: string) => `Can a ${model} be held for me before I order?`,
+    reserveA: "Not before ordering: once a store lists the configuration, you place an apple.com order with in-store pickup, and only then is it set aside for your collection window.",
 
     // store pages
-    storeStockQ: (store: string, model: string) => `Does ${store} have the ${model} in stock?`,
+    storeStockQ: (store: string, model: string) => `Is the ${model} on the shelf at ${store}?`,
     nConfigs: f({ one: "# configuration", other: "# configurations" }),
     /** `count`: "2 configurations". */
-    storeStockYes: (count: string) => `Yes, ${count} at the last check; the table on this page shows which storage and color.`,
+    storeStockYes: (count: string) => `Yes: ${count} in the latest observation, with capacity and finish shown in this page's table.`,
     /** No Duo: `pro` / `proMax` = configurations of the 18 Pro / 18 Pro Max listed now (null when both are 0). */
-    storeStockNo: (other: { pro: string; proMax: string } | null) => `Not at the last check${other ? `, though it lists ${other.pro} iPhone 18 Pro and ${other.proMax} 18 Pro Max configurations` : ", and no 18 Pro or 18 Pro Max configuration either"}.`,
-    hoursQ: (store: string) => `What are ${store}'s hours?`,
-    /** `hours`: the week ("Mon–Sat 10:00–21:00 · Sun 11:00–18:00") or null; `today`: "10:00–21:00 (open now)" or null. */
+    storeStockNo: (other: { pro: string; proMax: string } | null) => `Not in the latest observation${other ? `; the store does list ${other.pro} iPhone 18 Pro and ${other.proMax} 18 Pro Max configurations` : ", and the 18 Pro and 18 Pro Max are off the shelf too"}.`,
+    hoursQ: (store: string) => `When is ${store} open?`,
+    /** `hours`: the week ("Mo–Sa 10:00–21:00 · Su 11:00–18:00") or null; `today`: "10:00–21:00 (open now)" or null. */
     hoursA: ({ hours, today, address, phone }: { hours: string | null; today: string | null; address: string; phone: string | null }) =>
-      `${hours ?? "Hours are listed on this page"}${today ? `; today ${today}` : ""}; ${address}${phone ? `, ${phone}` : ""}.`,
-    storeRestockQ: (store: string) => `How often does ${store} restock the iPhone?`,
-    storeLastsQ: (store: string) => `How long does stock last at ${store}?`,
-    storeNearestQ: (store: string) => `What is the nearest other Apple Store to ${store}?`,
+      `${hours ?? "See the hours on this page"}${today ? ` (today ${today})` : ""}, at ${address}${phone ? `; phone ${phone}` : ""}.`,
+    storeRestockQ: (store: string) => `How often do iPhones return to the shelf at ${store}?`,
+    storeLastsQ: (store: string) => `How long do returns stay listed at ${store}?`,
+    storeNearestQ: (store: string) => `Which other Apple Stores sit closest to ${store}?`,
 
     // state, city and country pages
-    placeStockQ: (place: string, model: string) => `Which Apple Stores in ${place} have the ${model} in stock right now?`,
-    placeStockNone: (place: string, model: string) => `None at the last check; this page updates the moment a store in ${place} lists the ${model} for pickup.`,
+    placeStockQ: (place: string, model: string) => `Which Apple Stores in ${place} have the ${model} on the shelf now?`,
+    placeStockNone: (place: string, model: string) => `None in the latest observation; the moment a store in ${place} lists the ${model} for pickup, this page shows it.`,
     nStores: f({ one: "# store", other: "# stores" }),
     /** `count`: "2 stores"; `stores`: their names, listed. */
-    placeStockSome: (count: string, stores: string) => `${count} at the last check: ${stores}.`,
+    placeStockSome: (count: string, stores: string) => `${count} in the latest observation: ${stores}.`,
     countQ: (place: string) => `How many Apple Stores are there in ${place}?`,
     nAppleStores: f({ one: "# Apple Store", other: "# Apple Stores" }),
-    /** Several stores: "5 Apple Stores, including A, B and C". `stores`: up to three names (state pages add "in {city}"). */
-    countMany: (count: string, stores: string) => `${count}, including ${stores}.`,
-    /** One store: "1 Apple Store: Apple The Summit". */
-    countOne: (count: string, store: string) => `${count}: ${store}.`,
-    placeRestockQ: (place: string) => `How often do ${place} Apple Stores restock the iPhone?`,
-    placeLastsQ: (place: string) => `How long does stock last in ${place}?`,
-    placeNearestQ: (place: string) => `What is the closest Apple Store outside ${place}?`,
+    /** Several stores: "5 Apple Stores; among them A, B and C". `stores`: up to three names (state pages add " · {city}"). */
+    countMany: (count: string, stores: string) => `${count}; among them ${stores}.`,
+    /** One store: "1 Apple Store, namely Apple The Summit". */
+    countOne: (count: string, store: string) => `${count}, namely ${store}.`,
+    placeRestockQ: (place: string) => `How often do iPhones return to the shelf in ${place}?`,
+    placeLastsQ: (place: string) => `How long does stock last after a return in ${place}?`,
+    placeNearestQ: (place: string) => `Which Apple Stores outside ${place} are closest?`,
   },
 
   /* ------------------------------------------------------------ enrich.ts: explainer and the alert rule */
@@ -120,12 +120,12 @@ export const baseContent = {
   explainer: (kind: Kind, place: string) => {
     const at = kind === "store" ? place : kind === "model" ? "every US Apple Store" : `Apple Stores in ${place}`;
     return [
-      `Pickup stock is sold on apple.com: pick a configuration and a store at checkout, pay online, collect in store, often the same day. It is separate from shelf stock and from carrier stores.`,
-      `ShelfSpring checks every tracked configuration at ${at} every 15 seconds, and every 5 when an alert points at it; a change counts only after a second confirming check, so a glitch never becomes a false restock or sell-out.`,
-      `Every confirmed change is logged; that log feeds the restock chart and history on this page.`,
+      "Pickup listings belong to apple.com: checkout asks for a configuration plus a store, payment happens online, and collection is in person, often on the same day. Walk-in shelf stock and carrier stock are separate.",
+      `ShelfSpring records each tracked configuration at ${at} from a synchronized inventory feed; a change enters the ledger only after a confirming observation.`,
+      "Each confirmed change becomes a ledger entry, and those entries draw the return charts and history shown here.",
     ];
   },
-  alertRule: "One alert = one store, one model, one storage size, one color; a push (or email) goes out within seconds of apple.com flipping to available.",
+  alertRule: "Each alert is tied to a single store and a single exact configuration; notifications follow detected availability after synchronization, so confirm the order with Apple.",
 
   /* ------------------------------------------------------------ enrich.ts: page titles (≤ 60 characters; the first that fits wins) */
   titles: {
@@ -164,28 +164,28 @@ export const baseContent = {
 
   /* ------------------------------------------------------------ lib/content/facts.ts: live {{tokens}} in articles */
   tokens: {
-    /** {{duo.medianStay}} before there are enough restock → sell-out pairs. */
-    tooFewToMeasure: "too few to measure yet",
-    /** {{duo.lastRestock}} before the first restock. */
-    noneLoggedYet: "none logged yet",
-    /** {{duo.topConfig}} before the first restock. */
-    noneYet: "none yet",
+    /** {{duo.medianStay}} before there are enough return → sell-out pairs. */
+    tooFewToMeasure: "not yet measurable",
+    /** {{duo.lastRestock}} before the first return. */
+    noneLoggedYet: "not in the ledger yet",
+    /** {{duo.topConfig}} before the first return. */
+    noneYet: "not recorded yet",
   },
 
   /* ------------------------------------------------------------ lib/content/siteFacts.ts: one store's restock pattern */
   pattern: {
     /** `days`: the window (30). */
-    none: (days: string) => `No confirmed restock in the last ${days} days.`,
-    nConfirmed: f({ one: "# confirmed restock", other: "# confirmed restocks" }),
-    /** `count`: "30 confirmed restocks". */
-    countIn: (count: string, days: string) => `${count} in the last ${days} days`,
-    /** Median minutes a restock stayed listed. */
-    stay: (minutes: string) => `; typically listed ~${minutes} min before selling out`,
+    none: (days: string) => `The ${days}-day ledger holds no confirmed return.`,
+    nConfirmed: f({ one: "# confirmed return", other: "# confirmed returns" }),
+    /** `count`: "30 confirmed returns". */
+    countIn: (count: string, days: string) => `${count} over ${days} days`,
+    /** Median minutes a return stayed listed. */
+    stay: (minutes: string) => `; median listing about ${minutes} min`,
     nDays: f({ one: "# day", other: "# days" }),
-    /** Restocks on too few local days to call a pattern: `onDays` "2 days" or null. */
-    tooFew: (count: string, onDays: string | null, stay: string) => `${count}${onDays ? ` on ${onDays}` : ""} — too few to call a pattern yet${stay}.`,
+    /** Returns on too few local days to call a pattern: `onDays` "2 days" or null. */
+    tooFew: (count: string, onDays: string | null, stay: string) => `${count}${onDays ? `, all on ${onDays}` : ""}: not enough separate days to call out a typical hour${stay}.`,
     /** `hour`: "8 AM" / "noon"; `weekday`: "Friday" or null. */
-    usual: (hour: string, weekday: string | null, count: string, stay: string) => `Usually restocks around ${hour} local time${weekday ? `, busiest on ${weekday}` : ""}; ${count}${stay}.`,
+    usual: (hour: string, weekday: string | null, count: string, stay: string) => `Returns cluster near ${hour} local time${weekday ? `, most often on ${weekday}` : ""}; ${count}${stay}.`,
   },
 
   /* ------------------------------------------------------------ lib/seo/countryLinks.ts: a country's word for its regions */
@@ -203,115 +203,115 @@ export const baseContent = {
   } as Record<string, Forms>,
 
   /* ------------------------------------------------------------ components/ui/Viz.tsx */
-  measured: "How this is measured",
+  measured: "Method notes",
 
   /* ------------------------------------------------------------ components/seo/* */
   /** Faq and RichFaq heading. */
-  faqTitle: "FAQ",
-  breadcrumb: "Breadcrumb",
-  keepExploring: "Keep exploring",
+  faqTitle: "Common questions",
+  breadcrumb: "Page trail",
+  keepExploring: "More from the ledger",
   browse: {
-    storesByState: "Stores by state",
-    allStatesCities: "All states & cities →",
-    liveByModel: "Live stock by model",
-    modelStock: (model: string) => `${model} stock`,
-    thisPage: "this page",
+    storesByState: "Browse by state",
+    allStatesCities: "Every state and city →",
+    liveByModel: "Shelf status per iPhone",
+    modelStock: (model: string) => `${model} availability`,
+    thisPage: "you are here",
     /** `short`: "Duo", "18 Pro", "18 Pro Max". */
-    restockLog: (short: string) => `${short} restock log`,
-    liveMap: "Live map",
-    mostStores: "Most stores",
-    allStates: "All states",
-    bigCities: "Big cities",
-    cities: "Cities",
+    restockLog: (short: string) => `${short} returns ledger`,
+    liveMap: "Map view",
+    mostStores: "Largest store counts",
+    allStates: "Every state",
+    bigCities: "Major cities",
+    cities: "Cities with stores",
     /** `region`: the country's word for its regions (regionNouns), singular. */
-    storesBy: (region: string) => `Stores by ${region}`,
+    storesBy: (region: string) => `Browse by ${region}`,
     /** `inName` is English only ("in the UK"); other languages use `country`, the country's name. */
-    allStoresIn: ({ inName }: { inName: string; country: string }) => <>All Apple Stores {inName} →</>,
+    allStoresIn: ({ inName }: { inName: string; country: string }) => <>Full store list {inName} →</>,
     /** `regions`: the region word, plural. */
-    allRegions: (regions: string) => `All ${regions}`,
+    allRegions: (regions: string) => `Full list of ${regions}`,
   },
-  modelCards: "By iPhone",
+  modelCards: "Per model",
   narrative: {
-    /** " Last restock: <b>iPhone Duo 256GB Black</b> at Apple X, 3m ago." `at` is narrative.at or nothing. */
-    lastRestock: (config: ReactNode, at: ReactNode, ago: ReactNode) => <>{" "}Last restock: {config}{at}, {ago}.</>,
+    /** " Latest logged return: <b>iPhone Duo 256GB Black</b> at Apple X, 3m ago." `at` is narrative.at or nothing. */
+    lastRestock: (config: ReactNode, at: ReactNode, ago: ReactNode) => <>{" "}Latest logged return: {config}{at}, {ago}.</>,
     at: (store: ReactNode) => <> at {store}</>,
   },
   statStrip: {
-    inStockNow: "In stock now",
-    ofStores: (n: string) => `of ${n} stores`,
-    stores: "Stores",
-    nCities: f({ one: "# city", other: "# cities" }),
-    tracked: "tracked",
+    inStockNow: "On the shelf now",
+    ofStores: (n: string) => `across ${n} stores`,
+    stores: "Locations",
+    nCities: f({ one: "in # city", other: "in # cities" }),
+    tracked: "in the ledger",
     /** `short`: "Duo", "18 Pro"… */
-    modelNow: (short: string) => `${short} now`,
-    configsInStock: "configs in stock",
-    storesWithStock: f({ one: "store with stock", other: "stores with stock" }),
-    restocks24h: "Restocks 24 h",
-    /** "9 in 7 d · 31 in 30 d" (d = days). */
-    restocksHint: (week: string, month: string, days: string) => `${week} in 7 d · ${month} in ${days} d`,
-    sellOuts: (days: string) => `Sell-outs ${days} d`,
-    /** "stays ~3 min"; fmtDuration's "under a minute" takes no tilde. */
-    stays: (duration: string) => (/^under\b/.test(duration) ? `stays ${duration}` : `stays ~${duration}`),
-    noPairs: "no pairs yet",
-    lastRestock: "Last restock",
-    noneYet: "none yet",
-    inLastDays: (days: string) => `in the last ${days} days`,
+    modelNow: (short: string) => `${short} on shelf`,
+    configsInStock: "configurations on shelf",
+    storesWithStock: f({ one: "store holding it", other: "stores holding it" }),
+    restocks24h: "Returns, 24 h",
+    /** "7 d: 9 · 30 d: 31" (d = days). */
+    restocksHint: (week: string, month: string, days: string) => `7 d: ${week} · ${days} d: ${month}`,
+    sellOuts: (days: string) => `Gone again (${days} d)`,
+    /** "median shelf ~3 min"; fmtDuration's "under a minute" takes no tilde. */
+    stays: (duration: string) => (/^under\b/.test(duration) ? `median shelf ${duration}` : `median shelf ~${duration}`),
+    noPairs: "no completed pairs",
+    lastRestock: "Latest return",
+    noneYet: "not yet logged",
+    inLastDays: (days: string) => `within ${days} days`,
   },
   product: {
-    chooseIphone: "Choose the iPhone",
-    storage: "Storage",
-    color: "Color",
+    chooseIphone: "Pick a model",
+    storage: "Capacity",
+    color: "Finish",
     /** Facet chip for every storage size / every colour. */
-    all: "All",
+    all: "Any",
     /** `unit`: "stores" / "configurations". */
-    numbersAre: (unit: ReactNode) => <>Numbers = {unit} with stock now.</>,
-    seen: (ago: ReactNode) => <>seen {ago}</>,
-    last: (ago: ReactNode) => <>last {ago}</>,
-    notSeenYet: "not seen yet",
-    firstCheckPending: "first check pending",
-    inStock: "In stock",
+    numbersAre: (unit: ReactNode) => <>Each figure counts {unit} with it on the shelf now.</>,
+    seen: (ago: ReactNode) => <>logged {ago} · on shelf</>,
+    last: (ago: ReactNode) => <>last on shelf {ago} · off now</>,
+    notSeenYet: "not logged on the shelf yet",
+    firstCheckPending: "awaiting first observation",
+    inStock: "On the shelf",
     /** Place list rows (lower case). */
-    inStockLower: "in stock",
-    none: "none",
+    inStockLower: "on shelf",
+    none: "off shelf",
     /** Drive time under a few hundred metres. */
-    here: "here",
-    notAvailable: "Not available",
-    notCheckedYet: "Not checked yet",
-    availableForPickup: "Available for pickup",
-    since: (ago: ReactNode) => <> · since {ago}</>,
-    lastInStock: (ago: ReactNode) => <>Last in stock {ago}</>,
-    neverSeen: "Never seen in stock here yet",
-    firstCheckSoon: "First check within a minute",
-    buy: "Buy on apple.com",
+    here: "right here",
+    notAvailable: "Off the shelf",
+    notCheckedYet: "No observation yet",
+    availableForPickup: "Listed for pickup",
+    since: (ago: ReactNode) => <> · first logged {ago}</>,
+    lastInStock: (ago: ReactNode) => <>Last on the shelf {ago}</>,
+    neverSeen: "Not yet logged on this shelf",
+    firstCheckSoon: "First observation due shortly",
+    buy: "Order through apple.com",
     /** `checked`: "7s ago" (ticks); `note`: checkNote. */
-    checked: (checked: ReactNode, note: ReactNode) => <>Checked {checked} · {note}</>,
+    checked: (checked: ReactNode, note: ReactNode) => <>Observed {checked} · {note}</>,
     /** Same words as CHECK_NOTE in lib/plans.ts. */
-    checkNote: "every 15 s, 5 s with an alert",
+    checkNote: "frequent inventory updates",
   },
 
   /* ------------------------------------------------------------ components/content/* */
   /** Table source line under a content table. */
-  source: (source: ReactNode) => <>Source: {source}</>,
+  source: (source: ReactNode) => <>Data: {source}</>,
   /** Photo credit: `link` is "{photographer} / Pexels". */
-  photoCredit: (link: ReactNode) => <>Photo: {link}</>,
-  sources: "Sources",
+  photoCredit: (link: ReactNode) => <>Image: {link}</>,
+  sources: "References",
   /** Default `where` of the tracker line. */
-  allUsStores: "all 269 US Apple Stores",
+  allUsStores: "the full set of 269 US Apple Stores",
   /** The first source: our own tracker. `since`: the date tracking began; `asOf`: when this page's numbers were read. */
   trackerSource: (where: ReactNode, since: ReactNode, asOf: ReactNode) => <>ShelfSpring inventory record for {where}: historical coverage from {since}; figures updated {asOf}. Alerts are sent after matching availability is detected. Source checks, synchronization and notification delivery can add delay.  Historical coverage dates describe the dataset, not the age of ShelfSpring.</>,
   live: {
-    configsCaption: (stores: ReactNode, model: ReactNode) => <>Apple Stores (of {stores}) with each {model} configuration for pickup now · live</>,
-    storage: "Storage",
-    pricesCaption: (model: ReactNode) => <>{model} prices on apple.com (unlocked, before tax) and live pickup stock</>,
-    price: "Price",
-    bestColor: "Best color, stores now",
-    noRestock: (model: string) => `No ${model} restock logged yet.`,
-    /** RestockClock label: "for the iPhone Duo nationwide". */
-    clockLabel: (model: string) => `for the ${model} nationwide`,
-    storesWithIt: "Stores with it now",
-    pairsInStock: "Store × config pairs in stock",
-    restocksLogged: "Restocks logged",
-    medianTime: "Median time in stock",
+    configsCaption: (stores: ReactNode, model: ReactNode) => <>{model}: how many of the {stores} Apple Stores list each configuration at this observation</>,
+    storage: "Capacity",
+    pricesCaption: (model: ReactNode) => <>{model} on apple.com: unlocked list price before tax, next to the stores listing it now</>,
+    price: "List price",
+    bestColor: "Most-listed finish (stores)",
+    noRestock: (model: string) => `The ledger has no ${model} return yet.`,
+    /** RestockClock label: "across US stores for the iPhone Duo". */
+    clockLabel: (model: string) => `across US stores for the ${model}`,
+    storesWithIt: "Stores listing it",
+    pairsInStock: "Store–configuration pairs on shelf",
+    restocksLogged: "Returns in the ledger",
+    medianTime: "Median shelf time",
     /** Below one minute. */
     underOneMin: (min: string) => `< ${min}`,
   },

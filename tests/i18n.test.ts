@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { englishPath, langOfPath, localeFromSegment, localeFor, localizePath, nativeLocale, NATIVE_LOCALES, pathInLocale } from "@/lib/i18n/locales";
 import { publicRouteCheck } from "@/lib/seo/routes";
 import { versionsOf, hreflangFor } from "@/components/pages/shared";
-import { agoFine, hour, secs, stamp, plural, price, distance, fitTitleW, titleWidth } from "@/lib/i18n/format";
+import { hour, secs, stamp, plural, price, distance, fitTitleW, titleWidth } from "@/lib/i18n/format";
 import { hourLabel, localStamp } from "@/lib/content/siteFacts";
 import { fmtHour } from "@/lib/seo/enrich";
 import { formatAgo } from "@/components/site/LiveAgo";
@@ -89,7 +89,8 @@ describe("formatting keeps English exactly as it was", () => {
     const s = storesOf("jp")[0];
     expect(stamp("en", "2026-11-02T08:48:00Z", "Asia/Tokyo")).toBe(localStamp("2026-11-02T08:48:00Z", s));
     const now = Date.parse("2026-11-03T12:00:00Z");
-    for (const ago of [3, 59, 61, 599, 601, 3599, 3601, 90000]) expect(agoFine("en", new Date(now - ago * 1000), now)).toBe(formatAgo(new Date(now - ago * 1000), now));
+    // The live English counter writes its units apart from the number, like every other English duration ("45 s", "1 min").
+    expect([3, 59, 61, 599, 601, 3599, 3601, 90000].map((ago) => formatAgo(new Date(now - ago * 1000), now))).toEqual(["3 s ago", "59 s ago", "1 min 1 s ago", "9 min 59 s ago", "10 min ago", "59 min ago", "1 h 0 min ago", "1 d ago"]);
     expect(secs("en", 75)).toBe("1 min");
     expect(secs("en", 45)).toBe("45 s");
     expect(price("en", COUNTRIES.ca, 1449)).toBe("C$1,449");

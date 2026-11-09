@@ -1,7 +1,7 @@
 /**
  * Where analytics need opt-in consent. FlowGlance (the only analytics) waits for "Accept" in the EU,
  * the EEA, the UK and Switzerland, and wherever we can't place the visitor; everywhere else it runs by
- * default and the footer's "Do not track me" turns it off. Shared by /api/geo and the client loader.
+ * default and the footer's "Pause analytics" switch turns it off. Shared by /api/geo and the client loader.
  */
 
 /** EU 27 + Iceland, Liechtenstein, Norway (EEA) + United Kingdom + Switzerland. */
@@ -16,7 +16,7 @@ export function consentRequiredFor(country: string | null | undefined): boolean 
   return !c || OPT_IN_COUNTRIES.has(c);
 }
 
-/** The visitor's choice: "granted" (Accept / Allow analytics) or "declined" (Decline / Do not track me). */
+/** The visitor's choice: "granted" ("Yes, count it" on the banner, "Resume" in the footer) or "declined" ("No thanks", "Pause analytics"). */
 export const CONSENT_COOKIE = "pc_consent";
 /** What /api/geo said ("ask" or "default"), so the lookup runs once per cookie lifetime, not on every page. */
 export const REGION_COOKIE = "pc_region";
@@ -37,7 +37,7 @@ export function regionFrom(cookie: string): Region | null {
 
 /**
  * Whether FlowGlance may run, or null while we still have to ask. An explicit choice always wins; a
- * Global Privacy Control signal counts as "Do not track me"; otherwise the region decides.
+ * Global Privacy Control signal counts as "Pause analytics"; otherwise the region decides.
  */
 export function analyticsAllowed(choice: Choice | null, region: Region, gpc: boolean): boolean | null {
   if (choice) return choice === "granted";

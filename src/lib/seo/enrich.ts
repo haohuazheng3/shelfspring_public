@@ -20,8 +20,10 @@ export function countIn(lang: Lang, n: number, forms: Forms): string {
   if (lang === "en") return (n === 1 ? forms.one ?? forms.other : forms.other).replace(/#/g, String(n));
   return pluralIn(lang, n, forms);
 }
-/** Short weekday name for Mon=0 … Sun=6. */
-const shortDay = (lang: Lang, i: number): string => (lang === "en" ? DAY_SHORT[i] : weekdays(lang, "short")[(i + 1) % 7]);
+/** Short weekday name for Mon=0 … Sun=6 (English: the two-letter tags of an hours line, "Mo–Sa"). */
+const shortDay = (lang: Lang, i: number): string => (lang === "en" ? DAY_TAG[i] : weekdays(lang, "short")[(i + 1) % 7]);
+/** The weekday a "reopens …" label names: English spells it out ("Sunday 11:00"). */
+const nextDay = (lang: Lang, i: number): string => (lang === "en" ? DAY_NAMES[i] : shortDay(lang, i));
 /** "Apple The Summit" / "Apple 銀座". */
 const storeName = (s: Pick<Store, "name"> & Partial<Pick<Store, "storeNumber">>, lang: Lang): string => (lang === "en" || !s.storeNumber ? appleName(s) : appleStoreLabel({ storeNumber: s.storeNumber, name: s.name }, lang));
 
@@ -29,6 +31,8 @@ const storeName = (s: Pick<Store, "name"> & Partial<Pick<Store, "storeNumber">>,
 
 export const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 export const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+/** English display tags for compressed hours ("Mo–Sa 10:00–21:00 · Su 11:00–18:00"); DAY_SHORT stays the parse key. */
+const DAY_TAG = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as const;
 
 export interface DayHours { day: (typeof DAY_NAMES)[number]; short: (typeof DAY_SHORT)[number]; opens: string | null; closes: string | null }
 
@@ -50,7 +54,7 @@ export function hoursText(d: Pick<DayHours, "opens" | "closes">, lang: Lang = "e
   return d.opens && d.closes ? `${d.opens}–${d.closes}` : dict(lang).content.hours.closed;
 }
 
-/** Consecutive days with identical hours collapse: [{ label: "Mon–Sat", hours: "10:00–21:00" }, { label: "Sun", hours: "11:00–18:00" }]. */
+/** Consecutive days with identical hours collapse: [{ label: "Mo–Sa", hours: "10:00–21:00" }, { label: "Su", hours: "11:00–18:00" }]. */
 export function hoursGroups(week: DayHours[], lang: Lang = "en"): { label: string; hours: string; days: number[] }[] {
   const out: { label: string; hours: string; days: number[] }[] = [];
   week.forEach((d, i) => {
@@ -63,7 +67,7 @@ export function hoursGroups(week: DayHours[], lang: Lang = "en"): { label: strin
   return out;
 }
 
-/** "Mon–Sat 10:00–21:00 · Sun 11:00–18:00" */
+/** "Mo–Sa 10:00–21:00 · Su 11:00–18:00" */
 export function compressHours(week: DayHours[], lang: Lang = "en"): string {
   const d = dict(lang).content.hours;
   const groups = hoursGroups(week, lang);
@@ -96,7 +100,7 @@ function toMinutes(hhmm: string): number {
 
 export type OpenStatus = "open" | "before" | "after" | "closed";
 
-/** Today's hours and an "Open now / Opens at / Closed today" label, in the store's own zone. */
+/** Today's hours and an "Open until / Doors open / Shut today" label, in the store's own zone. */
 export function todayLabel(week: DayHours[], tz: string, now = new Date(), lang: Lang = "en"): { dayIndex: number; today: DayHours; status: OpenStatus; label: string } {
   const t = dict(lang).content.hours;
   const { dayIndex, minutes } = zoneClock(now, tz);
@@ -105,7 +109,7 @@ export function todayLabel(week: DayHours[], tz: string, now = new Date(), lang:
     for (let k = 1; k <= 7; k++) {
       const i = (dayIndex + k) % 7;
       const d = week[i];
-      if (d.opens) return t.dayAt(k === 1 ? t.tomorrow : shortDay(lang, i), d.opens);
+      if (d.opens) return t.dayAt(k === 1 ? t.tomorrow : nextDay(lang, i), d.opens);
     }
     return null;
   };
@@ -122,7 +126,7 @@ export function todayLabel(week: DayHours[], tz: string, now = new Date(), lang:
 /** schema.org openingHoursSpecification (closed days omitted; schema.org day names, never translated). */
 export function openingHoursSpec(week: DayHours[]) {
   return hoursGroups(week)
-    .filter((g) => g.hours !== "Closed")
+    .filter((g) => g.hours !== hoursText({ opens: null, closes: null }))
     .map((g) => ({ "@type": "OpeningHoursSpecification", dayOfWeek: g.days.map((i) => DAY_NAMES[i]), opens: week[g.days[0]].opens, closes: week[g.days[0]].closes }));
 }
 
@@ -291,7 +295,7 @@ export interface NarrativeInput {
   stats: NarrativeStats;
 }
 
-/** Two sentences of real numbers that read well at zero: stock now, then restocks / sell-outs / how long stock lasts. The "latest restock" clause is rendered separately (it ticks). */
+/** Two ledger sentences that read well at zero: the shelf count now, then returns / sell-outs / median shelf time. The "latest return" clause is rendered separately (it ticks). */
 export function narrative(i: NarrativeInput): string {
   const n = i.stats.days;
   const st = i.stats;
@@ -300,21 +304,21 @@ export function narrative(i: NarrativeInput): string {
   if (i.kind === "model") {
     const m = modelByKey(MODELS.find((x) => x.name === i.place)?.key ?? DEFAULT_MODEL) ?? MODELS[0];
     const now = i.stockNow[m.key] ?? 0;
-    s.push(now === 0 ? `No US Apple Store lists the ${i.place} for pickup right now.` : `${now} of ${i.stores} US Apple Stores ${now === 1 ? "lists" : "list"} the ${i.place} for pickup right now.`);
+    s.push(now === 0 ? `The ${i.place} is off the shelf at every US Apple Store at this observation.` : `The ${i.place} is on the shelf at ${now}/${i.stores} US Apple Stores at this observation.`);
   } else if (i.kind === "store") {
-    const bits = MODELS.map((m) => `${i.stockNow[m.key] ?? 0} of ${i.configs?.[m.key] ?? 0} ${m.name}`);
-    s.push(`Right now ${i.place} lists ${bits[0]} configurations, ${listWords(bits.slice(1))} for pickup.`);
+    const bits = MODELS.map((m) => `${m.name} ${i.stockNow[m.key] ?? 0}/${i.configs?.[m.key] ?? 0}`);
+    s.push(`Shelf count at ${i.place}: ${listWords(bits)} configurations.`);
   } else if (i.stores === 1) {
     const have = MODELS.filter((m) => (i.stockNow[m.key] ?? 0) > 0).map((m) => `the ${m.name}`);
     const lack = MODELS.filter((m) => (i.stockNow[m.key] ?? 0) === 0).map((m) => `the ${m.name}`);
-    s.push(have.length === 0 ? `Right now the one Apple Store in ${i.place} lists none of ${listWords(MODELS.map((m) => `the ${m.name}`)).replace(" and ", " or ")} for pickup.` : `Right now the one Apple Store in ${i.place} lists ${listWords(have)} for pickup${lack.length ? `, but not ${listWords(lack)}` : ""}.`);
+    s.push(have.length === 0 ? `The single Apple Store in ${i.place} has none of ${listWords(MODELS.map((m) => `the ${m.name}`)).replace(" and ", " or ")} on the shelf.` : `The single Apple Store in ${i.place} has ${listWords(have)} on the shelf${lack.length ? `; ${listWords(lack)} ${lack.length === 1 ? "is" : "are"} off it` : ""}.`);
   } else {
-    const bits = MODELS.map((m, k) => `the ${m.name}${k === 0 ? " is listed for pickup" : ""} at ${i.stockNow[m.key] ?? 0}${k === 0 ? ` of the ${plural(i.stores, "Apple Store")} in ${i.place}` : ""}`);
-    s.push(`Right now ${listWords(bits)}.`);
+    const bits = MODELS.map((m, k) => `the ${m.name}${k === 0 ? " is on the shelf" : ""} at ${i.stockNow[m.key] ?? 0}`);
+    s.push(`Across ${i.place} (${plural(i.stores, "Apple Store")}), ${listWords(bits)}.`);
   }
-  const lasts = st.medianMs == null ? "too few sell-outs yet to say how long stock lasts" : `restocked configurations stay available about ${fmtDuration(st.medianMs)}`;
-  if (st.month === 0) s.push(`No restock logged ${where} in the last ${n} days${st.soldouts ? ` (${plural(st.soldouts, "sell-out")})` : ""}; ${lasts}.`);
-  else s.push(`${plural(st.month, "restock")} and ${plural(st.soldouts, "sell-out")} ${where} in the last ${n} days; ${lasts}.`);
+  const lasts = st.medianMs == null ? "not enough completed listings to measure shelf time" : `median shelf time about ${fmtDuration(st.medianMs)}`;
+  if (st.month === 0) s.push(`The ${n}-day ledger shows no return ${where}${st.soldouts ? ` against ${plural(st.soldouts, "sell-out")}` : ""}; ${lasts}.`);
+  else s.push(`The ${n}-day ledger shows ${plural(st.month, "return")} and ${plural(st.soldouts, "sell-out")} ${where}; ${lasts}.`);
   return s.join(" ");
 }
 
@@ -342,7 +346,7 @@ export function peakOf(stats: { byHour: number[]; byWeekday: number[]; total: nu
 export interface FaqItem { q: string; a: string }
 
 /** English; `alertRule(lang)` for a page's language (the dictionary's content.alertRule). */
-export const ALERT_RULE = "One alert covers one store and one exact configuration. Notifications follow detected returns after synchronization; collection and delivery delays can occur. Confirm pickup with Apple.";
+export const ALERT_RULE = "Each alert is tied to a single store and a single exact configuration. Notifications follow detected returns after synchronization; collection and delivery delays can occur. Confirm pickup with Apple.";
 export function alertRule(lang: Lang = "en"): string {
   return lang === "en" ? ALERT_RULE : dict(lang).content.alertRule;
 }

@@ -98,7 +98,7 @@ export function regionZh(c: Country | CountryCode): string {
 }
 export const REGION_NOUNS = REGION;
 
-/** 價格裡含的稅：「含 5% 營業稅」；香港：「香港不收銷售稅」；美國、加拿大：「未稅」。 */
+/** 價格裡含的稅：「內含 5% 營業稅」；香港：「香港沒有銷售稅」；美國、加拿大：「稅另計」。 */
 export function taxName(cc: CountryCode): string {
   switch (cc) {
     case "tw": return "營業稅";
@@ -109,9 +109,9 @@ export function taxName(cc: CountryCode): string {
 }
 export function taxNoteZh(c: Country): string {
   const r = includedRate(c);
-  if (c.cc === "hk") return "香港不收銷售稅";
-  if (r == null) return "未稅";
-  return `含 ${r}% ${taxName(c.cc)}`;
+  if (c.cc === "hk") return "香港沒有銷售稅";
+  if (r == null) return "稅另計";
+  return `內含 ${r}% ${taxName(c.cc)}`;
 }
 
 /** 幣別的中文說法（新台幣…），其他維持代碼。 */

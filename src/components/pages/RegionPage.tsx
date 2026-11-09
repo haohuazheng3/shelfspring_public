@@ -134,7 +134,7 @@ export async function RegionPage({ country: c, params: p }: { country: Country; 
   const peakAll = peakOf(d.stats, lang);
   const index = placeTarget(cc);
   const crumbs: Crumb[] = us
-    ? [{ href: "/stores", label: "Apple Stores" }, { label: s.name }]
+    ? [{ href: "/stores", label: G.appleStores }, { label: s.name }]
     : [{ href: prefixOf(cc), label: N.countryShort() }, ...(index?.indexable ? [{ href: storesIndexPath(cc), label: G.appleStores }] : []), { label: name }];
   const mapHref = `${mapPath(cc)}?state=${us ? s.code : encodeURIComponent(s.code)}&model=${DEFAULT_MODEL}`;
   const restocksHere = `${restocksPath(cc)}?model=all&state=${s.slug}`;
@@ -153,29 +153,31 @@ export async function RegionPage({ country: c, params: p }: { country: Country; 
         <div className="field-main">
           <FieldSection id="compare" title={F.compare} caption={R.counts(stores.length,cities.length)}>
             <nav className="field-index mb-6">{cities.map(x => <Link key={x.slug} href={cityPath(x.state,x.name,cc)} className="field-row"><span>{N.city(x.name)}</span><span className="font-mono text-sm">{x.stores.length} ↗</span></Link>)}</nav>
-            {cities.map(x => <article key={x.slug} className="mb-7"><div className="mb-3 flex items-baseline justify-between gap-3"><h3 className="text-xl font-semibold">{N.city(x.name)}</h3><Link href={cityPath(x.state,x.name,cc)} className="text-sm underline underline-offset-4">{x.stores.length > 1 || us ? G.cityPage : G.storePage}</Link></div><div className="pane p-4 sm:p-5"><ModelStoreMatrix stores={[...x.stores].sort((a,b) => a.name.localeCompare(b.name))} stock={d.stock} showCity={false} /></div></article>)}
+            {/* One shelf table for the whole region, city named on every row; the index above links each city. */}
+            <div className="pane p-4 sm:p-5"><ModelStoreMatrix stores={cities.flatMap(x => [...x.stores].sort((a,b) => a.name.localeCompare(b.name)))} stock={d.stock} /></div>
           </FieldSection>
-          <FieldSection id="recent" title={F.history} caption="24h"><Last24Hours data={d.recent} label={G.inPlace(name)} stores={stores} country={cc} stock={d.stock} lastBefore={d.copy.duo.lastRestock} alert={alert} compact /><PickupPattern data={d.recent} storeCount={stores.length} country={cc} window="24h" /></FieldSection>
-          <FieldSection id="timing" title={G.duoHours(name)} caption={`${d.pstats.days}d`}><RestockClock stats={d.duoClock} label={G.inPlace(name)} reports={d.duoReports} /><p className="mt-3 text-xs text-ink-3">{W.allModels({ n: d.pstats.month, days: d.pstats.days, peak: peakAll ? peakAll.hour : null })}</p>{/^(\/[a-z]{2})?\/iphone-duo-restock-times\//.test(restockTimesPath(s.name, undefined, cc)) && <p className="mt-4"><Link href={restockTimesPath(s.name, undefined, cc)} className="text-sm underline underline-offset-4">{lang === "en" ? `Read the ${name} restock study` : G.fullLog} →</Link></p>}</FieldSection>
-          <FieldSection title={G.howFast(name)}><SellOutTimes data={d.sell} label={G.inPlace(name)} showStore /></FieldSection>
-          <FieldSection title={G.lastDays(d.pstats.days)}><DailyBars stats={d.copy.duo} label={G.inPlace(name)} /></FieldSection>
-          <FieldSection title={G.restocksBy}><RestocksByConfig stats={d.pstats} label={G.inPlace(name)} country={us ? undefined : cc} /></FieldSection>
-          <FieldSection title={G.latestIn(name)} action={<Link href={restocksHere} className="text-sm underline underline-offset-4">{G.fullLog}</Link>}><RestockFeed rows={d.feed} showModel emptyText={G.noneIn(name)} /></FieldSection>
+          {/* ShelfSpring's order: today's shelf, which configurations came back, the last day, then timing, duration and the raw log. */}
+          <FieldSection id="returned" title={G.restocksBy} caption={`${d.pstats.days}d`}><RestocksByConfig stats={d.pstats} label={G.inPlace(name)} country={us ? undefined : cc} /></FieldSection>
+          <FieldSection id="recent" title={F.history} caption="24h"><PickupPattern data={d.recent} storeCount={stores.length} country={cc} window="24h" /><Last24Hours data={d.recent} label={G.inPlace(name)} stores={stores} country={cc} stock={d.stock} lastBefore={d.copy.duo.lastRestock} alert={alert} compact /></FieldSection>
+          <FieldSection id="timing" title={G.duoHours(name)} caption={`${d.pstats.days}d`}>{/^(\/[a-z]{2})?\/iphone-duo-restock-times\//.test(restockTimesPath(s.name, undefined, cc)) && <p className="mb-4"><Link href={restockTimesPath(s.name, undefined, cc)} className="text-sm underline underline-offset-4">{lang === "en" ? `${name} return study, hour by hour` : G.fullLog} →</Link></p>}<RestockClock stats={d.duoClock} label={G.inPlace(name)} reports={d.duoReports} /><p className="mt-3 text-xs text-ink-3">{W.allModels({ n: d.pstats.month, days: d.pstats.days, peak: peakAll ? peakAll.hour : null })}</p></FieldSection>
+          <FieldSection id="calendar" title={G.lastDays(d.pstats.days)}><DailyBars stats={d.copy.duo} label={G.inPlace(name)} /></FieldSection>
+          <FieldSection id="duration" title={G.howFast(name)}><SellOutTimes data={d.sell} label={G.inPlace(name)} showStore /></FieldSection>
+          <FieldSection id="log" title={G.latestIn(name)} action={<Link href={restocksHere} className="text-sm underline underline-offset-4">{G.fullLog}</Link>}><RestockFeed rows={d.feed} showModel emptyText={G.noneIn(name)} /></FieldSection>
         </div>
         <aside className="field-aside space-y-6">
-          <FieldMethod />
           <AlertPanelFor href={alert} summary={G.panelPick(name)} country={cc} />
           <NearbyStores title={F.alternatives} stores={d.outside} stock={d.stock} hint={R.nearbyHint(name)} />
+          <FieldMethod />
           <SourceList sources={[...stores.slice(0,3).filter(x => x.url).map(x => ({label:G.appleStorePage(N.store(x)),url:x.url!})), us ? pickupHelp(cc) : P.sources(cc as Exclude<typeof cc,"us">).pickupHelp, us ? SALES_TAX_SOURCE : P.sources(cc as Exclude<typeof cc,"us">).tax]} facts={facts} />
         </aside>
       </div>
       <div className="field-section"><Faq items={questions} title={G.faqTitle(name)} /></div>
 
       <RelatedBlock title={R.beyond(name)}>
-        <LinkRow title={R.everyStore(name)} links={stores.map((x) => ({ href: storePath(x), label: G.storeAndCity(N.store(x), N.city(x.city)) }))} />
+        <LinkRow title={G.restockLogs} links={[{ href: restocksHere, label: G.regionRestocks(name) }, { href: mapHref, label: G.onTheMap(name) }, { href: restocksPath(cc), label: us ? G.allUsRestocks : G.allRestocksIn(cc) }]} />
         {neighbors.length > 0 && <LinkRow curated title={us ? G.neighboringStates : R.nearestRegions(cc)} links={neighbors.map((n) => ({ href: n.href, label: us ? n.name : N.region(n.name), meta: String(n.count) }))} />}
+        <LinkRow title={R.everyStore(name)} links={stores.map((x) => ({ href: storePath(x), label: G.storeAndCity(N.store(x), N.city(x.city)) }))} />
         {us ? <BrowseModels /> : <BrowseCountryModels country={c} />}
-        <LinkRow title={G.restockLogs} links={[{ href: restocksHere, label: G.regionRestocks(name) }, { href: restocksPath(cc), label: us ? G.allUsRestocks : G.allRestocksIn(cc) }, { href: mapHref, label: G.onTheMap(name) }]} />
         {us ? <BrowseStates current={s.name} /> : <BrowseCountryRegions country={c} current={s.name} />}
       </RelatedBlock>
     </div>

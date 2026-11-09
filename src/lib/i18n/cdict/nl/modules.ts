@@ -1,18 +1,18 @@
-/** Dutch client strings: modules (MiniMap, and the other-trackers footnote of the restock charts). */
+/** Dutch client strings: modules (MiniMap, and the outside-reports footnote of the return charts). */
 import type { CDict } from "../en";
 
 export const modules: CDict["modules"] = {
   minimap: {
-    aria: "{label} openen op de live kaart",
-    cta: "Openen op de live kaart →",
+    aria: "{label} bekijken in de afhaalatlas",
+    cta: "Deze winkel in de atlas bekijken →",
   },
   reports: {
-    legend: "Gemeld door andere trackers ({sources}), {range}",
-    note: "{mark}: {what} gepubliceerd door {links} voor {range}. Het zijn waarnemingen van die sites, geen aanvullingen die ShelfSpring heeft bevestigd, en geen van onze cijfers telt ze mee.",
-    what: "aanvullingen van de {models}",
-    whatAny: "aanvullingen",
-    markDashed: "Gestippeld",
-    markDashedRings: "Gestippelde ringen",
-    markHollowDots: "Holle stippen",
+    legend: "Externe meldingen · {sources} · {range}",
+    note: "{mark} = {what} die {links} voor {range} online zette. ShelfSpring heeft die niet zelf waargenomen; ze blijven daarom buiten het logboek en zitten in geen enkel cijfer op deze pagina.",
+    what: "rentreemeldingen over de {models}",
+    whatAny: "rentreemeldingen",
+    markDashed: "Streepjesrand",
+    markDashedRings: "Cirkels met streepjes",
+    markHollowDots: "Open cirkels",
   },
 };

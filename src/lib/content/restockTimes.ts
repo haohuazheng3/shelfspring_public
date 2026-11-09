@@ -1,5 +1,5 @@
 /**
- * "When does Apple restock the iPhone Duo?" for one country: the data behind /iphone-duo-restock-times and its
+ * The iPhone Duo return record for one country: the data behind /iphone-duo-restock-times and its
  * country variants. Every confirmed Duo restock since tracking began, bucketed to 30-minute slots in SQL and read
  * here into each store's own local hour and date (a national drop at 9:30 ET is one slot across the zones). The
  * reports other trackers published for the days before our own tracking (restock_reports) fill the launch-week

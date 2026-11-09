@@ -31,7 +31,7 @@ export const CA_PROVINCE_TAX: Record<string, ProvinceTax> = {
   Quebec: { label: "GST + QST", gst: 5, pst: 9.975, total: 14.975 },
 };
 
-export const CA_TAX_SOURCE: Source = { label: "Canada Revenue Agency: GST/HST and PST rates by province", url: "https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses/charge-collect-which-rate/calculator.html" };
+export const CA_TAX_SOURCE: Source = { label: "Canada Revenue Agency: GST/HST calculator (and rates)", url: "https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses/charge-collect-which-rate/calculator.html" };
 
 const EU: Source = { label: "Your Europe (European Union): VAT rates applied in EU member countries", url: "https://europa.eu/youreurope/business/taxation/vat/vat-rules-rates/index_en.htm" };
 
@@ -79,7 +79,7 @@ export function withProvinceTax(price: number, province: string): { total: numbe
 export function pickupHelp(cc: CountryCode): Source {
   const c = COUNTRIES[cc];
   const p = c.buyPath ?? c.shopPath;
-  return { label: `Apple: Shipping & Pickup help${cc === "us" ? "" : ` (${c.short})`} (what to bring to a pickup)`, url: p ? `https://www.apple.com/${p}/shop/help/shipping_delivery` : "https://www.apple.com/shop/help/shipping_delivery" };
+  return { label: `Apple: Shipping & Pickup help${cc === "us" ? "" : ` (${c.short})`}, the collection checklist`, url: p ? `https://www.apple.com/${p}/shop/help/shipping_delivery` : "https://www.apple.com/shop/help/shipping_delivery" };
 }
 
 /** Apple's list of every store in a country. */

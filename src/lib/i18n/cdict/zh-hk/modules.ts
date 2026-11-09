@@ -1,18 +1,18 @@
-/** 繁體中文（香港）client strings: modules (MiniMap, the other-trackers footnote). */
+/** 繁體中文（香港）client strings: modules（小地圖，以及外部報告的註腳）。 */
 import type { CDict } from "../en";
 
 export const modules: CDict["modules"] = {
   minimap: {
-    aria: "在即時地圖上打開 {label}",
-    cta: "在即時地圖上打開 →",
+    aria: "在貨架地圖上查看 {label}",
+    cta: "在貨架地圖上查看此店 →",
   },
   reports: {
-    legend: "其他追蹤網站的報告（{sources}），{range}",
-    note: "{mark}：{links} 在 {range} 公布的{what}。這是那些網站的觀察，不是 ShelfSpring 確認的補貨，我們的數字一概不計入。",
-    what: "{models} 補貨",
-    whatAny: "補貨",
-    markDashed: "虛線",
+    legend: "外部報告 · {sources} · {range}",
+    note: "{mark} = {links} 就 {range} 發布的{what}。ShelfSpring 沒有親自觀察到這些，所以它們留在觀察簿以外，這裏任何數字都不包括在內。",
+    what: "{models} 回架報告",
+    whatAny: "回架報告",
+    markDashed: "虛線外框",
     markDashedRings: "虛線圓圈",
-    markHollowDots: "空心點",
+    markHollowDots: "空心圓",
   },
 };

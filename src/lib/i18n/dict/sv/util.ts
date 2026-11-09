@@ -18,8 +18,8 @@ export const pc = (x: number): string => pct(SV, x);
 export const share = (x: number): string => (x > 0 && x < 0.005 ? "<1 %" : pct(SV, Math.round(x * 100)));
 /** "1 butik" / "3 butiker". */
 export const pl = (x: number, one: string, other: string): string => plural(SV, x, { one: `# ${one}`, other: `# ${other}` });
-/** "a, b och c"; beyond `max`: "a, b, c och 4 till". */
-export const words = (items: string[], max = 6): string => list(SV, items, max, (k) => `${n(k)} till`);
+/** "a, b och c"; beyond `max`: "a, b, c och 4 fler". */
+export const words = (items: string[], max = 6): string => list(SV, items, max, (k) => `${n(k)} fler`);
 export const fit = fitTitleW;
 export const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
@@ -36,10 +36,10 @@ export const range = (from: number, to: number): string => `kl. ${from}–${to %
 /** "mellan kl. 9 och 11". */
 export const between = (from: number, to: number): string => `mellan kl. ${from} och ${to % 24}`;
 
-/** How long stock stayed listed: "under en minut", "12 min", "2 tim 15 min", "3 d 4 tim". */
+/** How long a listing stayed on the shelf: "kortare än en minut", "12 min", "2 tim 15 min", "3 d 4 tim". */
 export function dur(ms: number): string {
   const s = Math.round(ms / 1000);
-  if (s < 60) return "under en minut";
+  if (s < 60) return "kortare än en minut";
   const m = Math.floor(s / 60);
   if (m < 60) return unit(SV, m, "m");
   const h = Math.floor(m / 60);
@@ -47,6 +47,9 @@ export function dur(ms: number): string {
   const d = Math.floor(h / 24);
   return h % 24 ? `${unit(SV, d, "d")} ${unit(SV, h % 24, "h")}` : unit(SV, d, "d");
 }
+
+/** "runt 12 min", but "kortare än en minut" stands alone. */
+export const about = (ms: number): string => { const d = dur(ms); return d.startsWith("kortare") ? d : `runt ${d}`; };
 
 const COLORS = ["Night Sky", "Star White", "Burgundy", "Glacier", "Silver", "Black"];
 /** Apple Sweden's colour name ("natthimmel"). */
@@ -86,11 +89,11 @@ export function taxWord(c: Country): string {
   if (/^consumption tax/.test(c.taxNote)) return "konsumtionsskatt";
   return "skatt";
 }
-/** One phrase after a price: "inkl. moms (25 %)". */
+/** One phrase after a price: "med 25 % moms inräknad". */
 export function taxNote(c: Country): string {
-  if (c.cc === "us") return "exkl. delstaternas försäljningsskatt";
-  if (c.cc === "ca") return "exkl. GST/HST och provinsskatt";
+  if (c.cc === "us") return "före delstaternas försäljningsskatt";
+  if (c.cc === "ca") return "före GST/HST och provinsskatt";
   const r = includedRate(c);
-  if (r == null) return "ingen moms i Hongkong";
-  return `inkl. ${taxWord(c)} (${pc(r)})`;
+  if (r == null) return "Hongkong har ingen moms";
+  return `med ${pc(r)} ${taxWord(c)} inräknad`;
 }

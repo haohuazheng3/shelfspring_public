@@ -73,23 +73,23 @@ async function IntlStoresIndex({ c }: { c: Country }) {
             <div className="field-index">{(hasRegions ? regions : [{name:where,slug:"",count:stores.length,code:""}]).map(s=> {
               const mine=hasRegions ? cities.filter(x=>x.state===s.name) : cities;
               const own=hasRegions ? stores.filter(x=>x.state===s.name) : stores;
-              return <article key={s.slug||"all"} className="border-t border-line py-4"><h3 className="text-xl font-semibold">{hasRegions ? <Link href={statePath(s.name,cc)}>{regionLabel(cc,s.name,lang)} ↗</Link> : countryLabel(cc,lang)}</h3><p className="mt-2 text-sm text-ink-3">{V.storeCount(s.count)}</p><div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-sm">{mine.length>1||!hasRegions ? mine.map(x=><Link key={x.slug} href={cityPath(x.state,x.name,cc)} className="underline-offset-4 hover:underline">{cityLabel(cc,x.name,lang)}</Link>) : own.map(x=><Link key={x.storeNumber} href={storePath(x)} className="underline-offset-4 hover:underline">{storeLabel(x,lang)}</Link>)}</div></article>;
+              return <article key={s.slug||"all"} className="border-t border-line py-4"><h3 className="text-xl font-semibold">{hasRegions ? <Link href={statePath(s.name,cc)}>{regionLabel(cc,s.name,lang)} ↗</Link> : countryLabel(cc,lang)}</h3><p className="mt-2 text-sm text-ink-3">{V.storeCount(s.count)}</p><div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-sm">{mine.length>1||!hasRegions ? mine.map(x=><Link key={x.slug} href={cityPath(x.state,x.name,cc)} className="underline-offset-4 hover:underline">{cityLabel(cc,x.name,lang)} <span className="font-mono text-xs text-ink-3">{x.stores.length}</span></Link>) : own.map(x=><Link key={x.storeNumber} href={storePath(x)} className="underline-offset-4 hover:underline">{storeLabel(x,lang)}</Link>)}</div></article>;
             })}</div>
           </FieldSection>
+          <FieldSection id="models" title={V.matrixH2(c)}><ModelPlaceCards place={treeOf(cc).root} stockNow={d.stockNow} of={stores.length} unit={C.storesWithIt} /></FieldSection>
           <FieldSection id="compare" title={F.compare}><div className="pane p-4 sm:p-6"><ModelStoreMatrix stores={[...stores].sort((a,b)=>a.city.localeCompare(b.city)||a.name.localeCompare(b.name))} stock={d.stock} /></div></FieldSection>
-          <FieldSection title={V.matrixH2(c)}><ModelPlaceCards place={treeOf(cc).root} stockNow={d.stockNow} of={stores.length} unit={C.storesWithIt} /></FieldSection>
-          <FieldSection title={D.pages.common.duoHours(where)} caption={F.evidence}><RestockClock stats={d.duoClock} label={C.inCountry(c)} reports={d.duoReports} /><p className="mt-3 text-xs text-ink-3">{W.allModels({ n: d.pstats.month, days: d.pstats.days, peak: peakAll ? peakAll.hour : null })}</p></FieldSection>
-          <FieldSection title={V.howFast(c)}><SellOutTimes data={d.sell} label={C.inCountry(c)} showStore /></FieldSection>
-          <FieldSection title={C.lastDays(d.pstats.days)}><DailyBars stats={d.pstats} label={C.inCountry(c)} /></FieldSection>
+          <FieldSection id="calendar" title={C.lastDays(d.pstats.days)} caption={F.evidence}><DailyBars stats={d.pstats} label={C.inCountry(c)} /></FieldSection>
+          <FieldSection id="timing" title={D.pages.common.duoHours(where)}><RestockClock stats={d.duoClock} label={C.inCountry(c)} reports={d.duoReports} /><p className="mt-3 text-xs text-ink-3">{W.allModels({ n: d.pstats.month, days: d.pstats.days, peak: peakAll ? peakAll.hour : null })}</p></FieldSection>
+          <FieldSection id="duration" title={V.howFast(c)}><SellOutTimes data={d.sell} label={C.inCountry(c)} showStore /></FieldSection>
         </div>
         <aside className="field-aside space-y-6"><FieldMethod /><AlertPanelFor href={alert} summary={V.panel(c)} country={cc} /><section className="field-callout"><h2 className="text-xl font-semibold">{V.howMany(c)}</h2><p className="mt-3 text-sm leading-relaxed text-ink-2">{countQ.a}</p></section><SourceList sources={[D.place.sources(cc as Exclude<typeof cc,"us">).storeList,D.place.sources(cc as Exclude<typeof cc,"us">).pickupHelp,D.place.sources(cc as Exclude<typeof cc,"us">).tax]} facts={facts} where={C.sourcesWhere(stores.length,c)} since={C.since} /></aside>
       </div>
       <div className="field-section"><Faq items={questions} title={V.faqTitle(c)} /></div>
 
-      <RelatedBlock>
+      <RelatedBlock title={lang === "en" ? "Elsewhere in the ledger" : undefined}>
+        <LinkRow title={C.more} links={[{ href: restocksPath(cc), label: C.restockLog }, { href: mapPath(cc), label: C.liveMap }, { href: prefixOf(cc), label: C.checker(c) }, { href: "/how-it-works", label: V.howItWorks }, { href: "/install", label: V.getApp }, { href: "/pricing", label: V.pricing }, ...(loc.native ? [{ href: `${prefixOf(cc)}/iphone-duo-restock-times`, label: dictT().place.home.restockTimesChip }] : [])]} />
         <BrowseCountryPopular country={c} />
         <BrowseCountryModels country={c} />
-        <LinkRow title={C.more} links={[{ href: prefixOf(cc), label: C.checker(c) }, { href: restocksPath(cc), label: C.restockLog }, { href: mapPath(cc), label: C.liveMap }, { href: "/install", label: V.getApp }, { href: "/how-it-works", label: V.howItWorks }, { href: "/pricing", label: V.pricing }, ...(loc.native ? [{ href: `${prefixOf(cc)}/iphone-duo-restock-times`, label: dictT().place.home.restockTimesChip }] : [])]} />
       </RelatedBlock>
     </div>
   );

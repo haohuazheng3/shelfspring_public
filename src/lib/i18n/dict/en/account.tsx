@@ -9,36 +9,36 @@ const s = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : 
 export const account = {
   loading: "Loading",
   meta: { title: "My Watchlist" },
-  signedInAs: (email: string) => `Signed in as ${email}`,
+  signedInAs: (email: string) => `Account · ${email}`,
   title: "Your watchlist, in one place.",
   /** Short units under the big numbers. */
   units: { s: "s", min: "min", taps: "taps" },
 
   plan: {
     title: "Membership & billing",
-    none: "No plan yet: alerts are off",
-    /** "Plus · 3 of 10 alerts on", then " · renews Dec 1" or " · ends Dec 1" ({date} arrives formatted). */
-    summary: (plan: string, on: number, limit: number) => `${plan} · ${on} of ${limit} alerts on`,
-    renews: (date: string) => ` · renews ${date}`,
-    ends: (date: string) => ` · ends ${date}`,
+    none: "No active plan · alerts are stored, not sent",
+    /** "Plus · 3/10 alerts active", then " · next renewal Dec 1" or " · active until Dec 1" ({date} arrives formatted). */
+    summary: (plan: string, on: number, limit: number) => `${plan} · ${on}/${limit} alerts active`,
+    renews: (date: string) => ` · next renewal ${date}`,
+    ends: (date: string) => ` · active until ${date}`,
   },
 
   sent: {
     title: "Your notification record",
-    last: (ago: string) => `Last one ${ago}`,
-    none: "Nothing sent yet",
+    last: (ago: string) => `Most recent ${ago}`,
+    none: "No deliveries yet",
     empty: "No matching restock has been sent to this account yet. Saved rules start delivering when a paid plan is active and a matching change is confirmed.",
     channel: { push: "notification", email: "email" } as Record<string, string>,
-    status: { sent: "sent", failed: "failed", skipped: "skipped" } as Record<string, string>,
+    status: { sent: "delivered", failed: "not delivered", skipped: "skipped" } as Record<string, string>,
   },
 
-  /** "Reserve it in 20 seconds" (FastCheckoutCard). */
+  /** The pickup-order checklist card (FastCheckoutCard). */
   fast: {
     title: "Prepare your pickup order",
     sub: "a short checklist before the next useful listing",
     lasts: "median recorded Duo listing duration",
     push: "delivery timing varies; confirm stock with Apple",
-    tapsLeft: "left for you once the push lands",
+    tapsLeft: "remaining for you after the notification arrives",
     steps: [
       { title: "Check your travel range", hint: "Keep only stores you could reach for a confirmed collection." },
       { title: "Know the exact configuration", hint: "Have the model, capacity and color ready before opening Apple." },
@@ -46,45 +46,45 @@ export const account = {
       { title: "Check the listing again", hint: "A past observation or notification cannot hold a phone for you." },
       { title: "Wait for the pickup confirmation", hint: "Travel after Apple confirms that the order is ready to collect." },
     ],
-    guide: "The 2-minute guide",
-    window: "Your restock window",
+    guide: "Read the pickup checklist",
+    window: "Your return hours",
   },
 
   /**
-   * "When your stores restock" and "How fast your restocks sell out" (RestockTimes). {zone}: "Eastern" in English
+   * The return-hours and time-on-shelf modules (RestockTimes). {zone}: "Eastern" in English
    * (so "… time" follows it); in other languages the full Intl zone name ("日本標準時"), which already says "time".
    * Hours ("9 AM") arrive formatted.
    */
   restock: {
-    title: "When your stores restock",
+    title: "Return hours at your stores",
     /** Every model: "iPhone"; otherwise the models' names joined. */
     anyIphone: "iPhone",
     and: " and ",
     yours: (n: number) => (n === 1 ? "your store" : `your ${n} stores`),
     Yours: (n: number) => (n === 1 ? "Your store" : `Your ${n} stores`),
     otherStores: (n: number) => s(n, "other store"),
-    meta: (what: string, stores: number, days: number, zone: string) => `${what} · ${s(stores, "store")} · last ${days} days · ${zone} time`,
-    busiest: (yours: string, then: string | null) => (then ? `busiest hour at ${yours} · then ${then}` : `busiest hour at ${yours}`),
-    busiestArea: (stores: number, zone: string) => `busiest across all ${stores} stores on ${zone} time`,
-    next: (inHours: number) => `next window · ${inHours === 0 ? "this hour" : `in ${inHours} h`}`,
-    typical: "typical listing before it sells out",
-    count: (yours: string, days: number, total: number, pattern: boolean) => (total === 0 ? `no restocks at ${yours} yet · last ${days} days` : `restocks at ${yours} · last ${days} days${pattern ? "" : " · too few for a pattern"}`),
-    byHour: (busiestInGreen: boolean) => `By hour${busiestInGreen ? " · busiest in green" : ""}`,
-    byWeekday: (busiest: string | null) => `By weekday${busiest ? ` · busiest ${busiest}` : ""}`,
+    meta: (what: string, stores: number, days: number, zone: string) => `${what} · ${s(stores, "store")} · ${days}-day log · ${zone} time`,
+    busiest: (yours: string, then: string | null) => (then ? `most returns at ${yours} · runner-up ${then}` : `most returns at ${yours}`),
+    busiestArea: (stores: number, zone: string) => `peak across ${stores} stores keeping ${zone} time`,
+    next: (inHours: number) => `upcoming window · ${inHours === 0 ? "within this hour" : `${inHours} h away`}`,
+    typical: "median time on the shelf",
+    count: (yours: string, days: number, total: number, pattern: boolean) => (total === 0 ? `no returns logged at ${yours} · ${days}-day log` : `returns logged at ${yours} · ${days}-day log${pattern ? "" : " · not enough for a pattern"}`),
+    byHour: (busiestInGreen: boolean) => `Hour of day${busiestInGreen ? " · peak in green" : ""}`,
+    byWeekday: (busiest: string | null) => `Day of week${busiest ? ` · peak ${busiest}` : ""}`,
     /** Screen-reader summary of a chart; {items} are "9 AM 2" / "Monday 1" joined. */
-    hourChart: (yours: string, zone: string, items: string) => `Restocks by hour at ${yours}, ${zone} time: ${items}`,
-    weekdayChart: (yours: string, items: string) => `Restocks by weekday at ${yours}: ${items}`,
-    chartItem: (label: string, n: number, reported: number) => `${label} ${n}${reported ? ` (+${reported} reported by other trackers)` : ""}`,
-    /** Tooltip over one bar: "10–11 AM: 2 restocks at your store · 5 across Eastern time · 1 reported by other trackers". */
+    hourChart: (yours: string, zone: string, items: string) => `Returns by hour of day at ${yours}, ${zone} time: ${items}`,
+    weekdayChart: (yours: string, items: string) => `Returns by day of week at ${yours}: ${items}`,
+    chartItem: (label: string, n: number, reported: number) => `${label} ${n}${reported ? ` (+${reported} third-party)` : ""}`,
+    /** Tooltip over one bar: "10–11 AM: 2 returns logged at your store · 5 across Eastern time · 1 third-party". */
     barTitle: (label: string, n: number, yours: string, area: { n: number; zone: string } | null, reported: number) =>
-      `${label}: ${s(n, "restock")} at ${yours}${area ? ` · ${area.n} across ${area.zone} time` : ""}${reported ? ` · ${reported} reported by other trackers` : ""}`,
+      `${label}: ${s(n, "return")} logged at ${yours}${area ? ` · ${area.n} across ${area.zone} time` : ""}${reported ? ` · ${reported} third-party` : ""}`,
     now: "now",
-    allZone: (stores: number, zone: string) => `All ${stores} stores on ${zone} time`,
+    allZone: (stores: number, zone: string) => `Every store keeping ${zone} time (${stores})`,
     /** Starts the other trackers' footnote under the charts. */
     reportMarkBars: "Dashed",
     reportMarkDots: "Hollow dots",
-    sellTitle: "How fast your restocks sell out",
-    sellMeta: (what: string, stores: number, days: number) => `${what} · ${s(stores, "store")} · last ${days} days`,
+    sellTitle: "How long returns stay on the shelf",
+    sellMeta: (what: string, stores: number, days: number) => `${what} · ${s(stores, "store")} · ${days}-day log`,
     /** Completes "A typical iPhone Duo restock … sold out in about 60–80 seconds". */
     sellLabel: (yours: string) => `at ${yours}`,
   },
@@ -92,17 +92,17 @@ export const account = {
   /** /checkout/success. */
   success: {
     metaTitle: "Alerts are on",
-    isOn: (plan: string) => `${plan} is on`,
+    isOn: (plan: string) => `${plan} is active`,
     yourPlan: "Your plan",
-    received: "Payment received",
-    onPlan: (limit: number) => `${limit} alerts on your plan.`,
-    planOn: "Your plan is on.",
-    pending: "Your subscription will appear in your account within a minute.",
-    open: "Open my alerts",
-    another: "Add another alert",
-    saved: (n: number) => `${n} alert${n === 1 ? "" : "s"} saved · receipt from Stripe`,
+    received: "Payment confirmed",
+    onPlan: (limit: number) => `Room for ${limit} alerts on your watchlist.`,
+    planOn: "Your plan is active.",
+    pending: "Stripe is still confirming; the plan shows up in your account within a minute.",
+    open: "Open my watchlist",
+    another: "Add to the watchlist",
+    saved: (n: number) => `${n} alert${n === 1 ? "" : "s"} stored · Stripe emails the receipt`,
     pushOn: "Notifications",
-    pushNext: "Next: alerts on your phone",
+    pushNext: "Next step: enable a device",
   },
 
   /** /install (the guide itself is client: cdict install). */
@@ -126,17 +126,17 @@ export const account = {
     band: (range: string) => `${range} seconds`,
     aboutMinute: "about a minute",
     sameSpeed: "Frequent inventory updates",
-    rechecked: "your stores re-checked",
-    toPhone: "confirmed restock to your phone",
-    listing: "typical Duo listing, listed to gone",
-    note: { plus: "1 iPhone × 10 stores", pro: "2 iPhones × 10 stores", max: "5 iPhones × 10 stores" } as Record<string, string>,
-    month: "/ month",
-    alerts: (n: number) => `${n} alerts`,
+    rechecked: "how often your stores are looked at",
+    toPhone: "from a confirmed return to your device",
+    listing: "median Duo time on the shelf",
+    note: { plus: "e.g. one configuration watched at ten stores", pro: "e.g. two configurations, ten stores each", max: "e.g. five configurations, ten stores each" } as Record<string, string>,
+    month: "per month",
+    alerts: (n: number) => `${n} alert rules`,
     perks: ["Choose exact storage and color combinations", "Edit your reachable stores as plans change", "Browser push with email fallback"],
-    cancel: "Cancel anytime",
-    get: (plan: string) => `Get ${plan}`,
-    billing: "Stripe billing · card or Link · plan changes prorated",
+    cancel: "Renewal can be stopped at any time",
+    get: (plan: string) => `Start ${plan}`,
+    billing: "Payments run through Stripe, by card or Link. Moving between plans is prorated.",
     /** The refund policy line, as published (no other refund wording anywhere). */
-    refund: "Not for you? [Full refund within 7 days](/refunds) if no restock alert has reached you yet",
+    refund: "Refund terms: a payment made in the last 7 days with no restock alert delivered since can be refunded in full ([refund policy](/refunds)).",
   },
 };

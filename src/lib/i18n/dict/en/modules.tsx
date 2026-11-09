@@ -7,6 +7,9 @@
  *   num() / plural() from @/lib/i18n/format. Durations, times, dates and percentages arrive already formatted.
  * - Functions that return JSX keep the bold runs (<b className="text-ink">) and the passed-in nodes (links, live times).
  * - Check intervals are only ever 15 seconds (every store) and 5 seconds (stores with alerts).
+ * - Voice (2026-11-08): an observation ledger. A restock is a "return", a sell-out is the listing going "off the
+ *   shelf", a status is "on the shelf" / "off the shelf", a check is a "look". Rows are terse: no filler repeated
+ *   on every line. Field order inside rows is set by the components; keep each string short and self-contained.
  */
 import type { ReactNode } from "react";
 
@@ -15,235 +18,248 @@ const s = (n: number) => (n === 1 ? "" : "s");
 const ledgerN = (n: number) => n.toLocaleString("en-US");
 
 export const modules = {
-  /** DailyBars: 30 days of restocks (bars) and sell-outs (stacked under them). */
+  /** DailyBars: 30 days of returns (bars) and listings going off the shelf (stacked under them). Day labels are "Nov 5". */
   daily: {
-    empty: (label: string, days: number) => `No restock or sell-out has been logged ${label} in the last ${days} days — the chart fills in from the first one.`,
+    empty: (label: string, days: number) => `Blank page ${label} for the past ${days} days: no return and no listing gone off the shelf. Bars start with the first entry.`,
     summary: (restocks: number, soldouts: number, label: string, days: number, activeDays: number) =>
-      `${restocks} restock${s(restocks)} and ${soldouts} sell-out${s(soldouts)} ${label} over the last ${days} days, on ${activeDays} different day${s(activeDays)}.`,
-    /** Follows `summary` (leading space). `day` is a short date ("10/26"). */
-    busiest: (day: string, restocks: number) => <> The busiest day was <b className="text-ink">{day}</b> with {restocks}.</>,
+      `${activeDays} of the past ${days} days had a return ${label}: ${restocks} logged in all, ${soldouts} off the shelf again.`,
+    /** Follows `summary` (leading space). `day` is a short date ("Nov 5"). */
+    busiest: (day: string, restocks: number) => <> Peak date <b className="text-ink">{day}</b>, {restocks} that day.</>,
     /** Screen-reader text of one bar. */
-    barAria: (day: string, restocks: number, soldouts: number) => `${day}: ${restocks} restocks, ${soldouts} sell-outs`,
-    barTitle: (day: string, restocks: number, soldouts: number) => `${day}: ${restocks} restocks · ${soldouts} sell-outs`,
-    legendRestocks: "restocks",
-    legendSoldouts: "sell-outs",
+    barAria: (day: string, restocks: number, soldouts: number) => `${day}: ${restocks} returned, ${soldouts} went off the shelf`,
+    barTitle: (day: string, restocks: number, soldouts: number) => `${day} · ${restocks} returned · ${soldouts} off the shelf`,
+    legendRestocks: "returns",
+    legendSoldouts: "off the shelf again",
   },
 
-  /** Last24Hours: "iPhone Duo restocks {label} in the last 24 hours" — sentence, three tiles, a table per configuration. */
+  /**
+   * Last24Hours: the 24-hour return window — heading, one sentence (most recent return first), three tiles, and a
+   * table per configuration. Column order: configuration, most recent return, returns, stores, on the shelf now.
+   */
   last24: {
-    title: (label: string) => `iPhone Duo restocks ${label} in the last 24 hours`,
-    /** `when` is a date and time ("Nov 3, 10:00 AM EST" or "Nov 3, 6:10 AM local time"). */
-    asOf: (when: string) => `as of ${when}`,
-    localTime: (when: string) => `${when} local time`,
+    title: (label: string) => `iPhone Duo returns ${label}, past 24 hours`,
+    /** `when` is a date and time ("Nov 3, 10:00 AM EST" or "Nov 3, 6:10 AM store time"). */
+    asOf: (when: string) => `snapshot · ${when}`,
+    localTime: (when: string) => `${when} store time`,
     /** Stands in for a store the catalogue no longer has. */
-    anAppleStore: "an Apple Store",
-    unknown: "The last-24-hours count could not be read just now; the live stock and the restock log on this page are unaffected.",
-    none: (label: string, asOf: string) => <><b className="text-ink">No iPhone Duo restock {label} in the last 24 hours</b> (as of {asOf}).</>,
+    anAppleStore: "an unlisted Apple Store",
+    unknown: "The 24-hour tally didn't load for this request. The shelf status and the return log on this page still stand.",
+    none: (label: string, asOf: string) => <><b className="text-ink">A quiet 24 hours {label}:</b> no iPhone Duo return logged in the window ending {asOf}.</>,
     /**
      * `one`: the place is one store (then `withStores`/`allStores` are not said). `config` "256GB Night Sky",
-     * `store` a link to the store of the latest restock (null for one store), `when` its local date and time.
+     * `store` a link to the store of the latest return (null for one store), `when` its store-local moment ("Sat, Nov 8, 3:00 PM").
      */
     some: (o: { restocks: number; one: boolean; label: string; withStores: number; allStores: number; config: string; store: ReactNode | null; when: string }) => (
-      <>In the last 24 hours the iPhone Duo restocked <b className="text-ink">{`${o.restocks} time${s(o.restocks)}`} {o.one ? o.label : `at ${o.withStores} of the ${o.allStores} Apple Store${s(o.allStores)} ${o.label}`}</b>; the latest: <b className="text-ink">{o.config}</b>{o.store != null && <> at {o.store}</>}, {o.when} local time.</>
+      <>Most recent return: <b className="text-ink">{o.config}</b>, {o.when} on the store clock{o.store != null && <>, logged at {o.store}</>}. <b className="text-ink">{`${o.restocks} return${s(o.restocks)} in the window`}</b>{o.one ? null : <>, at {o.withStores} store{s(o.withStores)} out of {o.allStores} {o.label}</>}.</>
     ),
-    tileRestocks: "confirmed restocks · 24 h",
-    tileConfigsBack: "configurations that came back",
-    /** `configs` 0: no configuration came back (then only "stores with a restock"). */
-    tileStores: (configs: number, allConfigs: number) => `stores with a restock${configs ? ` · ${configs} of ${allConfigs} configurations` : ""}`,
-    /** `store` null on a one-store page. */
-    tileLatest: (config: string, store: string | null) => <>latest · {config}{store != null && <> · {store}</>}</>,
-    /** The last restock before the 24 hours; `day` its local date ("Nov 1"). */
-    tileBefore: (config: string, store: string | null, day: string) => <>last before that · {config}{store != null && <> · {store}</>} · {day}</>,
-    tileNoEarlier: "no earlier restock on record",
-    caption: (label: string, asOf: string) => `Confirmed restocks of each iPhone Duo configuration ${label}, last 24 hours, as of ${asOf}`,
+    tileRestocks: "returns in the window",
+    tileConfigsBack: "configurations back on the shelf",
+    /** `configs` 0: no configuration came back (then only "stores with a return"). */
+    tileStores: (configs: number, allConfigs: number) => `stores with a return${configs ? ` · ${configs}/${allConfigs} configurations` : ""}`,
+    /** `store` null on a one-store page; the store is named before the configuration. */
+    tileLatest: (config: string, store: string | null) => <>most recent · {store != null && <>{store} · </>}{config}</>,
+    /** The last return before the 24 hours; `day` its local date ("Nov 1"). */
+    tileBefore: (config: string, store: string | null, day: string) => <>previous return, {day} · {store != null && <>{store} · </>}{config}</>,
+    tileNoEarlier: "nothing earlier on record",
+    caption: (label: string, asOf: string) => `Returns per iPhone Duo configuration ${label} in the 24 hours up to ${asOf}`,
     thConfig: "Configuration",
-    thRestocks: "Restocks",
+    thRestocks: "Returns",
     thStores: "Stores",
-    thLast: "Last restock (local time)",
-    thNow: "In stock now",
-    /** "2 of 5" stores. */
-    ofStores: (n: number, total: number) => `${n} of ${total}`,
-    noneIn24: "none in 24 h",
-    yes: "yes",
-    no: "no",
-    countedTitle: "How restocks are counted",
+    thLast: "Most recent (store clock)",
+    thNow: "On the shelf now",
+    /** "2/5" stores. */
+    ofStores: (n: number, total: number) => `${n}/${total}`,
+    noneIn24: "nothing logged",
+    yes: "on the shelf",
+    no: "off",
+    countedTitle: "What counts as a return",
     counted: "A return is a confirmed change from unavailable to available for one store and configuration. Repeated returns are separate events, not a count of phones. The live list answers what is available at the last check. The history shows where listings returned; it does not predict the next delivery.",
     /** `label` null on a one-store page. */
     alert: (label: string | null) => `Set up restock alerts on your phone${label ? ` · ${label}` : ""}`,
   },
 
-  /** RestockClock: when restocks arrive, by local hour and weekday. */
+  /** RestockClock: when returns arrive, by store-local hour (ticks 12am…9pm) and weekday (Mo…Su, with counts). */
   clock: {
-    none: (label: string, days: number) => `No restocks recorded ${label} in the last ${days} days yet.`,
-    /** Fewer than 5 restocks, or on fewer than 3 dates. `dates` is set only when it is under 3. */
+    none: (label: string, days: number) => `No return logged ${label} in the past ${days} days.`,
+    /** Fewer than 5 returns, or on fewer than 3 dates. `dates` is set only when it is under 3. */
     thin: (total: number, label: string, days: number, dates: number | null) =>
-      `${total} restock${s(total)} ${label} in the last ${days} days${dates != null ? ` (on ${dates} day${s(dates)})` : ""} — too few to call a pattern yet.`,
+      `Only ${total} return${s(total)} logged ${label} in ${days} days${dates != null ? `, on ${dates} date${s(dates)}` : ""}: not enough to name a usual hour.`,
     /** `hour` "9 AM"; `day` the busiest weekday ("Thursday"), null under 14 days of data. */
     pattern: (total: number, label: string, days: number, hour: string, day: string | null) => (
-      <>{total} restocks {label} in the last {days} days. Most arrive around <b className="text-ink">{hour}</b> local time{day ? <>, and <b className="text-ink">{day}</b> is the busiest day</> : null}.</>
+      <>Usual return hour {label}: <b className="text-ink">{hour}</b> on the store clock, from {total} returns over {days} days{day ? <>; <b className="text-ink">{day}</b> leads the week</> : null}.</>
     ),
     /** `zone` the time zone's city ("New York") in English; other languages get the zone's own name. */
-    byHour: (zone: string) => `By hour · ${zone} time`,
-    byWeekday: "By weekday",
+    byHour: (zone: string) => `Hour of day · ${zone} clock`,
+    byWeekday: "Day of week",
     /** Appended to a bar's "9 AM: 3" (leading space). */
-    barReported: (n: number) => ` (+${n} reported by other trackers)`,
-    barReportedTitle: (bar: string, n: number) => `${bar}: ${n} reported by other trackers`,
+    barReported: (n: number) => ` (+${n} outside reports)`,
+    barReportedTitle: (bar: string, n: number) => `${bar}: ${n} outside reports`,
     legendOurs: "Recorded returns",
   },
 
-  /** RestockFeed: one card per restock or sell-out. */
+  /** RestockFeed: one journal row per event — when and what kind first, then the configuration, the store, the shelf now. */
   feed: {
-    empty: "No restocks recorded yet.",
-    available: "Available",
-    soldOut: "Sold out",
-    /** `time` is the reader's local time ("Today 5:42 PM"). */
-    soldOutAt: (time: ReactNode) => <>sold out {time}</>,
-    since: (time: ReactNode) => <>since {time}</>,
-    restockedAt: (time: ReactNode) => <>restocked {time}</>,
-    mapAria: (store: string) => `Show ${store} on the map`,
-    map: "Map",
+    empty: "The return log is empty so far.",
+    /** The shelf right now (the row's last field). */
+    available: "On the shelf",
+    soldOut: "Gone",
+    /** The event and its time; `time` is the reader's local time ("Today 5:42 PM"). */
+    soldOutAt: (time: ReactNode) => <>cleared · {time}</>,
+    since: (time: ReactNode) => <>return · {time}</>,
+    restockedAt: (time: ReactNode) => <>return · {time}</>,
+    mapAria: (store: string) => `Locate ${store} on the atlas`,
+    map: "Locate on the atlas",
     /** `config` "256GB Night Sky". */
-    buyAria: (model: string, config: string) => `Buy the ${model} ${config} on apple.com`,
-    buy: "Buy on apple.com",
+    buyAria: (model: string, config: string) => `Order the ${model} ${config} from apple.com`,
+    buy: "Order on apple.com",
   },
 
-  /** RestocksByConfig: which configurations came back, most first. */
+  /** RestocksByConfig: configurations ranked by returns; a row reads count, configuration, watch link. */
   byConfig: {
-    empty: (label: string, days: number) => `No configuration has restocked ${label} in the last ${days} days, so there is no ranking yet.`,
-    intro: (label: string, days: number) => `Which configurations came back ${label} in the last ${days} days, most often first.`,
-    times: (n: number) => `${n}×`,
-    alert: "Alert me",
+    empty: (label: string, days: number) => `Nothing returned ${label} in ${days} days, so there is nothing to rank.`,
+    intro: (label: string, days: number) => `Configurations ranked by returns ${label}, past ${days} days.`,
+    times: (n: number) => `${n} return${s(n)}`,
+    alert: "Watch",
   },
 
-  /** SellOutTimes: how fast restocks sell out. Durations arrive formatted ("45–60 s", "2 min 05 s"). */
+  /**
+   * SellOutTimes: how long returns stay on the shelf. Durations arrive formatted ("45–60s", "2m 05s"). The per-model
+   * summary is a line per iPhone with inline labels (`thSoldOut` … `thFastest`), not a table.
+   */
   sellout: {
     /** `band` "60–80 seconds". */
-    typical: (label: string, band: string) => `A typical iPhone Duo restock ${label} sold out in about ${band}.`,
-    half: (label: string, duration: string) => `Half of the restocks ${label} sold out within ${duration}.`,
-    none: (label: string, days: number) => `No restock ${label} has sold out in the last ${days} days yet.`,
+    typical: (label: string, band: string) => `Median shelf life of an iPhone Duo return ${label}: ${band}, give or take.`,
+    half: (label: string, duration: string) => `Half the timed returns ${label} left the shelf within ${duration}.`,
+    none: (label: string, days: number) => `No return ${label} has left the shelf in the past ${days} days.`,
     whatDuo: "iPhone Duo",
-    whatAll: "all iPhones",
-    tileHalf: (what: string) => <>half gone within · {what}</>,
-    tileWithin30: "gone within 30 s",
-    tileWithin60: "gone within 1 min",
-    tileFastest: (n: number, days: number) => <>fastest · {n} sold-out restocks, {days} d</>,
-    caption: (days: number) => `By iPhone, last ${days} days`,
-    thIphone: "iPhone",
-    thSoldOut: "Sold out",
-    thHalf: "Half gone within",
-    thWithin30: "≤ 30 s",
-    thWithin60: "≤ 1 min",
-    thFastest: "Fastest",
-    each: "Restock by restock",
-    /** `full` "180 s": a bar this long is full width. */
-    barNote: (full: string) => `bar = seconds listed · full at ${full}`,
-    stillListed: (duration: string) => `still listed · ${duration}`,
+    whatAll: "every model",
+    tileHalf: (what: string) => <>median shelf life · {what}</>,
+    tileWithin30: "off the shelf in ≤ 30 s",
+    tileWithin60: "off the shelf in ≤ 1 min",
+    tileFastest: (n: number, days: number) => <>quickest of {n} timed returns, {days} d</>,
+    caption: (days: number) => `Per model, past ${days} days`,
+    /* Inline labels of the per-model lines, in this order. */
+    thIphone: "Model",
+    thSoldOut: "timed",
+    thHalf: "median",
+    thWithin30: "≤ 30 s:",
+    thWithin60: "≤ 1 min:",
+    thFastest: "quickest",
+    each: "Return by return",
+    /** `full` "180s": a bar this long is full width. */
+    barNote: (full: string) => `bar length = time on the shelf · ${full} fills it`,
+    stillListed: (duration: string) => `still on the shelf · ${duration}`,
     /** A range bounded by the 15-second round rather than two recorded checks. */
     approx: (range: string) => `≈ ${range}`,
-    measuredTitle: "How this is measured",
+    measuredTitle: "How the shelf life is bounded",
     /** `estimated`: some rows are marked ≈. */
     measured: (_estimated: boolean) => { void _estimated; return "Listing duration is bounded by the last available and first unavailable observation. The ≈ marker identifies an estimated interval. Listings shorter than a check interval can be missed; these durations are not guaranteed checkout windows."; },
   },
 
-  /** ConfigTable: every configuration at one store. */
+  /** ConfigTable: the shelf check at one store — configuration and price, then our status word and its time, Apple's own pickup wording only when on the shelf. */
   configTable: {
-    title: "Every configuration at this store",
-    titleAt: (store: string) => `Every configuration at ${store}`,
+    title: "Shelf check by configuration",
+    titleAt: (store: string) => `Shelf check by configuration · ${store}`,
     /** `hasRows`: earlier answers are listed below. */
-    lookupOff: (hasRows: boolean) => `Apple isn't offering in-store pickup lookups at this store right now${hasRows ? " (the last answers it gave are below)" : ""}`,
-    tracked: (n: number) => `${n} configurations tracked`,
-    firstSweep: "First sweep in progress — statuses appear within a minute",
-    inStock: (n: number, total: number) => `${n} of ${total} in stock`,
-    /** Shown when Apple's own wording (its pickup quote) is missing. */
-    available: "Available",
-    unavailable: "Unavailable",
-    noLookup: "no pickup lookup",
-    notChecked: "not checked yet",
+    lookupOff: (hasRows: boolean) => `Apple has paused pickup lookups for this store${hasRows ? "; the rows below are its last answers" : ""}`,
+    tracked: (n: number) => `${n} configurations on the watchlist`,
+    firstSweep: "Opening observations now; the first statuses land within a minute",
+    inStock: (n: number, total: number) => `on the shelf: ${n} of ${total} tracked`,
+    /** The status word of a row (Apple's quote, when there is one, follows separately). */
+    available: "On the shelf",
+    unavailable: "Off the shelf",
+    noLookup: "lookup paused",
+    notChecked: "awaiting a first look",
     /** `ago` ticks ("7s ago"). */
-    since: (ago: ReactNode) => <>since {ago}</>,
-    lastAvailable: (ago: ReactNode) => <>last available {ago}</>,
-    neverHere: "never seen in stock here",
-    buy: "Buy",
-    alertAria: (model: string, config: string, store: string) => `Alert me when the ${model} ${config} is available at ${store}`,
-    alert: "Alert me →",
+    since: (ago: ReactNode) => <>appeared {ago}</>,
+    lastAvailable: (ago: ReactNode) => <>last seen {ago}</>,
+    neverHere: "never seen here",
+    buy: "Order",
+    alertAria: (model: string, config: string, store: string) => `Watch the ${model} ${config} at ${store}`,
+    alert: "Watch →",
   },
 
-  /** ModelStoreMatrix: one row per store, one cell per model. */
+  /** ModelStoreMatrix: one row per store, one count per model (configurations on the shelf). */
   matrix: {
-    store: "Store",
-    checked: "Checked",
-    cellTitle: (model: string, n: number, total: number) => `${model}: ${n} of ${total} configurations available`,
+    store: "Location",
+    checked: "Last look",
+    cellTitle: (model: string, n: number, total: number) => `${model}: ${n} of ${total} configurations on the shelf`,
   },
 
-  /** NearbyStores: `short` "Duo". */
+  /** NearbyStores: a row reads store, distance and city, then the Duo on the shelf. `short` "Duo". */
   nearby: {
-    duo: (short: string, n: number) => `${short} · ${n}`,
-    noDuo: (short: string) => `no ${short}`,
+    duo: (short: string, n: number) => `${short} on the shelf · ${n}`,
+    noDuo: (short: string) => `${short} off the shelf`,
   },
 
   /** StockByModel: one card per iPhone at a store. */
   stockByModel: {
-    availableNow: (n: number, total: number) => `${n} of ${total} configurations available now`,
-    noneNow: (total: number) => `none of ${total} configurations right now`,
-    lookupOff: "Apple isn't offering pickup lookups here right now",
-    notChecked: "not checked yet",
-    more: (n: number) => `+${n}`,
+    availableNow: (n: number, total: number) => `${n}/${total} configurations on the shelf`,
+    noneNow: (total: number) => `0/${total} on the shelf`,
+    lookupOff: "Pickup lookups paused by Apple for this store",
+    notChecked: "awaiting a first look",
+    more: (n: number) => `+${n} more`,
     /** `ago` ticks ("7s ago"). */
-    checked: (ago: ReactNode) => <>checked {ago}</>,
-    alert: "Alert me →",
+    checked: (ago: ReactNode) => <>last look {ago}</>,
+    alert: "Watch →",
   },
 
   /** StoreBlock: a store in full on a thin region or city page. */
   storeBlock: {
     /** `ago` ticks; then the check intervals (15 s, 5 s with an alert). */
     checked: (ago: ReactNode) => <>{ago} · Frequent inventory updates</>,
-    map: "Show on map",
-    alert: "Alert me here",
-    alsoIn: (region: string) => `Also in ${region}`,
-    acrossLine: "Nearest stores across the state line",
-    elsewhere: "Nearest stores elsewhere",
+    map: "See on the atlas",
+    alert: "Watch this store",
+    alsoIn: (region: string) => `More in ${region}`,
+    acrossLine: "Closest across the state line",
+    elsewhere: "Closest elsewhere",
   },
 
-  /** StoreInfo / HoursTable: address, hours and today's status (times are 24-hour "10:00"). */
+  /**
+   * StoreInfo / HoursTable / ModelStoreMatrix: today's status, the week, address and links (every language, English
+   * included, is built from these; times are 24-hour "10:00"; English weekdays print as "Mo", "Tu" …).
+   */
   hours: {
-    title: "Hours",
+    title: "Opening hours",
     /** `zone` the time zone's city ("New York"). */
-    local: (zone: string) => `Local time · ${zone}`,
+    local: (zone: string) => `Times are ${zone} local`,
     /** After today's status (leading " · "). */
-    today: (hours: string, week: string) => ` · today ${hours} · ${week}`,
-    directions: "Directions",
-    applePage: "apple.com store page",
-    liveMap: "Live map",
-    storePage: "Store page",
-    closed: "Closed",
-    everyDay: (hours: string) => `Every day ${hours}`,
-    openNow: (closes: string) => `Open now · closes ${closes}`,
-    opensAt: (opens: string) => `Opens at ${opens}`,
-    /** `next` from nextOpen ("tomorrow at 10:00", "Mon at 10:00"); null if no day opens. */
-    closedToday: (next: string | null) => (next ? `Closed today · opens ${next}` : "Closed today"),
-    closedNow: (next: string | null) => (next ? `Closed now · opens ${next}` : "Closed now"),
-    /** `day` a short weekday ("Mon"); null = tomorrow. */
-    nextOpen: (day: string | null, time: string) => `${day ?? "tomorrow"} at ${time}`,
+    today: (hours: string, week: string) => ` · ${hours} today · ${week}`,
+    directions: "Get directions",
+    applePage: "Apple's listing",
+    liveMap: "See it on the atlas",
+    storePage: "Store record",
+    closed: "shut",
+    everyDay: (hours: string) => `Daily ${hours}`,
+    openNow: (closes: string) => `Doors open · until ${closes}`,
+    opensAt: (opens: string) => `Doors open at ${opens}`,
+    /** `next` from nextOpen ("tomorrow 10:00", "Mo 10:00"); null if no day opens. */
+    closedToday: (next: string | null) => (next ? `Shut today · reopens ${next}` : "Shut today"),
+    closedNow: (next: string | null) => (next ? `Shut for now · reopens ${next}` : "Shut for now"),
+    /** `day` a short weekday ("Mo"); null = tomorrow. */
+    nextOpen: (day: string | null, time: string) => `${day ?? "tomorrow"} ${time}`,
+    /** One day's hours, opening and closing joined by a word rather than a dash ("10:00 to 21:00"). */
+    span: (opens: string, closes: string) => `${opens} to ${closes}`,
   },
 
   /** LiveStats: three numbers on the home page. */
   liveStats: {
-    inStock: "In stock now",
-    storesWith: "Stores w/ stock",
-    lastCheck: "Last check",
+    inStock: "On the shelf",
+    storesWith: "Stores listing",
+    lastCheck: "Last look",
     none: "—",
   },
 
-  /** StockBoard: stores with a model in stock now. */
+  /** StockBoard: stores with a model on the shelf now. */
   board: {
-    summary: (n: number, stores: number, short: string) => `${n} of ${stores} stores have the ${short} in stock`,
-    lastCheck: (ago: ReactNode) => <>Last check {ago}</>,
-    firstSweep: "First sweep in progress.",
+    summary: (n: number, stores: number, short: string) => `${short} on the shelf at ${n} of ${stores} stores`,
+    lastCheck: (ago: ReactNode) => <>Last look {ago}</>,
+    firstSweep: "Opening observations now.",
     /** `storage` / `color` null when not filtered. */
-    noneListed: (model: string, storage: string | null, color: string | null) => `No store lists the ${model}${storage ? ` ${storage}` : ""}${color ? ` in ${color}` : ""} right now.`,
-    more: (n: number) => `+${n}`,
-    seen: (ago: ReactNode) => <>Seen {ago}</>,
-    loading: "Loading stock",
+    noneListed: (model: string, storage: string | null, color: string | null) => `No store has the ${model}${storage ? ` ${storage}` : ""}${color ? ` in ${color}` : ""} on the shelf at the moment.`,
+    more: (n: number) => `+${n} more`,
+    seen: (ago: ReactNode) => <>Logged {ago}</>,
+    loading: "Reading the shelves",
   },
 
   /**
@@ -265,7 +281,7 @@ export const modules = {
     lastReturn: (o: { config: string; store: ReactNode | null; when: string; lasted: string | null }) => <>Last confirmed return: <b className="text-ink">{o.config}</b>{o.store != null && <> at {o.store}</>}, {o.when}{o.lasted ? <>, {o.lasted}</> : null}.</>,
     noReturnYet: (place: string, since: string) => `No confirmed iPhone Duo return in ${place} since the record opened on ${since}.`,
     /** The other two models in one clause: stores with any configuration (a place) / configurations here (a store). */
-    others: (o: { pro: number; max: number; one: boolean; configs: number }) => (o.one ? `iPhone 18 Pro: ${o.pro} of ${o.configs} configurations listed here; 18 Pro Max: ${o.max} of ${o.configs}.` : `iPhone 18 Pro: listed at ${ledgerN(o.pro)} of these stores; 18 Pro Max: at ${ledgerN(o.max)}.`),
+    others: (o: { pro: number; max: number; one: boolean; configs: number }) => (o.one ? `For comparison, this store shows ${o.pro} of the ${o.configs} iPhone 18 Pro configurations and ${o.max} of the ${o.configs} Pro Max ones.` : `For comparison, the iPhone 18 Pro is on the shelf at ${ledgerN(o.pro)} of these stores and the Pro Max at ${ledgerN(o.max)}.`),
     /* The four measures: breadth and pace of the record, not a fixed hour band */
     mReturns: (since: string) => `confirmed returns since ${since}`,
     mStores: "stores with at least one return",
@@ -285,13 +301,13 @@ export const modules = {
       `${ledgerN(o.n)} confirmed iPhone Duo return${s(o.n)} ${o.one ? `at ${o.place}` : `across the ${ledgerN(o.stores)} Apple Store${s(o.stores)} in ${o.place}`} since ${o.since}, on ${ledgerN(o.days)} day${s(o.days)} — under the ${o.min}-return, ${o.minDays}-day threshold ShelfSpring applies before describing a usual hour.${o.median ? ` Half of the measured listings were gone within ${o.median}.` : ""} The returns themselves are in the ledger below.`,
     hourByHour: "Open the hour-by-hour record →",
     ledger: (n: number) => (n === 1 ? "The most recent recorded return" : `The ${n} most recent recorded returns`),
-    col: { observed: "Observed (store time)", config: "Configuration", store: "Store", listed: "Listed for" },
-    /** Lifetimes: "listed 5–7 min", "listed about 2 min", "still listed (12 min)". */
+    col: { observed: "Seen (store clock)", config: "Configuration", store: "Store", listed: "Shelf time" },
+    /** Shelf times: "5–7 min on the shelf", "roughly 2 min on the shelf", "on the shelf for 12 min so far". */
     secs: (n: number) => `${n} s`,
     mins: (n: number) => `${n} min`,
-    listedRange: (low: string, high: string) => `listed ${low}–${high}`,
-    listedAbout: (x: string) => `listed about ${x}`,
-    stillListed: (x: string) => `still listed (${x})`,
+    listedRange: (low: string, high: string) => `${low}–${high} on the shelf`,
+    listedAbout: (x: string) => `roughly ${x} on the shelf`,
+    stillListed: (x: string) => `on the shelf for ${x} so far`,
     /** `note` is the check-cadence phrase (pages.common.checkNote). */
     method: (o: { since: string; note: string }) => `Record since ${o.since} · ${o.note} · a return is counted once two consecutive observations agree; a configuration's first appearance never counts.`,
     delivered: (o: { sent: number; stores: number; total: number; days: number; place: string; one: boolean }) => (o.one

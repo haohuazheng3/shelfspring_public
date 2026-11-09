@@ -199,7 +199,7 @@ export async function PlaceRestockTimesPage({ place }: { place: RestockPlace }) 
 
   const sources: Source[] = [
     { label: "Apple — Shipping & Pickup (how in-store pickup works)", url: APPLE_PICKUP },
-    { label: "Apple Newsroom — iPhone Duo arrives at Apple Store locations worldwide", url: APPLE_NEWSROOM },
+    { label: "“iPhone Duo arrives at Apple Store locations worldwide” · Apple’s press release", url: APPLE_NEWSROOM },
     { label: "MacRumors — iPhone Duo Apple Store pickup in the US (October 24, 2026)", url: MACRUMORS },
     { label: "Wikipedia — Median", url: WIKI_MEDIAN },
   ];
@@ -222,7 +222,7 @@ export async function PlaceRestockTimesPage({ place }: { place: RestockPlace }) 
 
   const crumbs: Crumb[] = [
     { href: "/", label: "ShelfSpring" },
-    { href: "/iphone-duo-restock-times", label: "iPhone Duo restock times" },
+    { href: "/iphone-duo-restock-times", label: "iPhone Duo return record" },
     ...(city && stateHref ? [{ href: stateHref, label: place.state }] : []),
     { label: place.label },
   ];
@@ -266,8 +266,8 @@ export async function PlaceRestockTimesPage({ place }: { place: RestockPlace }) 
         {city && stateHref && <LinkRow curated title={`All of ${place.state}`} links={[{ href: stateHref, label: `When does the iPhone Duo restock in ${SAID[`state:${place.state}`] ?? place.state}?` }]} />}
         {cityPages.length > 0 && <LinkRow curated title={city ? `Other cities in ${place.state}` : `By city in ${place.name}`} links={cityPages} />}
         {nearPages.length > 0 && <LinkRow curated title="Nearby cities" links={nearPages} />}
-        {neighborPages.length > 0 && <LinkRow curated title="Neighboring states" links={neighborPages} />}
-        <LinkRow curated title="The whole country" links={[{ href: "/iphone-duo-restock-times", label: "When does Apple restock the iPhone Duo in the US?", meta: t.n && us.n ? `${place.name} = ${share}% of US restocks` : undefined }]} />
+        {neighborPages.length > 0 && <LinkRow curated title="Bordering states" links={neighborPages} />}
+        <LinkRow curated title="Nationwide record" links={[{ href: "/iphone-duo-restock-times", label: "The US iPhone Duo return study, hour by hour", meta: t.n && us.n ? `${place.name} = ${share}% of US restocks` : undefined }]} />
         <LinkRow title={`${place.name}, live`} links={[
           { href: place.storesHref, label: `Apple Stores in ${place.name}` },
           { href: `/restocks?model=duo&state=${place.stateSlug}`, label: `${place.state} restock log` },
@@ -275,7 +275,7 @@ export async function PlaceRestockTimesPage({ place }: { place: RestockPlace }) 
           { href: "/stock/iphone-duo", label: "iPhone Duo stock, all US stores" },
         ]} />
         <LinkRow curated title="More iPhone Duo questions" links={[
-          { href: "/iphone-duo-sell-out-times", label: "How fast does it sell out?" },
+          { href: "/iphone-duo-sell-out-times", label: "How long a return stays listed" },
           { href: "/iphone-duo-stock-alerts", label: "How matching alerts work" },
           { href: "/how-to-get-an-iphone-duo", label: "How to get one when it's sold out" },
           { href: "/which-iphone-duo-restocks-most", label: "Which configuration restocks most?" },
@@ -284,7 +284,7 @@ export async function PlaceRestockTimesPage({ place }: { place: RestockPlace }) 
         ]} />
       </RelatedBlock>
 
-      <div className="mt-10"><RichFaq items={faq} facts={facts} title={`iPhone Duo restocks in ${place.name}: FAQ`} /></div>
+      <div className="mt-10"><RichFaq items={faq} facts={facts} title={`Field questions · iPhone Duo returns in ${place.name}`} /></div>
     </div>
   );
 }

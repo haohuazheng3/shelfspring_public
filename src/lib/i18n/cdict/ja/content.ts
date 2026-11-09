@@ -1,24 +1,24 @@
 import type { CDict } from "../en";
 
-/** 日本語クライアント文言: content（ファーストビューの在庫チェッカーと、画面遷移中のスケルトン）。 */
+/** 日本語クライアント文言: content（ファーストビューの棚チェッカーと、画面遷移中のスケルトン）。 */
 export const content: CDict["content"] = {
   quickCheck: {
-    model: "iPhoneの機種",
-    search: "ZIPコード、都市、アップルストア",
-    useLocation: "現在地を使う",
-    nearMe: "📍 現在地",
-    locationOff: "このサイトの位置情報はオフです。ZIPコードを入力してください。",
-    storesNow: "米国のアップルストア **{total}店舗中{n}店舗** で、{what}をいま店頭受け取りできます",
-    nearestTo: " · {place}から近い順",
-    you: "現在地",
-    noMatch: "該当なし。5桁のZIPコードか都市名で試してください。",
-    inStock: "{n}/{total} 在庫あり",
-    soldOut: "在庫切れ",
-    alertMe: "入荷したら通知",
-    allStores: "全{n}店舗 →",
-    here: "現在地",
+    model: "iPhoneのモデルを選ぶ",
+    search: "ZIPコード・都市・店舗名で探す",
+    useLocation: "自分の位置から近い順に並べる",
+    nearMe: "📍 位置を確かめる",
+    locationOff: "このサイトでは位置情報が使えない設定です。代わりにZIPコードを入れてください。",
+    storesNow: "{what}：いま米国のApple Store **{n}/{total}店舗** の棚にあり",
+    nearestTo: " · {place}を起点に並べ替え",
+    you: "あなたの位置",
+    noMatch: "見つかりませんでした。5桁のZIPコードか都市名を入れてください。",
+    inStock: "棚にあり {n}/{total}",
+    soldOut: "棚になし",
+    alertMe: "見守りリストに加える",
+    allStores: "店舗の一覧（{n}店舗） →",
+    here: "すぐそこ",
   },
   skeleton: {
-    loading: "読み込み中",
+    loading: "読み取り中",
   },
 };

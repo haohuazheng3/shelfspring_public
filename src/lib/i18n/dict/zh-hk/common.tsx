@@ -1,7 +1,8 @@
 /**
  * 繁體中文（香港）server strings: common, plus the small helpers every zh-HK module shares (names, numbers, hours,
- * dates, tax words). Hong Kong usage: 香港書面語, 現貨 / 有貨, 補貨, 售罄, 取貨 (Apple's checkout step: 提取),
- * 價錢, 分店, 間 for stores, 款 for configurations, full-width punctuation.
+ * dates, tax words). Hong Kong usage: 香港書面語; ShelfSpring's words: 回架 (a return), 在架 / 落架 (on / off the shelf),
+ * 觀察簿, 監察, 提示, 落單; 取貨 (Apple's checkout step: 提取), 價錢, 零售店 / 間 for stores, 配置 / 個 for
+ * configurations, full-width punctuation.
  */
 import type { Dict } from "../en";
 import { COUNTRIES, type Country, type CountryCode } from "@/lib/apple/countries";
@@ -93,13 +94,13 @@ export function taxNameZh(c: Country): string {
   const t = taxName(c);
   return t === "VAT" ? "增值稅" : t === "GST" ? "商品及服務稅" : t === "consumption tax" ? "消費稅" : "銷售稅";
 }
-/** One phrase after a price: "香港不設銷售稅", "已含 20% 增值稅", "未連 GST/HST 及省銷售稅". */
+/** One phrase after a price: "香港無銷售稅", "連 20% 增值稅", "另加 GST/HST 及省銷售稅". */
 export function taxNoteZh(c: Country): string {
-  if (c.cc === "hk") return "香港不設銷售稅";
-  if (c.cc === "us") return "未連銷售稅（各州稅率不同）";
-  if (c.cc === "ca") return "未連 GST/HST 及省銷售稅";
+  if (c.cc === "hk") return "香港無銷售稅";
+  if (c.cc === "us") return "另加銷售稅（稅率因州而異）";
+  if (c.cc === "ca") return "另加 GST/HST 及省銷售稅";
   const r = includedRate(c);
-  return r == null ? "已含稅" : `已含 ${r}% ${taxNameZh(c)}`;
+  return r == null ? "價錢已連稅" : `連 ${r}% ${taxNameZh(c)}`;
 }
 
 /** What a country's stores are grouped by (countries.ts regionNoun) in Chinese. */
@@ -113,8 +114,8 @@ export const cityNoun = (cc: CountryCode): string => (cc === "hk" ? "地區" : "
 /** Apple's store page in Chinese where Apple has one (Hong Kong: /hk/retail/… instead of /hk/en/retail/…). */
 export const zhAppleUrl = (url: string): string => url.replace("://www.apple.com/hk/en/", "://www.apple.com/hk/");
 
-/** The check cadence, as every label states it (CHECK_NOTE): only 15 s and 5 s. */
-export const CHECK = "定期更新存貨";
+/** The check cadence, as every label states it (CHECK_NOTE): no interval named here. */
+export const CHECK = "存貨資料經常更新";
 
 /** How Hong Kong says each store ("Apple Store 廣東道"), by Apple's English name. */
 export const HK_SAY: Record<string, string> = {

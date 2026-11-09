@@ -95,6 +95,10 @@ export const apples = (x: number): string => `${n(x)} Apple Store`;
 export const tiendas = (x: number): string => `${n(x)} ${x === 1 ? "tienda" : "tiendas"}`;
 /** "1 reposición" / "14 reposiciones". */
 export const reposiciones = (x: number): string => `${n(x)} ${x === 1 ? "reposición" : "reposiciones"}`;
+/** "1 reaparición" / "14 reapariciones": ShelfSpring's word for a return to the shelf (a confirmed restock). */
+export const reapariciones = (x: number): string => `${n(x)} ${x === 1 ? "reaparición" : "reapariciones"}`;
+/** "1 configuración" / "8 configuraciones". */
+export const configuraciones = (x: number): string => `${n(x)} ${x === 1 ? "configuración" : "configuraciones"}`;
 /** "1 ciudad" / "10 ciudades". */
 export const ciudades = (x: number): string => `${n(x)} ${x === 1 ? "ciudad" : "ciudades"}`;
 /** "1 día" / "3 días". */

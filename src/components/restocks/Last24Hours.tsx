@@ -1,6 +1,7 @@
 /**
- * "iPhone Duo restocks in {place} in the last 24 hours": the first thing a state, city, country or store page says
- * after its title — one quotable sentence, three big numbers, and an eight-row table (storage × colour), so a
+ * "iPhone Duo returns in {place}, past 24 hours": the 24-hour window of a state, city, country or store page —
+ * one quotable sentence (most recent return first), three big numbers, and an eight-row table (storage × colour;
+ * columns: configuration, most recent return, returns, stores, on the shelf now), so a
  * reader or an answer engine asked "has the Duo restocked anywhere in Michigan in the last 24 hours? 512GB, Night
  * Sky or Star White" gets the answer without reading a chart. Server-rendered; times in the store's own zone. Zero
  * rows stay in the table: a configuration with no restock is an answer too. The counting rule sits folded below.
@@ -12,9 +13,10 @@ import type { RecentByConfig } from "@/lib/stock/recent";
 import type { StoreStockSummary } from "@/lib/stock/queries";
 import { t, pageLocale } from "@/lib/i18n/server";
 import { clock, day, stamp } from "@/lib/i18n/format";
-import { appleStoreLabel, configLabel } from "@/lib/i18n/places";
+import { appleStoreLabel, configLabel, storeLabel } from "@/lib/i18n/places";
 import { Swatch } from "@/components/stores/ConfigTable";
 import { Measured, Stat, StatGrid } from "@/components/ui/Viz";
+import { returnStamp } from "./when";
 
 export function Last24Hours({ data, label, stores, country = "us", stock, lastBefore, alert, id = "last-24-hours", compact = false }: {
   data: RecentByConfig;
@@ -43,8 +45,11 @@ export function Last24Hours({ data, label, stores, country = "us", stock, lastBe
   const asOf = zones.size > 1 ? stamp(lang, data.at, COUNTRIES[country].timeZone, true) : d.localTime(stamp(lang, data.at, storeTimeZone(stores[0])));
   const nameOf = (n: string) => { const s = storeByNumber(n); return s ? (lang === "en" ? appleName(s) : appleStoreLabel(s, lang)) : d.anAppleStore; };
   const storeLink = (n: string) => <Link href={storePath(storeByNumber(n) ?? stores[0])} className="underline-offset-2 hover:underline">{nameOf(n)}</Link>;
+  /** In table rows the store goes by its bare name ("Eastwood Towne Center"). */
+  const shortLink = (n: string) => { const s = storeByNumber(n); return <Link href={storePath(s ?? stores[0])} className="underline-offset-2 hover:underline">{s ? (lang === "en" ? s.name : storeLabel(s, lang)) : d.anAppleStore}</Link>; };
   const zoneOf = (n: string) => storeTimeZone(storeByNumber(n) ?? stores[0]);
-  const stampAt = (iso: string, n: string) => stamp(lang, iso, zoneOf(n));
+  /** Store-local moment, weekday first ("Sat, Nov 8, 3:00 PM"). */
+  const stampAt = (iso: string, n: string) => returnStamp(lang, iso, zoneOf(n));
   const timeAt = (iso: string, n: string) => clock(lang, iso, zoneOf(n));
   const cfg = (p: string) => { const i = items.find((x) => x.partNumber === p); return i ? configLabel(i, lang) : p; };
   const withRestock = items.filter((i) => (byPart.get(i.partNumber)?.restocks ?? 0) > 0);
@@ -86,9 +91,9 @@ export function Last24Hours({ data, label, stores, country = "us", stock, lastBe
             <thead>
               <tr className="border-b border-line-2 text-start text-ink">
                 <th scope="col" className="py-2 pe-3 font-semibold">{d.thConfig}</th>
+                <th scope="col" className="py-2 pe-3 font-semibold">{d.thLast}</th>
                 <th scope="col" className="py-2 pe-3 font-semibold">{d.thRestocks}</th>
                 {!one && <th scope="col" className="py-2 pe-3 font-semibold">{d.thStores}</th>}
-                <th scope="col" className="py-2 pe-3 font-semibold">{d.thLast}</th>
                 {stock && <th scope="col" className="py-2 pe-3 font-semibold">{d.thNow}</th>}
               </tr>
             </thead>
@@ -100,10 +105,10 @@ export function Last24Hours({ data, label, stores, country = "us", stock, lastBe
                 return (
                   <tr key={i.partNumber} className={`border-b border-line ${quiet ? "text-ink-3" : ""}`}>
                     <th scope="row" className={`py-2 pe-3 text-start font-medium ${quiet ? "text-ink-2" : "text-ink"}`}><span className="inline-flex items-center gap-2"><Swatch color={i.color} />{configLabel(i, lang)}</span></th>
+                    <td className="py-2 pe-3">{r ? <>{stampAt(r.lastAt, r.lastStore)}{!one && <>{" · "}{shortLink(r.lastStore)}</>}</> : d.noneIn24}</td>
                     <td className={`py-2 pe-3 tabular-nums ${r ? "font-semibold text-ink" : ""}`}>{r?.restocks ?? 0}</td>
                     {!one && <td className="py-2 pe-3 tabular-nums">{r ? d.ofStores(r.stores, stores.length) : "–"}</td>}
-                    <td className="py-2 pe-3">{r ? <>{stampAt(r.lastAt, r.lastStore)}{!one && <>{" · "}{storeLink(r.lastStore)}</>}</> : d.noneIn24}</td>
-                    {stock && <td className="py-2 pe-3 tabular-nums">{now == null ? "–" : one ? (now ? <span className="font-semibold text-accent">{d.yes}</span> : d.no) : now ? <span className="font-semibold text-accent">{d.ofStores(now, stores.length)}</span> : d.ofStores(0, stores.length)}</td>}
+                    {stock && <td className="py-2 pe-3 tabular-nums">{now == null ? "–" : one ? (now ? <span className="font-semibold text-accent">{d.yes}</span> : d.no) : now ? <span className="font-semibold text-accent">{d.ofStores(now, stores.length)}</span> : d.no}</td>}
                   </tr>
                 );
               })}

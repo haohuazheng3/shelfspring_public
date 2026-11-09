@@ -1,24 +1,24 @@
-/** Dutch client strings: content — the first-screen stock checker (QuickCheck) and the navigation skeletons. */
+/** Dutch client strings: content — the first-screen shelf check (QuickCheck) and the navigation skeletons. */
 import type { CDict } from "../en";
 
 export const content: CDict["content"] = {
   quickCheck: {
-    model: "iPhone-model",
-    search: "ZIP-code, stad of Apple Store",
-    useLocation: "Gebruik mijn locatie",
-    nearMe: "📍 In de buurt",
-    locationOff: "Locatie staat uit voor deze site. Typ in plaats daarvan een ZIP-code.",
-    storesNow: "**{n} van {total}** Apple Stores in de VS hebben de {what} nu om op te halen",
-    nearestTo: " · dichtst bij {place}",
+    model: "Kies een iPhone-model",
+    search: "Winkels zoeken op ZIP-code, stad of winkelnaam",
+    useLocation: "Winkels sorteren vanaf mijn positie",
+    nearMe: "📍 Mijn positie",
+    locationOff: "Locatie staat hier uit; vul dan een ZIP-code in.",
+    storesNow: "{what}: nu in het schap bij **{n} / {total}** Apple Stores in de VS",
+    nearestTo: " · gesorteerd vanaf {place}",
     you: "jou",
-    noMatch: "Niets gevonden. Probeer een ZIP-code van 5 cijfers of een stad.",
-    inStock: "{n}/{total} op voorraad",
-    soldOut: "Uitverkocht",
-    alertMe: "Waarschuw me als hij op voorraad is",
-    allStores: "Alle {n} winkels →",
+    noMatch: "Geen treffer. Vul een ZIP-code van vijf cijfers of een stadsnaam in.",
+    inStock: "{n} van {total} in het schap",
+    soldOut: "Uit het schap",
+    alertMe: "Op mijn volglijst zetten",
+    allStores: "Volledige winkellijst ({n}) →",
     here: "hier",
   },
   skeleton: {
-    loading: "Laden",
+    loading: "Wordt geladen",
   },
 };

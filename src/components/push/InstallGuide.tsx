@@ -30,7 +30,7 @@ export function InstallGuide({ vapidPublicKey }: { vapidPublicKey: string }) {
   const p = usePush(vapidPublicKey);
   const d = useT().install;
   const lang = useLang(), F = fieldCopy(lang), tabsId = useId();
-  // Sign-in and "Set up an alert" go to the home page of the person's language ("/" in English).
+  // Sign-in and the closing watchlist button lead to the home page of the person's language ("/" in English).
   const home = signInHome(useAppLocale() ?? undefined);
   const [picked, setTab] = useState<Tab | null>(null);
   const tab: Tab = picked ?? (p.platform === "unknown" ? "ios" : p.platform);

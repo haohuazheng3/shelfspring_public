@@ -24,20 +24,23 @@ export function zoneName(tz: string, lang: Lang): string {
   }
 }
 
+/** English weekday labels on store hours: two letters, Monday = 0 as enrich counts. */
+const EN_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+
 /**
- * Opening hours in the page's language. English keeps enrich's own wording (its source); other languages build the
- * same lines from the dictionary (`viaDict` forces that path, which is how the English templates are checked).
+ * Opening hours in the page's language, every language (English included) built from the dictionary (2026-11-08;
+ * `viaDict = false` still gives enrich's own wording, which nothing renders any more).
  */
-export function hoursIn(lang: Lang, d: Dict["modules"]["hours"], viaDict = lang !== "en") {
-  const short = (i: number) => (viaDict ? weekdays(lang, "short")[(i + 1) % 7] : DAY_SHORT[i]); // Monday = 0, as enrich counts
-  const day = (h: Pick<DayHours, "opens" | "closes">) => (!viaDict ? hoursText(h) : h.opens && h.closes ? `${h.opens}–${h.closes}` : d.closed);
+export function hoursIn(lang: Lang, d: Dict["modules"]["hours"], viaDict = true) {
+  const short = (i: number) => (!viaDict ? DAY_SHORT[i] : lang === "en" ? EN_DAYS[i] : weekdays(lang, "short")[(i + 1) % 7]); // Monday = 0, as enrich counts
+  const day = (h: Pick<DayHours, "opens" | "closes">) => (!viaDict ? hoursText(h) : h.opens && h.closes ? d.span(h.opens, h.closes) : d.closed);
   const week = (w: DayHours[]): string => {
     if (!viaDict) return compressHours(w);
     const groups = hoursGroups(w);
     if (groups.length === 1 && groups[0].days.length === 7) return w[0].opens && w[0].closes ? d.everyDay(day(w[0])) : d.closed;
     return groups.map((g) => `${g.days.length === 1 ? short(g.days[0]) : `${short(g.days[0])}–${short(g.days[g.days.length - 1])}`} ${day(w[g.days[0]])}`).join(" · ");
   };
-  /** todayLabel's "Open now · closes 21:00" / "Opens at 10:00" / "Closed today · opens tomorrow at 10:00". */
+  /** Today's status: "Doors open · until 21:00" / "Doors open at 10:00" / "Shut today · reopens tomorrow 10:00". */
   const status = (w: DayHours[], today: ReturnType<typeof todayLabel>): string => {
     if (!viaDict) return today.label;
     const next = () => {
@@ -55,7 +58,7 @@ export function hoursIn(lang: Lang, d: Dict["modules"]["hours"], viaDict = lang 
   return { short, day, week, status };
 }
 
-/** Address, phone, compressed hours, today's status in the store's zone, apple.com and directions links. */
+/** Today's status and the week first, then address and phone, then directions and apple.com links (store's zone). */
 export function StoreInfo({ store, showMapLink = true, compact = false, now = new Date() }: { store: Store; showMapLink?: boolean; compact?: boolean; now?: Date }) {
   const d = t().modules.hours;
   const h = hoursIn(pageLocale().lang, d);
@@ -67,14 +70,14 @@ export function StoreInfo({ store, showMapLink = true, compact = false, now = ne
   const code = stateCodeOf(store);
   return (
     <div className={compact ? "text-sm" : ""}>
-      <address className="not-italic text-ink-2">
-        {us ? <>{(store.street ?? "").trim()}, {store.city}, {code} {store.postalCode}</> : fullAddress(store)}
-        {store.phone && <> · {tel ? <a href={tel} className="underline decoration-line-2 hover:text-ink">{store.phone}</a> : store.phone}</>}
-      </address>
-      <p className="mt-1 text-ink-2">
+      <p className="text-ink-2">
         <span className={`font-medium ${statusClass(today.status)}`}>{h.status(week, today)}</span>
         <span className="text-ink-3">{d.today(h.day(today.today), h.week(week))}</span>
       </p>
+      <address className="mt-1 not-italic text-ink-2">
+        {us ? <>{(store.street ?? "").trim()}, {store.city}, {code} {store.postalCode}</> : fullAddress(store)}
+        {store.phone && <> · {tel ? <a href={tel} className="underline decoration-line-2 hover:text-ink">{store.phone}</a> : store.phone}</>}
+      </address>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
         <a href={directionsUrl(store)} target="_blank" rel="noopener noreferrer" className="underline decoration-line-2 hover:text-ink">{d.directions}</a>
         {store.url && <a href={store.url} target="_blank" rel="nofollow noopener noreferrer" className="underline decoration-line-2 hover:text-ink">{d.applePage}</a>}

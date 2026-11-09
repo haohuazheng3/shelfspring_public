@@ -120,27 +120,27 @@ describe("RestockClock with reports", () => {
   it("renders exactly as before when a place has no reports", () => {
     const plain = html(createElement(RestockClock, { stats: STATS, label: "here" }));
     expect(html(createElement(RestockClock, { stats: STATS, label: "here", reports: null }))).toBe(plain);
-    expect(plain).not.toMatch(/Reported|data-series|nofollow|Confirmed by/);
-    expect(html(createElement(RestockClock, { stats: { ...STATS, total: 0, byHour: Array(24).fill(0), byWeekday: Array(7).fill(0) }, label: "here", reports: null }))).not.toContain("By hour");
+    expect(plain).not.toMatch(/Reported|Outside reports|data-series|nofollow|Confirmed by/);
+    expect(html(createElement(RestockClock, { stats: { ...STATS, total: 0, byHour: Array(24).fill(0), byWeekday: Array(7).fill(0) }, label: "here", reports: null }))).not.toContain("Hour of day");
   });
 
   it("adds a separate, labelled series, keeps the sentence ours only, and links both trackers", () => {
     const out = html(createElement(RestockClock, { stats: STATS, label: "here", reports: nyc({ stores: ["R095"] }) }));
-    expect(out).toContain("6 restocks here in the last 30 days"); // ours only: the 4 reports are not added
+    expect(out).toContain("from 6 returns over 30 days"); // ours only: the 4 reports are not added
     expect(out).toContain("Recorded returns");
-    expect(out).toContain("Reported by other trackers (Apple Pickup Live, DuoReady), Oct 26 – Nov 1");
+    expect(out).toContain("Outside reports · Apple Pickup Live, DuoReady · Oct 26 – Nov 1");
     expect(out).toContain(`href="https://pickup.o1xhack.com/" target="_blank" rel="nofollow noopener"`);
     expect(out).toContain(`href="https://getduoready.com/stock/" target="_blank" rel="nofollow noopener"`);
-    expect(out).toContain("not restocks ShelfSpring confirmed");
+    expect(out).toContain("ShelfSpring did not observe these itself");
     // A dashed segment per hour and weekday with reports (4 + 4), plus the legend entry.
     expect(out.match(/data-series="reported"/g)).toHaveLength(9);
   });
 
   it("draws the reports even where we have none yet, and says ours is zero", () => {
     const out = html(createElement(RestockClock, { stats: { ...STATS, total: 0, byHour: Array(24).fill(0), byWeekday: Array(7).fill(0) }, label: "here", reports: nyc({ stores: ["R095"] }) }));
-    expect(out).toContain("No restocks recorded here in the last 30 days yet.");
-    expect(out).toContain("By hour · New York time");
-    expect(out).toContain("Reported by other trackers");
+    expect(out).toContain("No return logged here in the past 30 days.");
+    expect(out).toContain("Hour of day · New York clock");
+    expect(out).toContain("Outside reports");
   });
 });
 
@@ -158,12 +158,12 @@ describe("restock timeline with reports", () => {
 
   it("lists reports as their own rows with a legend and the footnote; ours keep the next time", () => {
     const out = html(createElement(RestockTimeline, { ...props, rows: [ours, reported], reported: meta }));
-    expect(out).toContain("Reported · Fifth Avenue");
+    expect(out).toContain("Third-party · Fifth Avenue");
     expect(out).toContain("Next: 9:00 AM tomorrow"); // the 10:00 report ahead of now is not "next"
-    expect(out).toContain("Reported by other trackers (DuoReady), Oct 26 – Nov 1");
+    expect(out).toContain("Outside reports · DuoReady · Oct 26 – Nov 1");
     expect(out).toContain(`rel="nofollow noopener"`);
     const plain = html(createElement(RestockTimeline, { ...props, rows: [ours] }));
-    expect(plain).not.toMatch(/Reported|nofollow|data-series/);
+    expect(plain).not.toMatch(/Reported|Third-party|nofollow|data-series/);
   });
 });
 
@@ -173,15 +173,15 @@ describe("account: When your stores restock, with reports", () => {
     const { RestockTimes } = await import("@/components/account/RestockTimes");
     fake.reports = nyc({ stores: ["R095"], parts: ["MK1E4LL/A", "MK1H4LL/A"] });
     const out = html((await RestockTimes({ watches }))!);
-    expect(out).toContain("Reported by other trackers (Apple Pickup Live, DuoReady), Oct 26 – Nov 1");
-    expect(out).toContain("Hollow dots: iPhone Duo restocks published by");
-    expect(out).toContain("Reported · Fifth Avenue");
+    expect(out).toContain("Outside reports · Apple Pickup Live, DuoReady · Oct 26 – Nov 1");
+    expect(out).toContain(" = iPhone Duo return reports that ");
+    expect(out).toContain("Third-party · Fifth Avenue");
     // Ours only, as the count tile: the value, then its label.
     expect(out).toContain(">2</span>");
-    expect(out).toContain("restocks at your store · last 30 days · too few for a pattern");
+    expect(out).toContain("returns logged at your store · 30-day log · not enough for a pattern");
     fake.reports = null;
     const plain = html((await RestockTimes({ watches }))!);
-    expect(plain).not.toMatch(/Reported|nofollow|data-series/);
+    expect(plain).not.toMatch(/Reported|Third-party|nofollow|data-series/);
   });
 });
 

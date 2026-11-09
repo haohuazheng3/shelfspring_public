@@ -1,8 +1,9 @@
 "use client";
 /**
- * "checked 7s ago", ticking every second. The number is the proof of the 20-second sweep, so it is
- * never rounded away to "just now". Server-rendered with the same formatter; the client takes over
- * on mount (suppressHydrationWarning covers the second that passes in between).
+ * "7 s ago", ticking every second. The number is the evidence that the shelf was looked at, so it is never
+ * rounded away to "just now". Units are written apart from the number ("4 min 12 s", "3 h 5 min", "2 d"), the way
+ * the site writes every other duration. Server-rendered with the same formatter; the client takes over on mount
+ * (suppressHydrationWarning covers the second that passes in between).
  */
 import { useEffect, useState } from "react";
 import { useLang } from "@/components/i18n/LangProvider";
@@ -12,11 +13,20 @@ export function formatAgo(d: Date | string | null | undefined, now: number): str
   if (!d) return "never";
   const t = typeof d === "string" ? new Date(d).getTime() : d.getTime();
   const s = Math.max(0, Math.round((now - t) / 1000));
-  if (s < 60) return `${s}s ago`;
-  if (s < 600) return `${Math.floor(s / 60)}m ${s % 60}s ago`;
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m ago`;
-  return `${Math.floor(s / 86400)}d ago`;
+  if (s < 60) return `${s} s ago`;
+  if (s < 600) return `${Math.floor(s / 60)} min ${s % 60} s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min ago`;
+  return `${Math.floor(s / 86400)} d ago`;
+}
+
+/** One unit only ("42 s ago", "18 min ago", "3 h ago", "2 d ago"): a timestamp's placeholder before the local clock shows. */
+export function formatAgoShort(d: Date | string, now: number): string {
+  const s = Math.max(0, Math.round((now - new Date(d).getTime()) / 1000));
+  if (s < 60) return `${s} s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  return `${Math.floor(s / 86400)} d ago`;
 }
 
 export function LiveAgo({ iso, className = "", never }: { iso: Date | string | null | undefined; className?: string; never?: string }) {

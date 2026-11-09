@@ -21,17 +21,21 @@ type NonUs = Exclude<CountryCode, "us">;
 const money = (cc: CountryCode, v: number) => price(L, COUNTRIES[cc], v);
 const lw = (items: string[], max = 6) => listWords(items, max, L);
 
-/** "自11月2日開始追蹤以來" while the 30-day window still reaches back to the start, else "過去 30 日". */
+/** 記錄窗口："在 11 月 2 日起的記錄中"（匯入的歷史仍未滿 30 日時），之後是"在最近 30 日內"。 */
 function sinceWhen(now = Date.now()): string {
-  return now - Date.parse(`${INTL_TRACKING_SINCE}T00:00:00Z`) < 30 * 86400_000 ? "自11月2日開始追蹤以來" : "過去 30 日";
+  return now - Date.parse(`${INTL_TRACKING_SINCE}T00:00:00Z`) < 30 * 86400_000 ? "在 11 月 2 日起的記錄中" : "在最近 30 日內";
+}
+/** 同一窗口的標籤寫法（放在括號或冒號前）："11 月 2 日起"／"最近 30 日"。 */
+function windowLabel(now = Date.now()): string {
+  return now - Date.parse(`${INTL_TRACKING_SINCE}T00:00:00Z`) < 30 * 86400_000 ? "11 月 2 日起" : "最近 30 日";
 }
 
 /** The official pages behind a country's lines, in Chinese where the source has a Chinese page (Hong Kong). */
 function sources(code: NonUs): { pickupHelp: Source; storeList: Source; tax: Source } {
   if (code === "hk") return {
-    pickupHelp: { label: "Apple：付運及送遞 · Apple Store 提取服務（香港）（提取時要帶甚麼）", url: "https://www.apple.com/hk-zh/shop/help/shipping_delivery" },
-    storeList: { label: "Apple：零售店列表（香港）", url: "https://www.apple.com/hk/retail/storelist/" },
-    tax: { label: "香港稅務局：稅務資料（香港徵收的稅項）", url: "https://www.ird.gov.hk/chi/tax/index.htm" },
+    pickupHelp: { label: "Apple 香港「付運及送遞」說明 · Apple Store 提取服務——到店需出示的文件", url: "https://www.apple.com/hk-zh/shop/help/shipping_delivery" },
+    storeList: { label: "Apple 香港零售店名單", url: "https://www.apple.com/hk/retail/storelist/" },
+    tax: { label: "稅務局網站：香港現行稅種", url: "https://www.ird.gov.hk/chi/tax/index.htm" },
   };
   return { pickupHelp: pickupHelp(code), storeList: storeListSource(code), tax: TAX_SOURCES[code] };
 }
@@ -44,12 +48,12 @@ function taxSentence(cc: CountryCode, region?: string): string {
   if (duo == null) return "";
   if (cc === "ca") {
     const t = region ? withProvinceTax(duo, region) : null;
-    if (t) return `256GB iPhone Duo 的 Apple 標價 ${money(cc, duo)} 未連稅；加上${zhPlace(cc, region!)}的 ${n(t.rate)}% ${CA_PROVINCE_TAX[region!].label}，約為 ${money(cc, t.total)}。`;
-    return `256GB iPhone Duo 的 Apple 標價 ${money(cc, duo)} 未連稅：視乎分店所在省份，另加 5% 至 15%。`;
+    if (t) return `256GB iPhone Duo 的未連稅標價是 ${money(cc, duo)}；${zhPlace(cc, region!)}在櫃台另收 ${n(t.rate)}% ${CA_PROVINCE_TAX[region!].label}，合共約 ${money(cc, t.total)}。`;
+    return `256GB iPhone Duo 的未連稅標價是 ${money(cc, duo)}；取貨店所在的省份會再加 5% 至 15%。`;
   }
   const r = includedRate(c);
-  if (r == null) return `256GB iPhone Duo 售 ${money(cc, duo)}；香港不設銷售稅，取貨時付的就是這個價。`;
-  return `256GB iPhone Duo 在${cn(cc)}售 ${money(cc, duo)}，已含 ${r}% ${taxNameZh(c)}：apple.com 的標價就是取貨時付的價錢。`;
+  if (r == null) return `香港不徵銷售稅，在店內提取的 256GB iPhone Duo 只付標價 ${money(cc, duo)}，不多一分。`;
+  return `${money(cc, duo)} 是 256GB iPhone Duo 在${cn(cc)}的標價，${r}% ${taxNameZh(c)}已計算在內，取貨時毋須再付稅。`;
 }
 
 const PRICE_ROWS: [ModelKey, string][] = [["duo", "256GB"], ["duo", "1TB"], ["18-pro-max", "256GB"], ["18-pro-max", "1TB"], ["18-pro", "256GB"]];
@@ -68,17 +72,17 @@ function priceSection(cc: CountryCode, placeName: string, region?: string, model
       const prov = zhPlace(cc, region!);
       const table: Block = {
         t: "table",
-        head: ["iPhone", "apple.com 價錢", `連 ${n(t.total)}% ${t.label}`],
+        head: ["配置", "標價（apple.com）", `計入 ${n(t.total)}% ${t.label}後`],
         rows: rows.map(([label, p]) => [label, money(cc, p), money(cc, withProvinceTax(p, region!)!.total)]),
-        caption: `${prov}：Apple 加拿大定價加上 ${t.label}（${n(t.total)}%）`,
-        source: `[${src.label}](${src.url})；價錢取自 apple.com/ca`,
+        caption: `${prov}取貨：加拿大標價另加 ${t.label}（${n(t.total)}%）`,
+        source: `[${src.label}](${src.url})；標價來源：apple.com/ca`,
       };
-      const parts = t.hst ? `${n(t.hst)}% HST` : t.pst ? `${t.gst}% GST 及 ${n(t.pst)}% ${t.label.split(" + ")[1]}` : `${t.gst}% GST（不設省銷售稅）`;
+      const parts = t.hst ? `${n(t.hst)}% HST` : t.pst ? `${t.gst}% GST 加 ${n(t.pst)}% ${t.label.split(" + ")[1]}` : `${t.gst}% GST，不另收省稅`;
       return {
         id: "price-with-tax",
-        h2: `${m.name} 在${place}連銷售稅的價錢`,
-        lead: `256GB ${m.name} **未連稅 ${money(cc, base)}**；加上${prov}的 ${parts}，在${place}的分店取貨約為 **${money(cc, withProvinceTax(base, region!)!.total)}**。`,
-        blocks: [{ t: "note", text: "**稅項按取貨地點計算：**稅率由分店所在省份決定，與你的住址無關。" }, table],
+        h2: `${place}取貨，${m.name} 連稅實付多少`,
+        lead: `256GB ${m.name} 的標價：**未連稅 ${money(cc, base)}**。${prov}再收 ${parts}，於${place}的店取貨約付 **${money(cc, withProvinceTax(base, region!)!.total)}**。`,
+        blocks: [{ t: "note", text: "**稅率跟取貨店走：**由店舖所在省份決定，與你的帳單地址無關。" }, table],
       };
     }
     const provinces = Object.keys(CA_PROVINCE_TAX).filter((p) => storesOf("ca").some((s) => s.state === p));
@@ -86,14 +90,14 @@ function priceSection(cc: CountryCode, placeName: string, region?: string, model
     const dearest = provinces.reduce((a, b) => (CA_PROVINCE_TAX[b].total > CA_PROVINCE_TAX[a].total ? b : a));
     return {
       id: "price-with-tax",
-      h2: `${m.name} 加拿大連銷售稅價錢（按省份）`,
-      lead: `256GB ${m.name} 的 Apple 標價 **${money(cc, base)}** 未連稅；取貨分店所在省份另外加稅，由${zhPlace(cc, cheapest)}的 **${money(cc, withProvinceTax(base, cheapest)!.total)}**（${n(CA_PROVINCE_TAX[cheapest].total)}%）到${zhPlace(cc, dearest)}的 **${money(cc, withProvinceTax(base, dearest)!.total)}**（${n(CA_PROVINCE_TAX[dearest].total)}%）。`,
+      h2: `${m.name} 連稅價錢，逐省列出`,
+      lead: `256GB ${m.name} 的未連稅標價是 **${money(cc, base)}**。在${zhPlace(cc, cheapest)}（${n(CA_PROVINCE_TAX[cheapest].total)}%）取貨合共 **${money(cc, withProvinceTax(base, cheapest)!.total)}**；在${zhPlace(cc, dearest)}（${n(CA_PROVINCE_TAX[dearest].total)}%）則升至 **${money(cc, withProvinceTax(base, dearest)!.total)}**。`,
       blocks: [{
         t: "table",
-        head: ["省份", "稅項", "稅率", `${m.short} 256GB 連稅`],
+        head: ["省份", "稅種", "稅率", `${m.short} 256GB 稅後`],
         rows: provinces.map((p) => [zhPlace(cc, p), CA_PROVINCE_TAX[p].label, `${n(CA_PROVINCE_TAX[p].total)}%`, money(cc, withProvinceTax(base, p)!.total)]),
-        caption: "設有 Apple Store 的省份：店舖取貨須付的銷售稅",
-        source: `[${src.label}](${src.url})；價錢取自 apple.com/ca`,
+        caption: "取貨櫃台加收的稅（只列設有 Apple Store 的省份）",
+        source: `[${src.label}](${src.url})；標價來源：apple.com/ca`,
       }],
     };
   }
@@ -101,16 +105,16 @@ function priceSection(cc: CountryCode, placeName: string, region?: string, model
   const tn = taxNameZh(c);
   return {
     id: "price",
-    h2: r == null ? `${m.name} ${cn(cc)}價錢：${money(cc, base)} 起（不設銷售稅）` : `${m.name} ${cn(cc)}價錢：${money(cc, base)} 起（已含 ${r}% ${tn}）`,
+    h2: `${m.name} 在${cn(cc)}：標價 ${money(cc, base)}，${r == null ? "毋須另付銷售稅" : `${r}% ${tn}已計入`}`,
     lead: r == null
-      ? `apple.com 上 256GB ${m.name} 售 **${money(cc, base)}**，在${place}取貨時付的就是這個價：香港**不設銷售稅**，亦沒有增值稅。`
-      : `256GB ${m.name} 在${cn(cc)}售 **${money(cc, base)}**，**已含 ${r}% ${tn}**（未連稅為 ${money(cc, beforeTax(c, base))}），在${place}取貨時不會另外加錢。`,
+      ? `香港**不徵銷售稅**，增值稅亦不存在：256GB ${m.name} 在 apple.com 的標價 **${money(cc, base)}**，就是在${place}取貨時的全部費用。`
+      : `**${money(cc, base)}** 買到${cn(cc)}的 256GB ${m.name}；這個數字已包含 **${r}% ${tn}**（扣除後為 ${money(cc, beforeTax(c, base))}），在${place}取貨不會再加稅。`,
     blocks: [{
       t: "table",
-      head: r == null ? ["iPhone", "apple.com 價錢"] : ["iPhone", "apple.com 價錢", `未連 ${r}% ${tn}`],
+      head: r == null ? ["配置", "標價（apple.com）"] : ["配置", "標價（apple.com）", `扣除 ${r}% ${tn}後`],
       rows: rows.map(([label, p]) => (r == null ? [label, money(cc, p)] : [label, money(cc, p), money(cc, beforeTax(c, p))])),
-      caption: `Apple ${cn(cc)}定價${r == null ? "（不設銷售稅）" : `，已含${tn}`}`,
-      source: `[${src.label}](${src.url})；價錢取自 apple.com/${shopPath}`,
+      caption: `${cn(cc)}標價一覽${r == null ? "" : `（${tn}已在內）`}`,
+      source: `[${src.label}](${src.url})；標價來源：apple.com/${shopPath}`,
     }],
   };
 }
@@ -122,13 +126,13 @@ function taxFaq(cc: CountryCode, placeName: string, region?: string): FaqItem {
   if (cc === "ca") {
     const t = region ? withProvinceTax(duo, region) : null;
     return t
-      ? { q: `在${place}買 iPhone Duo 連稅要多少錢？`, a: `256GB 約 ${money(cc, t.total)}：Apple 標價 ${money(cc, duo)}，加上${zhPlace(cc, region!)}的 ${n(t.rate)}% ${CA_PROVINCE_TAX[region!].label}，按取貨地點收取。` }
-      : { q: "Apple 加拿大的價錢已含稅嗎？", a: `未含。256GB iPhone Duo 未連稅 ${money(cc, duo)}；GST、HST 或省銷售稅按分店所在省份另加，由艾伯塔省的 5% 到魁北克省的 14.975%。` };
+      ? { q: `在${place}取 256GB iPhone Duo，連稅大約多少？`, a: `約 ${money(cc, t.total)}：Apple 的未連稅標價是 ${money(cc, duo)}，再由你取貨那間店按${zhPlace(cc, region!)}的 ${n(t.rate)}% ${CA_PROVINCE_TAX[region!].label}收稅。` }
+      : { q: "Apple 加拿大的標價包含稅嗎？", a: `不包含：256GB iPhone Duo 的 ${money(cc, duo)} 是未連稅價，之後由取貨店所在省份加收 GST、HST 或省銷售稅（艾伯塔省 5% 最低，魁北克省 14.975% 最高）。` };
   }
   const r = includedRate(c);
   return r == null
-    ? { q: "在香港買 iPhone 要付銷售稅嗎？", a: `不用。香港不設銷售稅或增值稅，256GB iPhone Duo 取貨時付 ${money(cc, duo)}，與 apple.com 標價完全一樣。` }
-    : { q: `apple.com 的${cn(cc)}價錢已含${taxNameZh(c)}嗎？`, a: `已含。256GB iPhone Duo 的 ${money(cc, duo)} 已包括 ${r}% ${taxNameZh(c)}；到店提取時不會另外加錢。` };
+    ? { q: "在香港取貨，iPhone 會被加稅嗎？", a: `不會加任何稅：香港既無增值稅，亦無銷售稅，在店內提取的 256GB iPhone Duo 就是標價 ${money(cc, duo)}。` }
+    : { q: `apple.com 在${cn(cc)}收的價錢，已包含 ${r}% ${taxNameZh(c)}嗎？`, a: `已包含：256GB iPhone Duo 標示的 ${money(cc, duo)} 內含 ${r}% ${taxNameZh(c)}，取貨時櫃台不會再收稅。` };
 }
 
 /* ------------------------------------------------------------------ region / city pages */
@@ -165,16 +169,16 @@ function placeDescription(i: IntlPlaceInput): string {
 
 function placeIntro(i: IntlPlaceInput): string {
   const k = i.stores.length;
-  const cities = i.kind === "state" && i.cities && i.cities > 1 ? `，分佈於 ${n(i.cities)} 個${cityNoun(i.cc)}` : "";
-  return `${placeOf(i)}共有 **${n(k)} 間 Apple Store**${cities}：現時 **${n(i.stockNow.duo)}** 間可取貨 iPhone Duo，**${n(i.stockNow["18-pro-max"])}** 間有 18 Pro Max，**${n(i.stockNow["18-pro"])}** 間有 18 Pro。`;
+  const cities = i.kind === "state" && i.cities && i.cities > 1 ? `（${n(i.cities)} 個${cityNoun(i.cc)}）` : "";
+  return `觀察簿收錄${placeOf(i)}${cities}的 **${n(k)} 間 Apple Store**。最近一次查看時，iPhone Duo 在 **${n(i.stockNow.duo)}** 間在架，18 Pro Max **${n(i.stockNow["18-pro-max"])}** 間，18 Pro **${n(i.stockNow["18-pro"])}** 間。`;
 }
 
 function duoLead(i: IntlPlaceInput): string {
   const k = i.stores.length;
   const have = duoStoresNow(i);
-  if (have.length > 0) return `**${n(k)} 間中有 ${n(have.length)} 間**現在有 iPhone Duo 可取貨：${lw(have.map((s) => apple(s)), 4)}。`;
-  if (i.duo.month > 0) return `**${n(k)} 間現時都沒有** iPhone Duo，但${sinceWhen()}已補貨 **${n(i.duo.month)} 次**。`;
-  return `**${n(k)} 間現時都沒有** iPhone Duo，${sinceWhen()}亦未錄得任何一次 Duo 補貨。`;
+  if (have.length > 0) return `上次查看時在架：${lw(have.map((s) => apple(s)), 4)}（**${n(have.length)}/${n(k)} 間**）。`;
+  if (i.duo.month > 0) return `iPhone Duo 暫時在全部 **${n(k)} 間**都已落架；不過觀察簿${sinceWhen()}仍錄得 **${n(i.duo.month)} 次確認回架**。`;
+  return `iPhone Duo 在全部 **${n(k)} 間**都已落架，觀察簿${sinceWhen()}亦未有任何確認回架。`;
 }
 
 function duoPoints(i: IntlPlaceInput, w: string, alert: string): Block[] {
@@ -183,13 +187,13 @@ function duoPoints(i: IntlPlaceInput, w: string, alert: string): Block[] {
   const st = i.duo;
   const last = st.lastRestock ? i.stores.find((s) => s.storeNumber === st.lastRestock!.storeNumber) : undefined;
   const items: string[] = [];
-  if (have.length > 0 && st.month > 0) items.push(`**已記錄：**${sinceWhen()}，這裏的分店共補貨 Duo ${n(st.month)} 次`);
-  if (st.lastRestock && last) items.push(`**最近一次補貨：**${zoneStampZh(st.lastRestock.at, i.cc)}，${apple(last)}`);
-  if (st.medianMs != null) items.push(`**一般上架時間：**補貨後的 Duo 通常只上架約 ${fmtDuration(st.medianMs, L)}（中位數）`);
-  items.push(`**最快方法：**[在${w}設定 iPhone Duo 提醒](${alert})，${k <= 3 ? `剔選${k === 2 ? "兩間" : k === 1 ? "這間" : "三間"}分店` : `剔選你去得到、最近的 ${n(Math.min(k, 5))} 間分店`}`);
-  items.push("**一個提醒** = 一間分店 × 一款指定配置；分店一上架，推送幾秒內送到");
+  if (have.length > 0 && st.month > 0) items.push(`**回架（${windowLabel()}）：**這幾間店合共 ${n(st.month)} 次 Duo 回架`);
+  if (st.lastRestock && last) items.push(`**最近一次回架：**${apple(last)}，${zoneStampZh(st.lastRestock.at, i.cc)}`);
+  if (st.medianMs != null) items.push(`**在架時間中位數：**由回架到清架約 ${fmtDuration(st.medianMs, L)}`);
+  items.push(`**監察清單：**[監察${w}的 iPhone Duo](${alert})，${k <= 3 ? `${k === 2 ? "兩間" : k === 1 ? "這間" : "三間"}都加上` : `加上你到得了、最近的 ${n(Math.min(k, 5))} 間`}`);
+  items.push("**規則大小：**每個提示只涵蓋一間店及一款指定配置；偵測到在架並完成同步後才送出，快慢不一");
   const blocks: Block[] = [];
-  if (have.length === 0 && st.month === 0) blocks.push({ t: "note", text: "**情況一分鐘內就可能改變：**想買到，靠的是提醒，而不是不停重新整理 apple.com。" });
+  if (have.length === 0 && st.month === 0) blocks.push({ t: "note", text: "**觀察簿仍未錄得回架：**先把想要的配置放進監察清單，落單前再對照最新一次查看。" });
   blocks.push({ t: "ul", items });
   return blocks;
 }
@@ -203,19 +207,19 @@ function placeSections(i: IntlPlaceInput): KeywordSection[] {
   return [
     {
       id: "iphone-duo",
-      h2: `${w}哪間 Apple Store 現在有 iPhone Duo？`,
+      h2: `${w}：iPhone Duo 在哪些店在架`,
       lead: duoLead(i),
       blocks: duoPoints(i, w, alert),
     },
     {
       id: "iphone-18-pro-max",
-      h2: `${w}的 iPhone 18 Pro Max：各分店現貨`,
-      lead: `**${n(k)} 間中有 ${n(i.stockNow["18-pro-max"])} 間**有 iPhone 18 Pro Max，${w}合共 ${n(k * pm)} 個「分店 × 款式」組合中，**${pairsPct(i, "18-pro-max")}%** 有貨。`,
+      h2: `${w}：18 Pro Max 各店在架情況`,
+      lead: `Pro Max 在 **${n(i.stockNow["18-pro-max"])}/${n(k)} 間**在架；把每個「店 × 配置」組合（共 ${n(k * pm)} 個）計算在內，**${pairsPct(i, "18-pro-max")}%** 有上架。`,
       blocks: [{ t: "ul", items: [
-        ...(scarce.length ? [`**現時最缺：**${lw(scarce.map((x) => `${zhCfg(x.label)}（${x.stores === 0 ? `${n(k)} 間都沒有` : `${n(k)} 間中 ${n(x.stores)} 間有貨`}）`))}`] : []),
-        `**iPhone 18 Pro：**${n(k)} 間中 ${n(i.stockNow["18-pro"])} 間有貨，${pairsPct(i, "18-pro")}% 的組合有貨`,
-        `**已記錄（${sinceWhen()}）：**${i.max.month ? `18 Pro Max 補貨 ${n(i.max.month)} 次` : "暫未有 18 Pro Max 補貨"}`,
-        ...(i.max.medianMs != null ? [`**一般上架時間：**補貨後的 Pro Max 通常上架約 ${fmtDuration(i.max.medianMs, L)}（中位數）`] : []),
+        ...(scarce.length ? [`**現時選擇最少：**${lw(scarce.map((x) => `${zhCfg(x.label)}，${n(x.stores)}/${n(k)} 間`))}`] : []),
+        `**同場的 18 Pro：**${n(i.stockNow["18-pro"])}/${n(k)} 間，${pairsPct(i, "18-pro")}% 組合在架`,
+        `**Pro Max 回架（${windowLabel()}）：**${i.max.month ? `${n(i.max.month)} 次確認回架` : "未有記錄"}`,
+        ...(i.max.medianMs != null ? [`**在架時間中位數：**回架的 Pro Max 約 ${fmtDuration(i.max.medianMs, L)}`] : []),
       ] }],
     },
     priceSection(i.cc, w, i.cc === "ca" ? i.region : undefined),
@@ -241,12 +245,12 @@ function homeTitle(cc: CountryCode): string {
 
 function homeH1(cc: CountryCode): string {
   const k = storesOf(cc).length;
-  return k === 1 ? `${cn(cc)} Apple Store 的 iPhone 現貨查詢` : `${cn(cc)}全部 ${n(k)} 間 Apple Store 的 iPhone 現貨查詢`;
+  return k === 1 ? `${cn(cc)}取貨觀察簿：唯一一間 Apple Store` : `${cn(cc)}取貨觀察簿：${n(k)} 間 Apple Store`;
 }
 
 function allStoresPhrase(cc: CountryCode): string {
   const k = storesOf(cc).length;
-  return k === 1 ? `${cn(cc)}唯一一間 Apple Store` : `${cn(cc)}全部 ${n(k)} 間 Apple Store`;
+  return k === 1 ? `${cn(cc)}僅有的一間 Apple Store` : `遍及${cn(cc)}的 ${n(k)} 間 Apple Store`;
 }
 
 function spreadPhrase(cc: CountryCode): string {
@@ -255,10 +259,10 @@ function spreadPhrase(cc: CountryCode): string {
   const cities = citiesWithStores(cc);
   const k = storesOf(cc).length;
   const one = (x: { name: string }) => cityLabel(cc, x.name, L);
-  if (k === 1) return `位於${one(cities[0])}`;
-  if (cities.length === 1) return `全部位於${one(cities[0])}`;
-  if (!c.regionNoun || regions.length === 1) return `分佈於 ${n(cities.length)} 個${cityNoun(cc)}`;
-  return `分佈於 ${n(regions.length)} 個${rn(c)}的 ${n(cities.length)} 個城市`;
+  if (k === 1) return `設於${one(cities[0])}`;
+  if (cities.length === 1) return `全數集中在${one(cities[0])}`;
+  if (!c.regionNoun || regions.length === 1) return `散佈 ${n(cities.length)} 個${cityNoun(cc)}`;
+  return `散佈 ${n(regions.length)} 個${rn(c)}、共 ${n(cities.length)} 個城市`;
 }
 
 function modelPageTitles(cc: CountryCode, model: ModelKey): { title: string; h2: string[] } {
@@ -267,7 +271,7 @@ function modelPageTitles(cc: CountryCode, model: ModelKey): { title: string; h2:
   const w = cn(cc);
   return {
     title: fitW([`${m.name} 現貨：${w} ${k === 1 ? "" : `${n(k)} 間 `}Apple Store 即時查詢`, `${m.name} 現貨：${w} Apple Store 即時查詢`, `${m.name} ${w}現貨`], 70),
-    h2: [`${m.name} 哪裏有貨？${w}現時有貨的分店`, priceSection(cc, w, undefined, model).h2],
+    h2: [`${m.name} 在${w}：現時在架的零售店`, priceSection(cc, w, undefined, model).h2],
   };
 }
 
@@ -278,9 +282,9 @@ function modelIntro(cc: CountryCode, model: ModelKey, inStock: number): string {
   const r = priceRange(cc, model);
   const p = cc === "ca" ? `**${money(cc, r.low)}** 起（未連稅）` : `**${money(cc, r.low)}** 起，${taxNoteZh(c)}`;
   const now = inStock === 0
-    ? (k === 1 ? `${cn(cc)}唯一一間 Apple Store 現時**沒有** ${m.name} 可供取貨` : `${cn(cc)} ${n(k)} 間 Apple Store 現時**都沒有** ${m.name} 可供取貨`)
-    : `${cn(cc)} ${n(k)} 間 Apple Store 中，現時有 **${n(inStock)} 間**可取貨 ${m.name}`;
-  return `${now}（**每 15 秒**檢查一次）；售價 ${p}。`;
+    ? (k === 1 ? `${cn(cc)}僅有的一間 Apple Store 暫時**沒有** ${m.name} 在架` : `${m.name} 在${cn(cc)}全部 ${n(k)} 間 Apple Store **都已落架**`)
+    : `${m.name} 在${cn(cc)} **${n(inStock)}/${n(k)}** 間 Apple Store 在架`;
+  return `${now}，以頁面顯示的觀察時間為準；標價 ${p}。`;
 }
 
 function modelDescription(cc: CountryCode, model: ModelKey, inStock: number): string {
@@ -305,8 +309,8 @@ function homeDescription(cc: CountryCode): string {
 
 function homeIntro(cc: CountryCode): string {
   const k = storesOf(cc).length;
-  if (k === 1) return `現時${cn(cc)}唯一一間 Apple Store 的取貨現貨：iPhone Duo **{{duo.storesNow}}/1**，iPhone 18 Pro **{{pro.storesNow}}/1**，iPhone 18 Pro Max **{{pm.storesNow}}/1**。`;
-  return `現時${cn(cc)} ${n(k)} 間 Apple Store 中，有 **{{duo.storesNow}}** 間可取貨 iPhone Duo，iPhone 18 Pro 有 **{{pro.storesNow}}** 間，iPhone 18 Pro Max 有 **{{pm.storesNow}}** 間。`;
+  if (k === 1) return `${cn(cc)}僅有一間 Apple Store，最新架上點算：iPhone Duo **{{duo.storesNow}}/1**、18 Pro **{{pro.storesNow}}/1**、18 Pro Max **{{pm.storesNow}}/1**。`;
+  return `${cn(cc)}最新架上點算：iPhone Duo 在 **{{duo.storesNow}}/${n(k)}** 間 Apple Store 在架，18 Pro **{{pro.storesNow}}** 間，18 Pro Max **{{pm.storesNow}}** 間。`;
 }
 
 function homeSections(i: HomeCopyInput): KeywordSection[] {
@@ -319,15 +323,15 @@ function homeSections(i: HomeCopyInput): KeywordSection[] {
   return [
     {
       id: "iphone-stock",
-      h2: `${w}哪間 Apple Store 有 iPhone 現貨？Duo、18 Pro 及 Pro Max 逐店看`,
-      lead: `ShelfSpring 每 15 秒讀取一次 apple.com 上${allStoresPhrase(cc)}每一款配置的店舖取貨狀態，按分店${by}及按款式列出。`,
+      h2: `${w}的貨架：逐店記錄 Duo、18 Pro、Pro Max`,
+      lead: `ShelfSpring 透過同步的存貨資料，記下 apple.com 上${allStoresPhrase(cc)}每款配置的店內取貨狀態，可按店${by}及按配置翻查。`,
       blocks: [
-        { t: "table", head: ["型號", "款式數目", "現時有貨分店", "已記錄補貨"], rows: modelRows(cc, i.storesNow, i.restocks), caption: `${w}的查詢範圍，截至 {{asOf}}` },
+        { t: "table", head: ["iPhone", "追蹤中的配置", "在架零售店", "觀察簿內的回架"], rows: modelRows(cc, i.storesNow, i.restocks), caption: `${w}觀察範圍 · {{asOf}} 查看` },
         { t: "ul", items: [
-          `**覆蓋範圍：**${spreadPhrase(cc)} · 價錢及零件編號均採用 Apple ${w}官方資料`,
-          "**每間分店每 15 秒**檢查一次，你設了提醒的分店每 5 秒一次",
-          "**兩次確認才算數：**apple.com 偶爾一次異常回應，不會變成假補貨或假售罄",
-          `**每個確認的變化**都寫入[補貨記錄](${i.restocksPath})，再匯成${i.index?.indexable ? `[各分店頁](${i.index.path})` : "分店頁"}上的補貨圖表`,
+          `**範圍：**${spreadPhrase(cc)}；零件編號及標價依照 Apple ${w}網上商店`,
+          "**先看時間戳：**所有方案讀同一份存貨資料，收集及同步都可能帶來延遲",
+          "**兩次查看一致才入簿：**變化要經確認才記錄；提示並不能替你留貨",
+          `**每一項經確認的變化**都寫進[回架日誌](${i.restocksPath})，亦即${i.index?.indexable ? `[每間店頁面](${i.index.path})` : "店頁"}上鐘點圖的來源`,
         ] },
         { t: "img", id: "phone-notification" },
       ],
@@ -335,17 +339,17 @@ function homeSections(i: HomeCopyInput): KeywordSection[] {
     priceSection(cc, w),
     {
       id: "alerts",
-      h2: `怎樣第一時間知道${w} Apple Store 補貨？`,
-      lead: `查看現貨免費；要付費的，是「不用再自己查」。揀選你去得到的 Apple Store 和想要的那一款手機，${k === 1 ? "分店" : "任何一間"}一開放店舖取貨，幾秒內你的手機就收到推送。`,
+      h2: `${w} Apple Store 取貨的監察清單`,
+      lead: `把取貨選擇收窄成一張實際可行的清單：揀${k === 1 ? "這間" : "你到得了的"} Apple Store，再揀你肯接受的配置。翻閱觀察簿不收費；付費提示會在符合條件的回架傳到 ShelfSpring 後通知你，送達時間不一。`,
       blocks: [
         { t: "ol", items: [
-          "按「**提醒我**」，揀選 iPhone、容量及顏色。",
-          k === 1 ? `剔選分店：${apple(stores[0])}（${cityLabel(cc, stores[0].city, L)}）。` : "剔選你去得到的分店；最近的排最前，附行車距離（公里）及車程。",
-          "在 iPhone 上把 ShelfSpring 加至主畫面，並允許通知（[安裝方法](/install)）。",
-          "推送一到，直接由通知打開 apple.com，在結帳時選擇於該分店「提取」。",
+          "按「**設定提示**」，選定型號、容量及機色。",
+          k === 1 ? `選取零售店：${apple(stores[0])}（${cityLabel(cc, stores[0].city, L)}）。` : "選取到得了的店；名單由最近的開始，列出行車公里數及估計車程。",
+          "iPhone 用戶：在 Safari 把 ShelfSpring 安裝到主畫面，再開啟通知（[設定步驟](/install)）。",
+          "收到通知後前往 apple.com，先確認那間店仍然在架，再選擇在該店取貨。",
         ] },
-        { t: "table", head: ["方案", "月費（美元）", "提醒數目"], rows: [["Plus", "$5 / 月", "10"], ["Pro", "$10 / 月", "20"], ["Max", "$20 / 月", "50"]], caption: "一個提醒 = 一間分店 × 一款指定配置 · 瀏覽免費（[收費詳情](/pricing)）" },
-        { t: "note", text: "**我們的看法：**Duo 值得在每一間你去得到的分店都設提醒；18 Pro 和 Pro Max 先看即時數字再決定。" },
+        { t: "table", head: ["監察清單", "月費（美元）", "店 × 配置規則"], rows: [["Plus", "$5", "10"], ["Pro", "$10", "20"], ["Max", "$20", "50"]], caption: "每條規則監察一間店及一款指定配置；翻閱觀察簿不收費（[方案](/pricing)）" },
+        { t: "note", text: "**按證據取捨：**決定哪些店放進監察清單之前，先比較現時在架情況、樣本大小及近期回架。" },
         { t: "img", id: "apple-store-pickup-counter" },
       ],
     },
@@ -357,30 +361,30 @@ function homeFaq(cc: CountryCode, rt: RestockTimesBrief): Faq[] {
   const w = cn(cc);
   const p = `/${cc}`;
   const when = rt.n === 0
-    ? `自11月2日開始追蹤以來，暫未確認任何一次補貨。[${w}的 iPhone Duo 幾時補貨？](${rt.path})會按當地鐘點和星期，逐次統計。`
+    ? `11 月 2 日起匯入的記錄仍未有確認回架；[${w}的 Duo 回架記錄](${rt.path})之後會把每一次按當地鐘點及星期歸類。`
     : rt.peakHour != null
-      ? `大多在**當地時間${hr(rt.peakHour)}左右**：自11月2日以來，${n(rt.storesTotal)} 間中有 ${n(rt.stores)} 間共確認補貨 ${n(rt.n)} 次。[逐小時、逐日數據](${rt.path})。`
-      : `自11月2日以來，${n(rt.storesTotal)} 間中有 ${n(rt.stores)} 間共確認補貨 ${n(rt.n)} 次，但日子仍太少，未能指出慣常時段。[逐小時、逐日數據](${rt.path})。`;
+      ? `集中在**當地時間${hr(rt.peakHour)}前後**，根據 11 月 2 日起的記錄：${n(rt.stores)}/${n(rt.storesTotal)} 間店共錄得 ${n(rt.n)} 次確認回架（[完整鐘點及星期記錄](${rt.path})）。`
+      : `11 月 2 日起的記錄中，${n(rt.stores)}/${n(rt.storesTotal)} 間店共錄得 ${n(rt.n)} 次確認回架，但分佈的日子太少，說不出慣常鐘點（[完整鐘點及星期記錄](${rt.path})）。`;
   return [
-    { q: `${w}哪間 Apple Store 現在有 iPhone Duo？`, a: `最近一次檢查（{{asOf}}）${n(k)} 間中有 {{duo.storesNow}} 間。[${w} iPhone Duo 現貨](${p}/stock/iphone-duo)逐店逐款列出，每 15 秒更新。` },
-    { q: `Apple 幾時在${w}補貨 iPhone Duo？`, a: when },
-    { q: "提醒有幾快？", a: `你設了提醒的分店每 5 秒檢查一次，${w}每間 Apple Store 每 15 秒一次。首次出現「有貨」會在一秒內再查一次，免得 Apple 的偶發異常變成誤報；確認後約 3 秒推送到你的手機。` },
-    { q: "收費多少？", a: "即時現貨、地圖和補貨記錄全部免費。提醒方案：Plus 每月 $5 有 10 個、Pro $10 有 20 個、Max $20 有 50 個，以美元收費，隨時取消（[收費詳情](/pricing)）。" },
+    { q: `此刻${w}哪些店有 iPhone Duo 在架？`, a: `最近一次查看（{{asOf}}）是 {{duo.storesNow}}/${n(k)} 間；[${w}的 Duo 一覽](${p}/stock/iphone-duo)按店、按配置分行，每行附上自己的時間戳。` },
+    { q: `${w}的 iPhone Duo 一般幾點回架？`, a: when },
+    { q: "提示幾時會送到我手上？", a: `在回架出現於${w}的同步資料之後。收集、同步、網絡及你的裝置設定都會加入少許延遲，而且所有方案讀同一份資料，出發前請先在 Apple 確認仍然在架。` },
+    { q: "哪些免費、哪些要付費？", a: "翻閱觀察簿、地圖及回架日誌都免費。提示規則分 Plus（每月 $5，10 條）、Pro（$10，20 條）及 Max（$20，50 條），以美元收費，可在帳戶內取消（[方案](/pricing)）。" },
     taxFaq(cc, w),
-    { q: "可以幫我留貨嗎？", a: `不可以。分店一上架我們即時通知你；你在 apple.com 選擇店舖提取並付款，Apple 便會為你保留（[Apple 提取服務說明](${sources(cc as NonUs).pickupHelp.url})）。` },
+    { q: "ShelfSpring 會替我留起手機嗎？", a: `做不到：通知只指向一個偵測到的上架，要在 apple.com 落單並獲確認，手機才算屬於你（[Apple 提取服務說明](${sources(cc as NonUs).pickupHelp.url})）。` },
   ];
 }
 
 const home: Dict["place"]["home"] = {
-  appName: (cc: CountryCode) => `ShelfSpring ${cn(cc)} iPhone 現貨查詢`,
-  offer: "即時現貨、地圖及補貨記錄免費；提醒每月 $5（美元）起",
+  appName: (cc: CountryCode) => `ShelfSpring ${cn(cc)}取貨觀察簿`,
+  offer: "觀察簿、地圖及回架日誌免費翻閱；提示方案每月 $5（美元）起",
   itemList: (cc: CountryCode) => `${cn(cc)} Apple Store`,
-  restockTimesChip: "幾時補貨",
-  storesByRegion: (cc: CountryCode) => `按${rn(COUNTRIES[cc])}查看分店`,
-  browse: (cc: CountryCode) => `瀏覽${cn(cc)}現貨`,
-  selloutH2: (cc: CountryCode) => `${cn(cc)}的 iPhone 補貨幾快售罄？`,
-  selloutLabel: (cc: CountryCode) => `${cn(cc)}各間 Apple Store`,
-  last24Label: (cc: CountryCode) => cn(cc),
+  restockTimesChip: "過往回架鐘點",
+  storesByRegion: (cc: CountryCode) => `按${rn(COUNTRIES[cc])}瀏覽`,
+  browse: (cc: CountryCode) => `再翻${cn(cc)}觀察簿`,
+  selloutH2: (cc: CountryCode) => `${cn(cc)}回架的 iPhone 在架多久？`,
+  selloutLabel: (cc: CountryCode) => (cc === "hk" ? "全港各店" : `${cn(cc)}各店`),
+  last24Label: (cc: CountryCode) => (cc === "hk" ? "全港" : `${cn(cc)}全境`),
   newsroom: "Apple Newsroom：iPhone Duo 登陸全球 Apple Store（2026 年 10 月 23 日）",
 };
 

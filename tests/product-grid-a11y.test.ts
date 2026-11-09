@@ -43,7 +43,7 @@ describe("configuration matrix link names", () => {
     expect(new Set(rendered.map(link => link.label)).size).toBe(grid.cells.size);
     for (const cell of grid.cells.values()) {
       expect(rendered.find(link => link.href === productPath(cell.product, US))?.label).toBe(
-        `${cell.item.model} ${cell.item.storage} ${cell.item.color} · ${cell.count} ${cell.count === 1 ? "store" : "stores"} with stock`,
+        `${cell.item.model} ${cell.item.storage} ${cell.item.color} · ${cell.count} ${cell.count === 1 ? "store" : "stores"} holding it`,
       );
     }
   });
@@ -52,8 +52,8 @@ describe("configuration matrix link names", () => {
     request.lang = "ja";
     const grid = configGrid(stock, product, US);
     const rendered = links(renderToStaticMarkup(createElement(ProductGrid, { grid, place: US, current: product })));
-    expect(rendered.find(link => link.href === "/stock/iphone-duo-256gb-night-sky")?.label).toBe("iPhone Duo 256GB ナイトスカイ · 1 在庫のある店舗");
-    expect(rendered.every(link => !link.label?.includes("stores with stock"))).toBe(true);
+    expect(rendered.find(link => link.href === "/stock/iphone-duo-256gb-night-sky")?.label).toBe("iPhone Duo 256GB ナイトスカイ · 1 棚に出している店舗");
+    expect(rendered.every(link => !link.label?.includes("stores holding it"))).toBe(true);
   });
 
   it("announces store-level availability and distinguishes an unchecked configuration", () => {
@@ -62,7 +62,7 @@ describe("configuration matrix link names", () => {
     const rendered = links(renderToStaticMarkup(createElement(ProductGrid, { grid, place, current: product })));
     for (const cell of grid.cells.values()) {
       const label = rendered.find(link => link.href === productPath(cell.product, place))?.label;
-      const status = cell.status?.status === "available" ? "In stock" : cell.status ? "Not available" : "Not checked yet";
+      const status = cell.status?.status === "available" ? "On the shelf" : cell.status ? "Off the shelf" : "No observation yet";
       expect(label).toBe(`${cell.item.model} ${cell.item.storage} ${cell.item.color} · ${status}`);
     }
   });

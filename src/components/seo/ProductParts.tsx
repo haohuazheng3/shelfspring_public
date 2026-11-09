@@ -46,19 +46,22 @@ function Count({ n }: { n: number }) {
   return <span className={`tabular-nums ${n > 0 ? "font-semibold text-accent" : "opacity-50"}`}>{n}</span>;
 }
 
-/** Model segmented control + storage and color chips. Links keep the place and the scroll position. */
+/**
+ * Model segmented control (with counts) + finish and capacity chips (finish first; no counts — the grid under them
+ * has every count). Links keep the place and the scroll position.
+ */
 export function ProductNav({ facets, place, unit }: { facets: Facets; place: Place; unit: string }) {
   const d = t().content.product;
   const lang = pageLocale().lang;
-  // Facet labels come in English ("All", colour names); other languages relabel them.
-  const facetLabel = (f: Facet, kind: "storage" | "color") => (lang === "en" ? f.label : kind === "color" ? (f.swatch ? colorLabel(f.swatch, lang) : d.all) : f.product.storage ? f.label : d.all);
+  // Facet labels come in English (colour names, "All"); the catch-all chip reads `all`, other languages relabel colours.
+  const facetLabel = (f: Facet, kind: "storage" | "color") => (kind === "color" ? (f.swatch ? (lang === "en" ? f.label : colorLabel(f.swatch, lang)) : d.all) : f.product.storage ? f.label : d.all);
   const row = (label: string, items: Facet[], kind: "storage" | "color") => (
     <div className="flex items-center gap-2">
       <span className="w-14 shrink-0 text-[0.65rem] font-semibold uppercase tracking-wider text-ink-3">{label}</span>
       <div className="flex min-w-0 gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none]">
         {items.map((f) => (
           <Link key={f.label} href={productPath(f.product, place)} scroll={false} className="chip chip-sm shrink-0" data-on={f.on} aria-current={f.on ? "page" : undefined}>
-            {f.swatch && <Swatch color={f.swatch} className="h-2.5 w-2.5" />}{facetLabel(f, kind)}{!f.on && <> <Count n={f.count} /></>}
+            {f.swatch && <Swatch color={f.swatch} className="h-2.5 w-2.5" />}{facetLabel(f, kind)}
           </Link>
         ))}
       </div>
@@ -74,14 +77,14 @@ export function ProductNav({ facets, place, unit }: { facets: Facets; place: Pla
           </Link>
         ))}
       </div>
-      {row(d.storage, facets.storages, "storage")}
       {row(d.color, facets.colors, "color")}
+      {row(d.storage, facets.storages, "storage")}
       <p className="text-xs text-ink-3">{d.numbersAre(unit)}</p>
     </nav>
   );
 }
 
-/** Stores of a place for one product, in stock first. Each row opens that store's page for the same product. */
+/** Stores of a place for one product, on the shelf first. A row reads store, status, city and distance, then the count; it opens that store's page for the same product. */
 export function ProductStoreList({ product, lines, showCity = true, emptyText }: { product: Product; lines: StoreLine[]; showCity?: boolean; emptyText: string }) {
   if (lines.length === 0) return <p className="py-6 text-center text-sm text-ink-3">{emptyText}</p>;
   const d = t().content.product;
@@ -93,14 +96,13 @@ export function ProductStoreList({ product, lines, showCity = true, emptyText }:
         const on = l.available.length > 0;
         return (
           <li key={l.store.storeNumber}>
-            <Link href={productPath(product, storePlace(l.store))} className="flex min-w-0 items-center gap-3 py-2.5 hover:bg-ink/[0.03]">
-              <Dot state={on ? "ok" : l.tracked ? "idle" : "warn"} live={on} />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium text-ink">{storeLabel(l.store, lang)}</span>
-                <span className="block truncate text-xs text-ink-3">{showCity ? `${cityIn(l.store, lang)}${l.distance != null ? ` · ${distLabel(l.distance, l.store.country, lang)}` : ""} · ` : ""}{on ? d.seen(<LiveAgo iso={l.lastAvailableAt} />) : l.lastAvailableAt ? d.last(<LiveAgo iso={l.lastAvailableAt} />) : l.tracked ? d.notSeenYet : d.firstCheckPending}</span>
-              </span>
-              <span className={`shrink-0 text-sm tabular-nums ${on ? "font-semibold text-accent" : "text-ink-3"}`}>{one ? (on ? d.inStock : "—") : `${l.available.length}/${l.tracked || product.parts.length}`}</span>
-              <span className="shrink-0 text-ink-3" aria-hidden>›</span>
+            {/* Read order: store, its count, then status, city and distance (the count sits at the right on screen). */}
+            <Link href={productPath(product, storePlace(l.store))} className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 py-2.5 hover:bg-ink/[0.03]">
+              <span className="col-start-1 row-span-2 row-start-1"><Dot state={on ? "ok" : l.tracked ? "idle" : "warn"} live={on} /></span>
+              <span className="col-start-2 row-start-1 block truncate font-medium text-ink">{storeLabel(l.store, lang)}</span>
+              <span className={`col-start-3 row-span-2 row-start-1 text-sm tabular-nums ${on ? "font-semibold text-accent" : "text-ink-3"}`}>{one ? (on ? d.inStock : "—") : `${l.available.length}/${l.tracked || product.parts.length}`}</span>
+              <span className="col-start-2 row-start-2 block truncate text-xs text-ink-3">{on ? d.seen(<LiveAgo iso={l.lastAvailableAt} />) : l.lastAvailableAt ? d.last(<LiveAgo iso={l.lastAvailableAt} />) : l.tracked ? d.notSeenYet : d.firstCheckPending}{showCity ? ` · ${cityIn(l.store, lang)}${l.distance != null ? ` · ${distLabel(l.distance, l.store.country, lang)}` : ""}` : ""}</span>
+              <span className="col-start-4 row-span-2 row-start-1 text-ink-3" aria-hidden>›</span>
             </Link>
           </li>
         );
@@ -109,24 +111,27 @@ export function ProductStoreList({ product, lines, showCity = true, emptyText }:
   );
 }
 
-/** storage × color: stores with each configuration (a place) or its status (a store). Cells open that configuration here. */
+/**
+ * capacity × finish (capacities down the side, finishes across): stores with each configuration (a place) or its
+ * status (a store). Cells open that configuration here.
+ */
 export function ProductGrid({ grid, place, current }: { grid: { storages: string[]; colors: string[]; cells: Map<string, GridCell> }; place: Place; current: Product }) {
   const d = t().content.product;
   const lang = pageLocale().lang;
-  const cols = `minmax(5.25rem,1.7fr) repeat(${grid.storages.length}, minmax(2.25rem,1fr))`;
+  const cols = `minmax(4rem,1fr) repeat(${grid.colors.length}, minmax(2.75rem,1.2fr))`;
   const atStore = place.level === "store";
   return (
     <div className="overflow-hidden rounded-2xl border border-line">
-      <div className="grid gap-x-1.5 border-b border-line px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wider text-ink-3" style={{ gridTemplateColumns: cols }}>
-        <span>{d.color}</span>{grid.storages.map((s) => <span key={s} className="text-center">{s}</span>)}
+      <div className="grid items-center gap-x-1.5 border-b border-line px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wider text-ink-3" style={{ gridTemplateColumns: cols }}>
+        <span>{d.storage}</span>{grid.colors.map((c) => <span key={c} className="inline-flex min-w-0 items-center justify-center gap-1"><Swatch color={c} className="h-2.5 w-2.5" /><span className="truncate">{colorLabel(c, lang)}</span></span>)}
       </div>
       <ul className="divide-y divide-line">
-        {grid.colors.map((c) => (
-          <li key={c} className="grid items-center gap-x-1.5 px-3 py-1.5" style={{ gridTemplateColumns: cols }}>
-            <span className="inline-flex min-w-0 items-center gap-1.5 text-sm"><Swatch color={c} /><span className="truncate">{colorLabel(c, lang)}</span></span>
-            {grid.storages.map((s) => {
+        {grid.storages.map((s) => (
+          <li key={s} className="grid items-center gap-x-1.5 px-3 py-1.5" style={{ gridTemplateColumns: cols }}>
+            <span className="text-sm tabular-nums">{s.replace(/^(\d+)(GB|TB)$/, "$1 $2")}</span>
+            {grid.colors.map((c) => {
               const cell = grid.cells.get(`${s}|${c}`);
-              if (!cell) return <span key={s} className="text-center text-xs text-ink-3">—</span>;
+              if (!cell) return <span key={c} className="text-center text-xs text-ink-3">—</span>;
               const on = atStore ? cell.status?.status === "available" : cell.count > 0;
               const here = cell.product.slug === current.slug;
               const availability = atStore
@@ -135,7 +140,7 @@ export function ProductGrid({ grid, place, current }: { grid: { storages: string
               // Outline the row / column a storage or color page covers; a model page covers everything, so nothing.
               const scoped = cell.inScope && (current.kind === "storage" || current.kind === "color");
               return (
-                <Link key={s} href={productPath(cell.product, place)} scroll={false} title={lang === "en" ? `${cell.product.name} · ${place.country && place.country !== "us" ? formatPrice(COUNTRIES[place.country], cell.item.price) : fmtPrice(cell.item.price)}` : `${cell.item.model} ${configLabel(cell.item, lang)} · ${price(lang, COUNTRIES[place.country ?? "us"], cell.item.price)}`}
+                <Link key={c} href={productPath(cell.product, place)} scroll={false} title={lang === "en" ? `${cell.product.name} · ${place.country && place.country !== "us" ? formatPrice(COUNTRIES[place.country], cell.item.price) : fmtPrice(cell.item.price)}` : `${cell.item.model} ${configLabel(cell.item, lang)} · ${price(lang, COUNTRIES[place.country ?? "us"], cell.item.price)}`}
                   aria-label={`${bidi(cell.item.model, lang)} ${configLabel(cell.item, lang)} · ${availability}`}
                   className={`inline-flex h-8 items-center justify-center gap-1 rounded-full text-sm tabular-nums ${on ? "bg-accent/15 font-semibold text-accent" : "text-ink-3"} ${here ? "ring-2 ring-ink" : scoped ? "ring-1 ring-ink/25" : ""}`}>
                   {atStore ? (on ? "✓" : "–") : <><Dot state={on ? "ok" : "idle"} live={on} />{cell.count}</>}
@@ -149,9 +154,13 @@ export function ProductGrid({ grid, place, current }: { grid: { storages: string
   );
 }
 
-/** A compact list of places with "in stock / stores", each opening the same product there. */
-export function PlaceCountList({ product, items, max = 60 }: { product: Product; items: PlaceCount[]; max?: number }) {
-  if (items.length === 0) return null;
+/**
+ * A compact list of places with "on the shelf / stores", each opening the same product there. Places with the most
+ * stores holding it come first, then by name (nearest-first lists, which carry a distance, keep their order).
+ */
+export function PlaceCountList({ product, items: given, max = 60 }: { product: Product; items: PlaceCount[]; max?: number }) {
+  if (given.length === 0) return null;
+  const items = given.some((p) => p.distance != null) ? given : [...given].sort((a, b) => b.inStock - a.inStock || a.place.name.localeCompare(b.place.name));
   const d = t().content.product;
   const lang = pageLocale().lang;
   const cc = (p: Place) => p.country ?? "us";

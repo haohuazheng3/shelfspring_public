@@ -52,3 +52,6 @@ export function alternatesIn(path: string, loc: Locale, languages?: Record<strin
   const langs = isCuratedPath(own) ? curatedLanguages(languages ?? versionsOf(own)) : {};
   return Object.keys(langs).length ? { canonical: own, languages: langs } : { canonical: own };
 }
+
+/** A one-hour slot on the 24-hour clock ("09–10"), the restock-time tables' own format; sentences keep the 12-hour wording. */
+export const slot24 = (h: number) => `${String(h).padStart(2, "0")}–${String((h + 1) % 24).padStart(2, "0")}`;

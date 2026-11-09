@@ -347,8 +347,8 @@ export default async function WhereToBuyPage() {
       </div>
       <RelatedBlock>
         <LinkRow title="Evidence for the next decision" links={[
-          { href: "/iphone-duo-restock-times", label: "When does Apple restock the iPhone Duo?" },
-          { href: "/iphone-duo-sell-out-times", label: "How fast does it sell out?" },
+          { href: "/iphone-duo-restock-times", label: "The iPhone Duo return study, hour by hour" },
+          { href: "/iphone-duo-sell-out-times", label: "How long a return stays listed" },
           { href: "/iphone-duo-stock-alerts", label: "iPhone Duo stock alerts" },
           { href: "/iphone-duo-near-me", label: "iPhone Duo near me" },
           { href: "/how-to-get-an-iphone-duo", label: "How to get an iPhone Duo" },
@@ -359,7 +359,7 @@ export default async function WhereToBuyPage() {
         <LinkRow title="Live pages" links={[
           { href: "/stock/iphone-duo", label: "iPhone Duo stock at every US store" },
           { href: "/restocks", label: "The restock log" },
-          { href: "/map", label: "Live map" },
+          { href: "/map", label: "Pickup map" },
           { href: "/stores", label: "All 269 US Apple Stores" },
         ]} />
         <LinkRow title="Continue the purchase plan" links={[

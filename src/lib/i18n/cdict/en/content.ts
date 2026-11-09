@@ -5,23 +5,23 @@
 export const content = {
   quickCheck: {
     /** aria-label of the model switch. */
-    model: "iPhone model",
+    model: "Choose an iPhone model",
     /** Search box label and placeholder. */
-    search: "ZIP, city or Apple Store",
-    useLocation: "Use my location",
-    nearMe: "📍 Near me",
-    locationOff: "Location is off for this site. Type a ZIP instead.",
-    /** {n} of {total}: stores with it now; {what}: the model or configuration ("iPhone 18 Pro Max Burgundy"). */
-    storesNow: "**{n} of {total}** US Apple Stores have the {what} for pickup now",
+    search: "Find stores by ZIP, city or store name",
+    useLocation: "Sort stores by my location",
+    nearMe: "📍 Locate me",
+    locationOff: "Location access is off here; enter a ZIP code instead.",
+    /** {n} / {total}: stores with it now; {what}: the model, or a narrower label such as a colour of it. */
+    storesNow: "{what}: on the shelf at **{n} / {total}** US Apple Stores right now",
     /** {place}: the typed ZIP / city / store, or "you". */
-    nearestTo: " · nearest to {place}",
+    nearestTo: " · sorted from {place}",
     you: "you",
-    noMatch: "No match. Try a 5-digit ZIP or a city.",
+    noMatch: "Nothing matched. Enter a five-digit ZIP or a city name.",
     /** {n} configurations of {total} at one store. */
-    inStock: "{n}/{total} in stock",
-    soldOut: "Sold out",
-    alertMe: "Alert me when it's in stock",
-    allStores: "All {n} stores →",
+    inStock: "{n} of {total} on shelf",
+    soldOut: "Off the shelf",
+    alertMe: "Add it to my watchlist",
+    allStores: "Full store list ({n}) →",
     /** Drive time under a few hundred metres. */
     here: "here",
   },

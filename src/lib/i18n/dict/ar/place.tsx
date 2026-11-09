@@ -21,7 +21,7 @@ import type { Dict } from "../en";
 import { content } from "./content";
 import {
   APPLE_STORES, CITIES_G, L, N, SEARCHED_MODEL, STORES_G, TIMES, allWord, biCountry, count, country, currencyAr, durAr, inCountry,
-  regionNoun, regionsCount, taxAr, theStores, theStoresG,
+  regionNoun, regionsCount, taxAr, theStoresG,
 } from "./util";
 
 /** Arabic spellings people search, once in a price heading on the model pages (ايفون 18 برو ماكس 6,600 a month; سعر … 390). */
@@ -59,12 +59,12 @@ function taxSentence(cc: CountryCode, region?: string): string {
   if (duo == null) return "";
   if (cc === "ca") {
     const t = region ? withProvinceTax(duo, region) : null;
-    if (t) return `سعر Apple لجهاز iPhone Duo بسعة 256GB هو ${money(c, duo)} قبل الضريبة؛ ومع ضريبة ${provinceAr(region!)} البالغة ${t.rate}% (${CA_PROVINCE_TAX[region!].label}) يصل إلى نحو ${money(c, t.total)}.`;
-    return `سعر Apple لجهاز iPhone Duo بسعة 256GB هو ${money(c, duo)} قبل الضريبة، وتُضاف إليه 5% إلى 15% حسب المقاطعة.`;
+    if (t) return `iPhone Duo بسعة 256GB: ${money(c, duo)} لدى Apple دون الضريبة، ونحو ${money(c, t.total)} بعد ضريبة ${provinceAr(region!)} (${t.rate}%، ${CA_PROVINCE_TAX[region!].label}).`;
+    return `iPhone Duo بسعة 256GB: ${money(c, duo)} لدى Apple دون الضريبة، ثم تضيف المقاطعة ما بين 5% و15%.`;
   }
   const r = includedRate(c);
-  if (r == null) return `سعر iPhone Duo بسعة 256GB هو ${money(c, duo)}، ولا ضريبة مبيعات في هونغ كونغ، فهذا ما تدفعه عند الاستلام.`;
-  return `سعر iPhone Duo بسعة 256GB ${inCountry(cc)} هو ${money(c, duo)} شاملًا ${taxAr(c)} ${r}%: سعر apple.com هو ما تدفعه عند الاستلام.`;
+  if (r == null) return `iPhone Duo بسعة 256GB: ${money(c, duo)}، ولأن هونغ كونغ لا تفرض ضريبة مبيعات فهذا هو المبلغ نفسه عند الاستلام.`;
+  return `iPhone Duo بسعة 256GB ${inCountry(cc)}: ${money(c, duo)}، و${taxAr(c)} (${r}%) داخلة فيه؛ فالمبلغ على apple.com هو المبلغ عند الاستلام.`;
 }
 
 const PRICE_ROWS: [ModelKey, string][] = [["duo", "256GB"], ["duo", "1TB"], ["18-pro-max", "256GB"], ["18-pro-max", "1TB"], ["18-pro", "256GB"]];
@@ -81,11 +81,11 @@ function priceSection(cc: CountryCode, placeName: string, region?: string, model
       const pa = provinceAr(region!);
       return {
         id: "price-with-tax",
-        h2: `كم سعر ${m.name} شاملًا الضريبة في ${placeName}؟`,
-        lead: `سعر ${m.name} بسعة 256GB هو **${money(c, base)} قبل الضريبة**؛ ومع ضريبة ${pa} (${t.label}، ${t.total}%) يصل إلى نحو **${money(c, withProvinceTax(base, region!)!.total)}** في متجر في ${placeName}.`,
+        h2: `ما كلفة ${m.name} في ${placeName} بعد الضريبة؟`,
+        lead: `**${money(c, base)} دون الضريبة** لسعة 256GB من ${m.name}؛ وبعد ضريبة ${pa} (${t.label}، ${t.total}%) يقارب المبلغ **${money(c, withProvinceTax(base, region!)!.total)}** في متاجر ${placeName}.`,
         blocks: [
-          { t: "note", text: "**الضريبة تُحتسب حيث تستلم:** مقاطعة المتجر هي التي تحدد النسبة، لا عنوان سكنك." },
-          { t: "table", head: ["iPhone", "سعر apple.com", `شاملًا ${t.total}%`], rows: rows.map(([label, p]) => [label, money(c, p), money(c, withProvinceTax(p, region!)!.total)]), caption: `${pa}: سعر Apple في كندا مع ${t.label} (${t.total}%)`, source: `[${src.label}](${src.url})؛ الأسعار من ${shopOf(c)}` },
+          { t: "note", text: "**مقاطعة المتجر تحدد النسبة:** الضريبة تتبع مكان الاستلام، لا عنوان سكنك." },
+          { t: "table", head: ["iPhone", "سعر القائمة على apple.com", `بعد ${t.total}%`], rows: rows.map(([label, p]) => [label, money(c, p), money(c, withProvinceTax(p, region!)!.total)]), caption: `${pa}: أسعار Apple الكندية بعد ${t.label} (${t.total}%)`, source: `[${src.label}](${src.url})؛ الأسعار: ${shopOf(c)}` },
         ],
       };
     }
@@ -94,14 +94,14 @@ function priceSection(cc: CountryCode, placeName: string, region?: string, model
     const dearest = provinces.reduce((a, b) => (CA_PROVINCE_TAX[b].total > CA_PROVINCE_TAX[a].total ? b : a));
     return {
       id: "price-with-tax",
-      h2: `كم سعر ${m.name} في كندا شاملًا الضريبة؟ حسب المقاطعة`,
-      lead: `سعر Apple البالغ **${money(c, base)}** لجهاز ${m.name} بسعة 256GB لا يشمل الضريبة؛ تضيفها مقاطعة متجر الاستلام، من **${money(c, withProvinceTax(base, cheapest)!.total)}** في ${provinceAr(cheapest)} (${CA_PROVINCE_TAX[cheapest].total}%) إلى **${money(c, withProvinceTax(base, dearest)!.total)}** في ${provinceAr(dearest)} (${CA_PROVINCE_TAX[dearest].total}%).`,
+      h2: `ما كلفة ${m.name} في كندا بعد الضريبة؟ مقاطعةً مقاطعة`,
+      lead: `**${money(c, base)}** هو سعر Apple لسعة 256GB من ${m.name} قبل الضريبة، ومقاطعة متجر الاستلام تضيف نسبتها؛ فيتراوح المبلغ بين **${money(c, withProvinceTax(base, cheapest)!.total)}** في ${provinceAr(cheapest)} (${CA_PROVINCE_TAX[cheapest].total}%) و**${money(c, withProvinceTax(base, dearest)!.total)}** في ${provinceAr(dearest)} (${CA_PROVINCE_TAX[dearest].total}%).`,
       blocks: [{
         t: "table",
-        head: ["المقاطعة", "الضريبة", "النسبة", `${m.short} 256GB شاملًا الضريبة`],
+        head: ["المقاطعة", "اسم الضريبة", "النسبة", `${m.short} 256GB بعد الضريبة`],
         rows: provinces.map((p) => [provinceAr(p), CA_PROVINCE_TAX[p].label, `${CA_PROVINCE_TAX[p].total}%`, money(c, withProvinceTax(base, p)!.total)]),
-        caption: "المقاطعات التي فيها متجر Apple: ضريبة الاستلام من المتجر",
-        source: `[${src.label}](${src.url})؛ الأسعار من ${shopOf(c)}`,
+        caption: "الضريبة على الاستلام في كل مقاطعة فيها متجر Apple",
+        source: `[${src.label}](${src.url})؛ الأسعار: ${shopOf(c)}`,
       }],
     };
   }
@@ -109,16 +109,16 @@ function priceSection(cc: CountryCode, placeName: string, region?: string, model
   const tn = taxAr(c);
   return {
     id: "price",
-    h2: r == null ? `كم سعر ${priceName(model, m.name)} ${inCountry(cc)}؟ من ${money(c, base)} بلا ضريبة` : `كم سعر ${priceName(model, m.name)} ${inCountry(cc)}؟ من ${money(c, base)} شاملًا الضريبة`,
+    h2: r == null ? `ما سعر ${priceName(model, m.name)} ${inCountry(cc)}؟ يبدأ من ${money(c, base)} دون ضريبة` : `ما سعر ${priceName(model, m.name)} ${inCountry(cc)}؟ يبدأ من ${money(c, base)} والضريبة داخلة فيه`,
     lead: r == null
-      ? `**${money(c, base)}** لجهاز ${m.name} بسعة 256GB على apple.com هو ما تدفعه عند الاستلام في ${placeName}: لا **ضريبة مبيعات** ولا ضريبة قيمة مضافة في هونغ كونغ.`
-      : `سعر ${m.name} بسعة 256GB ${inCountry(cc)} هو **${money(c, base)}**، **شاملًا ${tn} ${r}%** (${money(c, beforeTax(c, base))} قبل الضريبة)، ولا يُضاف شيء عند الاستلام في ${placeName}.`,
+      ? `على apple.com يبلغ ${m.name} بسعة 256GB **${money(c, base)}**، وهو المبلغ نفسه عند الاستلام في ${placeName}: هونغ كونغ لا تفرض **ضريبة مبيعات** ولا ضريبة قيمة مضافة.`
+      : `**${money(c, base)}** لسعة 256GB من ${m.name} ${inCountry(cc)}، و**${tn} (${r}%) داخلة فيه**، أي ${money(c, beforeTax(c, base))} قبلها؛ والاستلام في ${placeName} لا يضيف شيئًا.`,
     blocks: [{
       t: "table",
-      head: r == null ? ["iPhone", "سعر apple.com"] : ["iPhone", "سعر apple.com", `قبل ${tn} ${r}%`],
+      head: r == null ? ["iPhone", "على apple.com"] : ["iPhone", "على apple.com", `دون ${tn} (${r}%)`],
       rows: rows.map(([label, p]) => (r == null ? [label, money(c, p)] : [label, money(c, p), money(c, beforeTax(c, p))])),
-      caption: `أسعار Apple ${inCountry(cc)}${r == null ? "" : `، شاملة ${tn}`}`,
-      source: `[${src.label}](${src.url})؛ الأسعار من ${shopOf(c)}`,
+      caption: `قائمة أسعار Apple ${inCountry(cc)}${r == null ? "" : ` (${tn} داخلة فيها)`}`,
+      source: `[${src.label}](${src.url})؛ الأسعار: ${shopOf(c)}`,
     }],
   };
 }
@@ -129,13 +129,13 @@ function taxFaq(cc: CountryCode, placeName: string, region?: string): FaqItem {
   if (cc === "ca") {
     const t = region ? withProvinceTax(duo, region) : null;
     return t
-      ? { q: `كم سعر iPhone Duo شاملًا الضريبة في ${placeName}؟`, a: `نحو ${money(c, t.total)} لسعة 256GB: سعر Apple البالغ ${money(c, duo)} مع ضريبة ${provinceAr(region!)} (${t.rate}%، ${CA_PROVINCE_TAX[region!].label})، وتُحتسب حيث تستلم.` }
-      : { q: "هل يشمل سعر Apple في كندا الضريبة؟", a: `لا. سعر iPhone Duo بسعة 256GB هو ${money(c, duo)} قبل الضريبة؛ وتضيف مقاطعة المتجر GST أو HST أو ضريبة المقاطعة، من 5% في ألبرتا إلى 14.975% في كيبيك.` };
+      ? { q: `ما كلفة iPhone Duo في ${placeName} بعد الضريبة؟`, a: `قرابة ${money(c, t.total)} لسعة 256GB: ${money(c, duo)} من Apple مضافًا إليها ضريبة ${provinceAr(region!)} (${t.rate}%، ${CA_PROVINCE_TAX[region!].label})، والنسبة تتبع مكان الاستلام.` }
+      : { q: "هل تدخل الضريبة في أسعار Apple الكندية؟", a: `لا. ${money(c, duo)} لسعة 256GB من iPhone Duo سعرٌ قبل الضريبة، ثم تضيف مقاطعة المتجر GST أو HST أو ضريبتها الخاصة: من 5% في ألبرتا حتى 14.975% في كيبيك.` };
   }
   const r = includedRate(c);
   return r == null
-    ? { q: "هل توجد ضريبة مبيعات على iPhone في هونغ كونغ؟", a: `لا. لا ضريبة مبيعات ولا ضريبة قيمة مضافة في هونغ كونغ، لذا يكلّف iPhone Duo بسعة 256GB ${money(c, duo)} عند الاستلام، وهو سعر apple.com نفسه.` }
-    : { q: `هل يشمل سعر apple.com ${inCountry(cc)} ${taxAr(c)}؟`, a: `نعم. سعر iPhone Duo بسعة 256GB البالغ ${money(c, duo)} يشمل ${taxAr(c)} ${r}%، ولا يُضاف شيء حين تستلمه من المتجر.` };
+    ? { q: "هل يدفع مشتري iPhone في هونغ كونغ ضريبة مبيعات؟", a: `لا، فهونغ كونغ بلا ضريبة مبيعات أو قيمة مضافة؛ لذلك يكلّف iPhone Duo بسعة 256GB عند الاستلام ${money(c, duo)}، تمامًا كما على apple.com.` }
+    : { q: `هل ${taxAr(c)} داخلة في أسعار apple.com ${inCountry(cc)}؟`, a: `نعم، داخلة. ${money(c, duo)} لسعة 256GB من iPhone Duo تتضمن ${taxAr(c)} بنسبة ${r}%، والاستلام من المتجر لا يضيف أي مبلغ.` };
 }
 
 /* ------------------------------------------------------------------ emirate and city pages */
@@ -280,19 +280,20 @@ function homeH1(cc: CountryCode): string {
 }
 
 function allStoresPhrase(cc: CountryCode): string {
-  return `${theStores(storesOf(cc).length)} ${inCountry(cc)}`;
+  const n = storesOf(cc).length;
+  return n === 1 ? `متجر Apple الوحيد ${inCountry(cc)}` : `${count(n, APPLE_STORES)} في أنحاء ${country(cc)}`;
 }
 
-/** Where the stores are: "في 3 مدن ضمن إمارتين" / "كلها في دبي" / "في دبي". */
+/** Where the stores are: "موزعة على 3 مدن في إمارتين" / "جميعها داخل دبي" / "في دبي". */
 function spreadPhrase(cc: CountryCode): string {
   const c = COUNTRIES[cc];
   const regions = statesWithStores(cc);
   const cities = citiesWithStores(cc);
   const n = storesOf(cc).length;
   if (n === 1) return `في ${cityLabel(cc, cities[0].name, L)}`;
-  if (cities.length === 1) return `كلها في ${cityLabel(cc, cities[0].name, L)}`;
-  if (!c.regionNoun || regions.length === 1) return `في ${count(cities.length, CITIES_G)}`;
-  return `في ${count(cities.length, CITIES_G)} ضمن ${regionsCount(c, regions.length)}`;
+  if (cities.length === 1) return `جميعها داخل ${cityLabel(cc, cities[0].name, L)}`;
+  if (!c.regionNoun || regions.length === 1) return `موزعة على ${count(cities.length, CITIES_G)}`;
+  return `موزعة على ${count(cities.length, CITIES_G)} في ${regionsCount(c, regions.length)}`;
 }
 
 function modelPageTitles(cc: CountryCode, model: ModelKey): { title: string; h2: string[] } {
@@ -376,7 +377,7 @@ function homeSections(i: HomeCopyInput): KeywordSection[] {
       h2: `مخزون iPhone ${inCountry(cc)}: Duo و18 Pro وPro Max حسب المتجر`,
       lead: `يقرأ ShelfSpring توفر الاستلام من المتجر على apple.com لكل خيار في ${allStoresPhrase(cc)} كل 15 ثانية، حسب المتجر${n > 1 ? ` و${c.regionNoun ? `ال${regionNoun(c)}` : "المدينة"}` : ""} والخيار.`,
       blocks: [
-        { t: "table", head: ["الطراز", "الخيارات", "متاجر فيها مخزون الآن", "مرات التوفر المسجلة"], rows: modelRows(cc, i.storesNow, i.restocks), caption: `ما يغطيه الفحص ${inCountry(cc)}، حتى {{asOf}}` },
+        { t: "table", head: ["الطراز", "التكوينات", "متاجر تعرضه الآن", "عودات في السجل"], rows: modelRows(cc, i.storesNow, i.restocks), caption: `نطاق الرصد ${inCountry(cc)}، حتى {{asOf}}` },
         { t: "ul", items: [
           `**التغطية:** ${count(n, APPLE_STORES)} ${spreadPhrase(cc)} · الأسعار وأرقام القطع من Apple ${country(cc)}`,
           "**كل متجر كل 15 ثانية**، والمتاجر التي تتابعها بتنبيهاتك كل 5 ثوانٍ",
@@ -398,7 +399,7 @@ function homeSections(i: HomeCopyInput): KeywordSection[] {
           "على iPhone، أضف ShelfSpring إلى الشاشة الرئيسية واسمح بالإشعارات ([طريقة التثبيت](/install)).",
           `حين يصل الإشعار افتح منه apple.com${cc === "ae" ? " (صفحة الشراء بالإنجليزية)" : ""} وأكمل الشراء مع الاستلام من ذلك المتجر.`,
         ] },
-        { t: "table", head: ["الباقة", "السعر (بالدولار الأمريكي)", "التنبيهات"], rows: [["Plus", "$5 / الشهر", "10"], ["Pro", "$10 / الشهر", "20"], ["Max", "$20 / الشهر", "50"]], caption: "التنبيه الواحد = متجر واحد × خيار محدد واحد · التصفح مجاني ([الباقات](/pricing))" },
+        { t: "table", head: ["الخطة", "السعر بالدولار الأمريكي", "قواعد التنبيه"], rows: [["Plus", "$5 في الشهر", "10"], ["Pro", "$10 في الشهر", "20"], ["Max", "$20 في الشهر", "50"]], caption: "كل قاعدة = متجر واحد × تكوين محدد واحد · التصفح بلا مقابل ([الخطط](/pricing))" },
         { t: "note", text: "**رأينا:** iPhone Duo يستحق تنبيهًا في كل متجر يمكنك الوصول إليه؛ أما 18 Pro وPro Max فانظر إلى الأرقام المباشرة أولًا." },
         { t: "img", id: "apple-store-pickup-counter" },
       ],
@@ -428,13 +429,13 @@ const homeLabels: Dict["place"]["home"] = {
   appName: (cc: CountryCode) => `ShelfSpring لفحص مخزون iPhone ${inCountry(cc)}`,
   offer: "المخزون المباشر والخريطة وسجل التوفر مجانًا؛ والتنبيهات من $5 شهريًا",
   itemList: (cc: CountryCode) => `متاجر Apple ${inCountry(cc)}`,
-  restockTimesChip: "متى يتوفر",
-  storesByRegion: (cc: CountryCode) => `المتاجر حسب ال${regionNoun(COUNTRIES[cc])}`,
-  browse: (cc: CountryCode) => `تصفّح المخزون ${inCountry(cc)}`,
-  selloutH2: (cc: CountryCode) => `كم يصمد iPhone بعد توفره ${inCountry(cc)} قبل أن ينفد؟`,
-  selloutLabel: (cc: CountryCode) => `في متاجر Apple ${biCountry(cc)}`,
+  restockTimesChip: "ساعات العودة",
+  storesByRegion: (cc: CountryCode) => `دليل المتاجر حسب ال${regionNoun(COUNTRIES[cc])}`,
+  browse: (cc: CountryCode) => `تصفّح الرفوف ${inCountry(cc)}`,
+  selloutH2: (cc: CountryCode) => `كم يبقى iPhone على الرف بعد عودته ${inCountry(cc)}؟`,
+  selloutLabel: (cc: CountryCode) => `عبر متاجر Apple ${biCountry(cc)}`,
   last24Label: (cc: CountryCode) => inCountry(cc),
-  newsroom: "Apple Newsroom: وصول iPhone Duo إلى متاجر Apple حول العالم (23 أكتوبر 2026، بالإنجليزية)",
+  newsroom: "«وصول iPhone Duo إلى متاجر Apple حول العالم» · بيان Apple الصحفي، 23 أكتوبر 2026 (بالإنجليزية)",
 };
 
 /** Store page <title> and H1: "ابل دبي مول: مخزون iPhone اليوم، الاستلام وساعات العمل"; `region` when the store is its city's only one. */
@@ -471,8 +472,8 @@ const basePlace: Dict["place"] = {
   home: homeLabels,
   storeTitle,
   sources: (code: Exclude<CountryCode, "us">) => ({
-    pickupHelp: { label: "Apple: مساعدة الشحن والاستلام (ما تحضره للاستلام، بالإنجليزية)", url: pickupHelp(code).url },
-    storeList: { label: `Apple: قائمة متاجر Apple ${inCountry(code)} (بالإنجليزية)`, url: storeListSource(code).url },
+    pickupHelp: { label: "دليل Apple للشحن والاستلام: ما تحضره معك (بالإنجليزية)", url: pickupHelp(code).url },
+    storeList: { label: `قائمة Apple الرسمية لمتاجرها ${inCountry(code)} (بالإنجليزية)`, url: storeListSource(code).url },
     tax: taxSource(code),
   }),
 };

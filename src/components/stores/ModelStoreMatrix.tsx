@@ -11,9 +11,12 @@ import { Dot } from "@/components/stock/StatusBits";
 import { LiveChecked } from "@/components/site/LiveChecked";
 import { hoursIn } from "./StoreInfo";
 
+/** Column heads: "Duo", "18 Pro", "Pro Max" (the third drops the "18" the second already carries). */
+const colLabel = (short: string) => short.replace(/^18 Pro Max$/, "Pro Max");
+
 /**
- * Model × store matrix for state and city pages: one row per store, one cell per model with
- * "available / tracked" configurations and a live dot, plus today's hours and the last check.
+ * Model × store matrix for state and city pages: one row per store, one cell per model with the configurations
+ * on the shelf now (the tracked total is in the cell's title) and a live dot, plus today's hours and the last look.
  */
 export function ModelStoreMatrix({ stores, stock, showCity = true, now = new Date() }: { stores: Store[]; stock: Map<string, StoreStockSummary>; showCity?: boolean; now?: Date }) {
   const { modules } = t();
@@ -24,7 +27,7 @@ export function ModelStoreMatrix({ stores, stock, showCity = true, now = new Dat
     <div className="pane-2 overflow-hidden">
       <div className="grid grid-cols-[1fr_repeat(3,3.4rem)] gap-x-2 border-b border-line px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wider text-ink-3 sm:grid-cols-[1fr_repeat(3,5.5rem)_7rem] sm:px-4">
         <span>{d.store}</span>
-        {MODELS.map((m) => <span key={m.key} className="text-center">{bidi(m.short, lang)}</span>)}
+        {MODELS.map((m) => <span key={m.key} className="text-center">{bidi(colLabel(m.short), lang)}</span>)}
         <span className="hidden text-end sm:block">{d.checked}</span>
       </div>
       <ul className="divide-y divide-line">
@@ -44,7 +47,7 @@ export function ModelStoreMatrix({ stores, stock, showCity = true, now = new Dat
                 const n = c?.available ?? 0;
                 return (
                   <Link key={m.key} href={productPath(productFor(m.key), storePlace(s))} className={`inline-flex items-center justify-center gap-1 rounded-full py-1 text-sm tabular-nums ${n ? "bg-accent/15 font-semibold text-accent" : "text-ink-3"}`} title={d.cellTitle(m.name, n, c?.total ?? 0)}>
-                    <Dot state={n ? "ok" : c ? "idle" : "warn"} live={n > 0} />{n}<span className="hidden text-xs font-normal text-ink-3 sm:inline">/{c?.total ?? 0}</span>
+                    <Dot state={n ? "ok" : c ? "idle" : "warn"} live={n > 0} />{n}
                   </Link>
                 );
               })}

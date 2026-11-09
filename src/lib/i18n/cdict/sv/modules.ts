@@ -1,18 +1,18 @@
 import type { CDict } from "../en";
 
-/** Swedish client strings: modules (MiniMap, and the other-trackers footnote). */
+/** Swedish client strings: modules (MiniMap, and the footnote on outside reports kept apart from the register). */
 export const modules: CDict["modules"] = {
   minimap: {
-    aria: "Öppna {label} på livekartan",
-    cta: "Öppna på livekartan →",
+    aria: "Se {label} i hämtningsatlasen",
+    cta: "Se butiken i atlasen →",
   },
   reports: {
-    legend: "Rapporterat av andra bevakningstjänster ({sources}), {range}",
-    note: "{mark}: {what} publicerade av {links} för {range}. Det är de sajternas egna observationer, inte påfyllningar som ShelfSpring har bekräftat, och ingen av våra siffror räknar med dem.",
-    what: "påfyllningar av {models}",
-    whatAny: "påfyllningar",
-    markDashed: "Streckade",
-    markDashedRings: "Streckade ringar",
-    markHollowDots: "Ihåliga prickar",
+    legend: "Externa rapporter · {sources} · {range}",
+    note: "{mark} = {what} som {links} lade ut för {range}. ShelfSpring har inte själv sett dem, så de hålls utanför registret och ingår inte i någon siffra här.",
+    what: "rapporterade återkomster av {models}",
+    whatAny: "rapporterade återkomster",
+    markDashed: "Streckad kontur",
+    markDashedRings: "Streckade cirklar",
+    markHollowDots: "Öppna cirklar",
   },
 };

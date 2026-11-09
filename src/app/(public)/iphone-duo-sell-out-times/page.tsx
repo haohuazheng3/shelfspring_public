@@ -68,22 +68,22 @@ function LifeTable({ caption, head, rows }: { caption: string; head: string; row
         <thead>
           <tr className="border-b border-line-2 text-start text-ink">
             <th scope="col" className="py-2 pe-3 font-semibold">{head}</th>
-            <th scope="col" className="py-2 pe-3 font-semibold">Completed rows</th>
             <th scope="col" className="py-2 pe-3 font-semibold">Median upper bound</th>
-            <th scope="col" className="py-2 pe-3 font-semibold">≤ 30 s</th>
-            <th scope="col" className="py-2 pe-3 font-semibold">≤ 1 min</th>
+            <th scope="col" className="py-2 pe-3 font-semibold">Off the shelf ≤ 30 s</th>
+            <th scope="col" className="py-2 pe-3 font-semibold">Off the shelf ≤ 1 min</th>
             <th scope="col" className="py-2 pe-3 font-semibold">Smallest upper bound</th>
+            <th scope="col" className="py-2 pe-3 font-semibold">Completed rows</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={i} className="border-b border-line">
               <th scope="row" className="py-2 pe-3 text-start font-medium text-ink">{r.label}</th>
-              <td className="py-2 pe-3 tabular-nums">{r.s.n}{r.s.n > 0 && r.s.n < SOLID ? <span className="text-ink-3"> · thin</span> : null}</td>
               <td className="py-2 pe-3 tabular-nums">{secs(r.s.medianSec)}</td>
               <td className="py-2 pe-3 tabular-nums">{r.s.n ? pct(r.s.within30) : "–"}</td>
               <td className="py-2 pe-3 tabular-nums">{r.s.n ? pct(r.s.within60) : "–"}</td>
               <td className="py-2 pe-3 tabular-nums">{secs(r.s.fastestSec)}</td>
+              <td className="py-2 pe-3 tabular-nums">{r.s.n}{r.s.n > 0 && r.s.n < SOLID ? <span className="text-ink-3"> · thin</span> : null}</td>
             </tr>
           ))}
         </tbody>
@@ -186,6 +186,6 @@ export default async function SellOutTimesPage() {
       </section>
     </div>
     <div className="mt-10"><RichFaq items={faq} facts={facts} title="What the timing cannot answer" /></div>
-    <div className="mt-8"><SourceList facts={facts} where={`the ${STORES.length}-store US catalog, with six separately labelled country samples`} since={longDate(TRACKING_SINCE_US)} sources={[{ label: "Apple: Delivery and Pickup", url: APPLE_PICKUP }]} /></div>
+    <div className="mt-8"><SourceList facts={facts} where={`the ${STORES.length}-store US catalog, with six separately labelled country samples`} since={longDate(TRACKING_SINCE_US)} sources={[{ label: "Apple’s “Delivery and Pickup” page", url: APPLE_PICKUP }]} /></div>
   </GuideLayout>;
 }

@@ -145,7 +145,7 @@ const AGO: Record<string, { tpl: string; now: string; never: string }> = {
   es: { tpl: "hace {d}", now: "ahora mismo", never: "nunca" },
   nl: { tpl: "{d} geleden", now: "zojuist", never: "nooit" },
   sv: { tpl: "för {d} sedan", now: "nyss", never: "aldrig" },
-  ar: { tpl: "منذ {d}", now: "الآن", never: "لم يحدث بعد" },
+  ar: { tpl: "قبل {d}", now: "الآن", never: "لم يحدث بعد" },
 };
 const agoOf = (lang: Lang) => AGO[baseLang(lang)] ?? AGO.en;
 export function never(lang: Lang): string { return agoOf(lang).never; }
@@ -165,24 +165,25 @@ export function agoFine(lang: Lang, d: Date | string | null | undefined, now: nu
   if (!d) return never(lang);
   const s = Math.max(0, Math.round((now - new Date(d).getTime()) / 1000));
   if (lang === "en") {
-    if (s < 60) return `${s}s ago`;
-    if (s < 600) return `${Math.floor(s / 60)}m ${s % 60}s ago`;
-    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-    if (s < 86400) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m ago`;
-    return `${Math.floor(s / 86400)}d ago`;
+    // The site's duration style, units written apart (LiveAgo.formatAgo): "7 s ago", "4 min 12 s ago", "3 h 5 min ago".
+    if (s < 60) return `${s} s ago`;
+    if (s < 600) return `${Math.floor(s / 60)} min ${s % 60} s ago`;
+    if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min ago`;
+    return `${Math.floor(s / 86400)} d ago`;
   }
   return agoOf(lang).tpl.replace("{d}", elapsed(lang, s, true));
 }
-/** "3m ago", "just now" under 15 s (timeAgo). */
+/** "3 min ago" (one unit, written apart: LiveAgo.formatAgoShort), "just now" under 15 s (timeAgo). */
 export function ago(lang: Lang, d: Date | string | null | undefined, now = Date.now()): string {
   if (!d) return never(lang);
   const s = Math.max(0, Math.round((now - new Date(d).getTime()) / 1000));
   if (s < 15) return justNow(lang);
   if (lang === "en") {
-    if (s < 60) return `${s}s ago`;
-    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-    return `${Math.floor(s / 86400)}d ago`;
+    if (s < 60) return `${s} s ago`;
+    if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+    return `${Math.floor(s / 86400)} d ago`;
   }
   return agoOf(lang).tpl.replace("{d}", elapsed(lang, s, false));
 }

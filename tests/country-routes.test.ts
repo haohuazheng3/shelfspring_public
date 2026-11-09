@@ -187,15 +187,15 @@ describe("country copy: prices, tax and titles", async () => {
   const { COUNTRIES, formatPrice } = await import("@/lib/apple/countries");
   it("Canada adds the province's tax to Apple's pre-tax price; elsewhere the price already includes it", () => {
     const on = priceSection("ca", "Toronto", "Ontario");
-    expect(on.h2).toBe("iPhone Duo price in Toronto with sales tax");
+    expect(on.h2).toBe("What an iPhone Duo costs after tax in Toronto");
     expect(on.lead).toContain("C$2,999 before tax");
     expect(on.lead).toContain("13% HST");
     expect(on.lead).toContain("C$3,389"); // 2,999 × 1.13
-    expect(priceSection("ca", "Canada").h2).toBe("iPhone Duo price in Canada with sales tax, by province");
-    expect(priceSection("uk", "London").h2).toBe("iPhone Duo price in the UK: £1,999, VAT (20%) included");
+    expect(priceSection("ca", "Canada").h2).toBe("iPhone Duo after tax, province by province");
+    expect(priceSection("uk", "London").h2).toBe("iPhone Duo in the UK: £1,999 list price, VAT (20%) included");
     expect(priceSection("hk", "Hong Kong").lead).toContain("no sales tax");
     expect(taxSentence("ca", "Quebec")).toContain("14.975%");
-    expect(taxSentence("jp")).toContain("10% consumption tax included");
+    expect(taxSentence("jp")).toContain("the 10% consumption tax is already inside it");
   });
   it("other dollars never read as US dollars", () => {
     expect(formatPrice(COUNTRIES.ca, 2999)).toBe("C$2,999");

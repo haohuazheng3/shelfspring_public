@@ -8,7 +8,7 @@ import { t, pageLocale } from "@/lib/i18n/server";
 import { configLabel } from "@/lib/i18n/places";
 import { Swatch } from "@/components/stores/ConfigTable";
 
-/** "Restocks by configuration" over the window — which storage/colour actually comes back here. */
+/** Configurations ranked by returns over the window (count first, then the configuration) — which storage/colour actually comes back here. */
 export function RestocksByConfig({ stats, label, store, limit = 10, country }: { stats: PlaceStats; label: string; store?: string; limit?: number; country?: CountryCode }) {
   const d = t().modules.byConfig;
   const lang = pageLocale().lang;
@@ -26,7 +26,7 @@ export function RestocksByConfig({ stats, label, store, limit = 10, country }: {
             <li key={r.partNumber} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 text-sm">
               <Swatch color={r.item.color} />
               <div className="min-w-0">
-                <div className="flex items-baseline justify-between gap-2"><span className="truncate text-ink">{bidi(short, lang)} {configLabel(r.item, lang)}</span><span className="shrink-0 tabular-nums text-ink-3">{d.times(r.restocks)}</span></div>
+                <div className="flex items-baseline gap-2"><span className="w-20 shrink-0 tabular-nums text-ink-3">{d.times(r.restocks)}</span><span className="truncate text-ink">{bidi(short, lang)} {configLabel(r.item, lang)}</span></div>
                 <div className="mt-1 h-1.5 w-full rounded-full bg-ink/6"><div className="h-full rounded-full bg-accent" style={{ width: `${(r.restocks / max) * 100}%` }} /></div>
               </div>
               <Link href={alertHref({ model: key, storage: r.item.storage, color: r.item.color, store, country })} className="text-xs font-medium text-ink hover:underline">{d.alert}</Link>

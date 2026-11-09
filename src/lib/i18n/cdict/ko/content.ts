@@ -1,24 +1,24 @@
 import type { CDict } from "../en";
 
-/** 한국어 클라이언트 문구: content — 첫 화면 재고 확인(QuickCheck)과 이동 중 스켈레톤. */
+/** 한국어 클라이언트 문구: content — 첫 화면 진열 확인(QuickCheck)과 이동 중 스켈레톤. */
 export const content: CDict["content"] = {
   quickCheck: {
-    model: "iPhone 모델",
-    search: "우편번호, 도시 또는 Apple Store",
-    useLocation: "내 위치 사용",
-    nearMe: "📍 내 주변",
-    locationOff: "이 사이트의 위치 권한이 꺼져 있어요. 우편번호를 입력해 주세요.",
-    storesNow: "미국 Apple Store **{total}곳 중 {n}곳**에서 지금 {what} 픽업 가능",
-    nearestTo: " · {place} 기준 가까운 순",
-    you: "내 위치",
-    noMatch: "결과가 없어요. 5자리 우편번호나 도시로 찾아보세요.",
-    inStock: "{n}/{total} 재고 있음",
-    soldOut: "품절",
-    alertMe: "입고되면 알림 받기",
-    allStores: "매장 {n}곳 전체 →",
-    here: "현위치",
+    model: "볼 iPhone 모델 고르기",
+    search: "우편번호·도시·매장 이름으로 매장 찾기",
+    useLocation: "내 위치에서 가까운 순으로",
+    nearMe: "📍 지금 위치",
+    locationOff: "여기서는 위치 접근이 꺼져 있어요. 대신 우편번호를 넣어 주세요.",
+    storesNow: "{what} · 지금 진열 중인 미국 Apple Store **{n} / {total}곳**",
+    nearestTo: " · {place}에서 가까운 순",
+    you: "현재 위치",
+    noMatch: "맞는 곳이 없어요. 다섯 자리 우편번호나 도시 이름을 넣어 보세요.",
+    inStock: "진열 {n} / {total}",
+    soldOut: "진열 없음",
+    alertMe: "관찰 목록에 넣기",
+    allStores: "매장 목록 전체 ({n}) →",
+    here: "바로 여기",
   },
   skeleton: {
-    loading: "불러오는 중",
+    loading: "여는 중",
   },
 };

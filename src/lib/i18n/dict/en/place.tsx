@@ -13,7 +13,7 @@ import { TAX_SOURCES, pickupHelp, storeListSource } from "@/content/country-tax"
 import type { CountryCode } from "@/lib/apple/countries";
 
 export const basePlace = {
-  /** "since tracking began on November 2" / "in the last 30 days". */
+  /** The record window: "in the historical record from November 2", later the rolling 30-day window. */
   sinceWhen: cc.sinceWhenIntl,
   /** A place name that is also a US Apple Store city/state gets the country: "Manchester, UK". */
   placeLabel: cc.placeLabel,
@@ -29,9 +29,9 @@ export const basePlace = {
   storesIndexTitle: cc.storesIndexTitle,
   homeTitle: cc.homeTitle,
   homeH1: cc.homeH1,
-  /** "the 39 Apple Stores in the UK" / "the one Apple Store in Austria". */
+  /** The coverage phrase: "39 Apple Stores across the UK" / "the single Apple Store in Austria". */
   allStoresPhrase: cc.allStoresPhrase,
-  /** "in 22 cities across 6 provinces". */
+  /** "spread over 22 cities in 6 provinces". */
   spreadPhrase: cc.spreadPhrase,
   modelPageTitles: cc.modelPageTitles,
   modelIntro: cc.modelIntro,

@@ -19,13 +19,13 @@ export function ReportSwatch({ round = false }: { round?: boolean }) {
   return <span aria-hidden className={`inline-block h-2.5 w-2.5 shrink-0 ${round ? "rounded-full" : "rounded-sm"} ${REPORT_MARK}`} />;
 }
 
-/** The legend entry: "Reported by other trackers (Apple Pickup Live, DuoReady), Oct 26 – Nov 1". */
+/** The legend entry: "Outside reports · Apple Pickup Live, DuoReady · Oct 26 – Nov 1". */
 export function ReportLegendItem({ reports, round }: { reports: ReportMeta; round?: boolean }) {
   return <span className="inline-flex items-center gap-1.5" data-series="reported"><ReportSwatch round={round} /><ReportLegendText reports={text(reports)} /></span>;
 }
 
 /**
- * The footnote under a module that draws reports: what they are, who published them, and that we do not count them.
+ * The footnote under a module that draws reports: what they are, who posted them, and that the ledger leaves them out.
  * `mark` names how the chart draws them; "Dashed" (the default), "Dashed rings" and "Hollow dots" are read in the
  * page's language.
  */

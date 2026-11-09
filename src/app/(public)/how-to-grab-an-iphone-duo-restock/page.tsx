@@ -144,7 +144,7 @@ export default async function GrabRestockGuide() {
     { q: "Will an alert leave enough time to buy?", a: "There is no guaranteed interval. The message follows collection, synchronization and delivery. A measured listing duration covers an entire past opening; it is not a countdown that starts when your notification arrives." },
   ];
   const sources: Source[] = [
-    { label: "Apple: Delivery and Pickup (how in-store pickup and the hold work)", url: APPLE_PICKUP },
+    { label: "Apple’s “Delivery and Pickup” page, on store pickup and how long an order is held", url: APPLE_PICKUP },
     { label: "Apple Support: Apple Pay (paying with Face ID)", url: APPLE_PAY },
     { label: "App Store: Apple Store app", url: APPLE_STORE_APP },
   ];

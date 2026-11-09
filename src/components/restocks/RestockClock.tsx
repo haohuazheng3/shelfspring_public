@@ -6,38 +6,45 @@ import type { Lang } from "@/lib/i18n/locales";
 import { zoneName } from "@/components/stores/StoreInfo";
 import { REPORT_MARK, ReportLegendItem, ReportsNote } from "./ReportsNote";
 
-const HOURS = ["12a", "", "", "3a", "", "", "6a", "", "", "9a", "", "", "12p", "", "", "3p", "", "", "6p", "", "", "9p", "", ""];
-/** Hour ticks under the bars: English "12a" … "9p", other languages the 24-hour clock (0, 3 … 21). */
-const hourTicks = (lang: Lang) => (lang === "en" ? HOURS : HOURS.map((_, h) => (h % 3 === 0 ? String(h) : "")));
+const HOURS = ["12am", "", "", "3am", "", "", "6am", "", "", "9am", "", "", "noon", "", "", "3pm", "", "", "6pm", "", "", "9pm", "", ""];
+/** Hour ticks under the bars: English "12am" … "noon" … "9pm", other languages the 24-hour clock with an "h" ("0h", "3h" … "21h"). */
+const hourTicks = (lang: Lang) => (lang === "en" ? HOURS : HOURS.map((_, h) => (h % 3 === 0 ? `${h}h` : "")));
+/** The week starts on Monday here: stats count Sunday first, so index 0 moves to the end. */
+const mondayFirst = <T,>(xs: T[]): T[] => [...xs.slice(1), xs[0]];
+const EN_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 /**
  * Our restocks as solid bars. With other trackers' reports, each bar carries a hollow, dashed segment on top
  * for them (one scale for both, so heights compare); without, the markup is exactly what it always was.
  */
-function Bars({ values, labels, peak, extra }: { values: number[]; labels: string[]; peak: number; extra?: number[] }) {
+function Bars({ values, labels, peak, extra, counts = false }: { values: number[]; labels: string[]; peak: number; extra?: number[]; counts?: boolean }) {
   const d = t().modules.clock;
   const max = Math.max(1, ...values.map((v, i) => v + (extra?.[i] ?? 0)));
+  /** The weekday chart prints each bar's count above it. */
+  const count = (v: number) => (counts ? <span className="text-[9px] leading-3 tabular-nums text-ink-3">{v}</span> : null);
   if (extra) {
     return (
-      <div className="flex h-24 items-end gap-[3px]" role="img" aria-label={values.map((v, i) => `${labels[i] || i}: ${v}${extra[i] ? d.barReported(extra[i]) : ""}`).join(", ")}>
+      <div className={`flex ${counts ? "h-28" : "h-24"} items-end gap-[3px]`} role="img" aria-label={values.map((v, i) => `${labels[i] || i}: ${v}${extra[i] ? d.barReported(extra[i]) : ""}`).join(", ")}>
         {values.map((v, i) => (
           <div key={i} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
+            {count(v)}
             <div className="flex w-full flex-col justify-end gap-px">
               {extra[i] > 0 && <div className={`w-full rounded-t-[3px] ${REPORT_MARK}`} data-series="reported" style={{ height: `${(extra[i] / max) * 72}px`, minHeight: 5 }} title={d.barReportedTitle(`${labels[i] || i}`, extra[i])} />}
               <div className={`w-full rounded-t-[3px] ${i === peak && v > 0 ? "bg-accent" : "bg-accent-2"}`} style={{ height: `${(v / max) * 72}px`, minHeight: v > 0 ? 3 : 0 }} title={`${labels[i] || i}: ${v}`} />
             </div>
-            <span className="h-3 text-[9px] leading-3 text-ink-3">{labels[i]}</span>
+            <span className="h-3 whitespace-nowrap text-[9px] leading-3 text-ink-3">{labels[i]}</span>
           </div>
         ))}
       </div>
     );
   }
   return (
-    <div className="flex h-24 items-end gap-[3px]" role="img" aria-label={values.map((v, i) => `${labels[i] || i}: ${v}`).join(", ")}>
+    <div className={`flex ${counts ? "h-28" : "h-24"} items-end gap-[3px]`} role="img" aria-label={values.map((v, i) => `${labels[i] || i}: ${v}`).join(", ")}>
       {values.map((v, i) => (
         <div key={i} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
+          {count(v)}
           <div className={`w-full rounded-t-[3px] ${i === peak && v > 0 ? "bg-accent" : "bg-accent-2"}`} style={{ height: `${(v / max) * 72}px`, minHeight: v > 0 ? 3 : 0 }} title={`${labels[i] || i}: ${v}`} />
-          <span className="h-3 text-[9px] leading-3 text-ink-3">{labels[i]}</span>
+          <span className="h-3 whitespace-nowrap text-[9px] leading-3 text-ink-3">{labels[i]}</span>
         </div>
       ))}
     </div>
@@ -45,7 +52,7 @@ function Bars({ values, labels, peak, extra }: { values: number[]; labels: strin
 }
 
 /**
- * "When does this store restock?" — local hour-of-day and weekday histograms over the last 30 days. The sentence
+ * "When do returns arrive here?" — store-local hour-of-day and weekday (Monday first, counts on top) histograms over the last 30 days. The sentence
  * and its numbers are our own restocks only; other trackers' reports (`reports`, same zone and window) are drawn
  * as a separate, labelled series under them, never counted.
  */
@@ -58,6 +65,7 @@ export function RestockClock({ stats, label, reports }: { stats: RestockStats; l
   const thin = stats.total < 5 || (stats.dates ?? Infinity) < 3;
   const weekday = (stats.spanDays ?? Infinity) >= 14;
   const rep = reports && reports.total > 0 ? reports : null;
+  const week = mondayFirst(stats.byWeekday);
   return (
     <div>
       <p className="text-sm text-ink-2">
@@ -70,7 +78,7 @@ export function RestockClock({ stats, label, reports }: { stats: RestockStats; l
       {(stats.total > 0 || rep) && (
         <div className="mt-4 grid gap-6 sm:grid-cols-[3fr_2fr]">
           <div><div className="mb-2 text-xs text-ink-3">{d.byHour(zoneName(stats.tz, lang))}</div><Bars values={stats.byHour} labels={hourTicks(lang)} peak={peakHour} extra={rep?.byHour} /></div>
-          <div><div className="mb-2 text-xs text-ink-3">{d.byWeekday}</div><Bars values={stats.byWeekday} labels={weekdays(lang, "short")} peak={peakDay} extra={rep?.byWeekday} /></div>
+          <div><div className="mb-2 text-xs text-ink-3">{d.byWeekday}</div><Bars values={week} labels={lang === "en" ? EN_DAYS : mondayFirst(weekdays(lang, "short"))} peak={week.indexOf(Math.max(...week))} extra={rep ? mondayFirst(rep.byWeekday) : undefined} counts /></div>
         </div>
       )}
       {rep && (

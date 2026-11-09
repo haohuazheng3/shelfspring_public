@@ -126,9 +126,9 @@ describe("DuoLedger — the block as a reader and an answer engine see it", () =
     ];
     const html = render(duoLedgerFrom({ stores, stock: stock({}), times: times({ n: 3, stores: 1, days: 2 }), sell: sell(recent), configsTotal: 8, now }));
     expect(html).toContain("The 3 most recent recorded returns");
-    expect(html).toContain("listed 40 s–55 s");
-    expect(html).toContain("listed about 15 s");
-    expect(html).toContain("still listed (10 min)");
+    expect(html).toContain("40 s–55 s on the shelf");
+    expect(html).toContain("roughly 15 s on the shelf");
+    expect(html).toContain("on the shelf for 10 min so far");
   });
 
   it("says the record could not be read without inventing numbers", () => {

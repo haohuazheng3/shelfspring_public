@@ -21,12 +21,12 @@ import { storeLabel } from "@/lib/i18n/places";
 import type { Lang } from "@/lib/i18n/locales";
 
 type Rule = { active: boolean; model: string; storages: string[]; colors: string[]; storeNumbers: string[] };
-const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
+const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 /**
  * Words that follow the reader's language (the person's, on the dashboard). English keeps the module's own forms
- * ("9 AM", "10–11 AM", "Eastern", "Monday", "S"); another language gets Intl's (and a zone name that already says "time").
+ * ("9 AM", "10–11 AM", "Eastern", "Monday", "Su"); another language gets Intl's (and a zone name that already says "time").
  */
 function words(lang: Lang) {
   const en = lang === "en";

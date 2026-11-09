@@ -20,8 +20,8 @@ const MapIcon = () => (
 const cityIn = (s: Store, lang: Lang) => (lang === "en" || s.country === "us" ? cityLine(s) : cityLabel(s.country, s.city, lang));
 
 /**
- * A chronological journal: observation time, exact configuration, then store actions.
- * Current availability remains separate from the historical event's timestamp.
+ * A chronological journal. Each row reads: the event and its time, the exact configuration, the store and city, and
+ * the shelf right now (last, next to the map and order icons) — the current status stays apart from the event time.
  */
 export function RestockFeed({ rows, model, showModel = true, emptyText }: { rows: RestockRow[]; model?: ModelKey; showModel?: boolean; emptyText?: string }) {
   const d = t().modules.feed;
@@ -37,19 +37,16 @@ export function RestockFeed({ rows, model, showModel = true, emptyText }: { rows
         const when = <LocalTime iso={r.at.toISOString()} withAgo={false} />;
         return (
           <li key={r.id} className="stock-journal-entry">
-            <div>
-              <span className="stock-journal-status" data-available={available}>{available ? d.available : d.soldOut}</span>
-              <div className="stock-journal-time">{r.kind === "soldout" ? d.soldOutAt(when) : available ? d.since(when) : d.restockedAt(when)}</div>
-            </div>
+            <div className="stock-journal-time !mt-0">{r.kind === "soldout" ? d.soldOutAt(when) : available ? d.since(when) : d.restockedAt(when)}</div>
             <div className="min-w-0">
-              <Link href={productPath(productFor(key), here)} className="stock-journal-place hover:text-accent">{lang === "en" ? r.store.name : storeLabel(r.store, lang)}</Link>
-              <p className="mt-0.5 text-xs text-ink-3">{cityIn(r.store, lang)}</p>
-              <Link href={productPath(config, here)} className="mt-2 inline-flex min-w-0 items-center gap-1.5 text-sm text-ink-2 hover:text-ink hover:underline">
+              <Link href={productPath(config, here)} className="stock-journal-place inline-flex min-w-0 items-center gap-1.5 hover:text-accent">
                 <Swatch color={r.item.color} className="h-2.5 w-2.5" />
                 <span>{showModel ? `${r.item.model.replace("iPhone ", "")} ` : ""}{configLabel(r.item, lang)}</span>
               </Link>
+              <p className="mt-0.5 text-xs text-ink-3"><Link href={productPath(productFor(key), here)} className="hover:text-ink hover:underline">{lang === "en" ? r.store.name : storeLabel(r.store, lang)}</Link>{" · "}{cityIn(r.store, lang)}</p>
             </div>
-            <div className="stock-journal-actions">
+            <div className="stock-journal-actions items-center">
+              <span className="stock-journal-status me-1" data-available={available}>{available ? d.available : d.soldOut}</span>
               <Link href={`${mapPath(r.store.country)}?store=${r.storeNumber}&model=${model ?? key}`} aria-label={d.mapAria(lang === "en" ? appleName(r.store) : appleStoreLabel(r.store, lang))} title={d.map}><MapIcon /></Link>
               {available && <a href={appleBuyUrl(r.item, r.store.country)} target="_blank" rel="noopener noreferrer" aria-label={d.buyAria(r.item.model, configLabel(r.item, lang))} title={d.buy}><BagIcon /></a>}
             </div>

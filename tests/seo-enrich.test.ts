@@ -20,7 +20,7 @@ describe("opening hours", () => {
     expect(week.map((d) => d.short)).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
     expect(week[0]).toMatchObject({ day: "Monday", opens: "10:00", closes: "21:00" });
     expect(week[6]).toMatchObject({ day: "Sunday", opens: "11:00", closes: "18:00" });
-    expect(compressHours(week)).toBe("Mon–Sat 10:00–21:00 · Sun 11:00–18:00");
+    expect(compressHours(week)).toBe("Mo–Sa 10:00–21:00 · Su 11:00–18:00");
   });
   it("handles three blocks, a closed day (opens null) and a single every-day block", () => {
     const three = normalizeHours([
@@ -28,12 +28,12 @@ describe("opening hours", () => {
       { days: ["Friday", "Saturday"], opens: "10:00:00", closes: "21:00:00" },
       { days: ["Sunday"], opens: null, closes: null },
     ]);
-    expect(compressHours(three)).toBe("Mon–Thu 10:00–20:00 · Fri–Sat 10:00–21:00 · Sun Closed");
+    expect(compressHours(three)).toBe("Mo–Th 10:00–20:00 · Fr–Sa 10:00–21:00 · Su Closed");
     expect(hoursGroups(three)).toHaveLength(3);
     expect(openingHoursSpec(three)).toHaveLength(2);
     expect(openingHoursSpec(three)[0]).toMatchObject({ dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday"], opens: "10:00", closes: "20:00" });
     const everyDay = normalizeHours([{ days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], opens: "09:00:00", closes: "21:00:00" }]);
-    expect(compressHours(everyDay)).toBe("Every day 09:00–21:00");
+    expect(compressHours(everyDay)).toBe("Daily 09:00–21:00");
     expect(compressHours(normalizeHours(undefined))).toBe("Closed");
     expect(fmtClock("9:30:00")).toBe("09:30");
   });
@@ -53,14 +53,14 @@ describe("opening hours", () => {
     const t = new Date("2026-10-30T02:30:00Z");
     expect(zoneClock(t, "Pacific/Honolulu")).toMatchObject({ dayIndex: 3, minutes: 16 * 60 + 30, dateKey: "2026-10-29" });
     expect(zoneClock(t, "Europe/Berlin")).toMatchObject({ dayIndex: 4, minutes: 3 * 60 + 30, dateKey: "2026-10-30" });
-    expect(todayLabel(week, "Pacific/Honolulu", t)).toMatchObject({ status: "open", label: "Open now · closes 21:00" });
-    expect(todayLabel(week, "Europe/Berlin", t)).toMatchObject({ status: "before", label: "Opens at 10:00" });
+    expect(todayLabel(week, "Pacific/Honolulu", t)).toMatchObject({ status: "open", label: "Open until 21:00" });
+    expect(todayLabel(week, "Europe/Berlin", t)).toMatchObject({ status: "before", label: "Doors open 10:00" });
     // Sat 22:00 local → closed, opens tomorrow (Sunday) at 11:00
     const late = new Date("2026-10-31T22:00:00-04:00");
-    expect(todayLabel(week, "America/New_York", late)).toMatchObject({ status: "after", label: "Closed now · opens tomorrow at 11:00" });
+    expect(todayLabel(week, "America/New_York", late)).toMatchObject({ status: "after", label: "Shut for now · reopens tomorrow 11:00" });
     const closedSunday = normalizeHours([{ days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], opens: "10:00:00", closes: "21:00:00" }, { days: ["Sunday"], opens: null, closes: null }]);
     const sunday = new Date("2026-11-01T12:00:00-05:00");
-    expect(todayLabel(closedSunday, "America/New_York", sunday)).toMatchObject({ status: "closed", label: "Closed today · opens tomorrow at 10:00" });
+    expect(todayLabel(closedSunday, "America/New_York", sunday)).toMatchObject({ status: "closed", label: "Shut today · reopens tomorrow 10:00" });
   });
 });
 
@@ -117,24 +117,24 @@ describe("formatters", () => {
 describe("narrative", () => {
   it("reads well when every number is zero", () => {
     const t = narrative({ kind: "state", place: "Alabama", stores: 2, cities: ["Birmingham", "Huntsville"], stockNow: zeroStock, stats: zeroStats });
-    expect(t).toContain("No restock logged in Alabama in the last 30 days; too few sell-outs yet to say how long stock lasts.");
-    expect(t).toContain("Right now the iPhone Duo is listed for pickup at 0 of the 2 Apple Stores in Alabama, the iPhone 18 Pro at 0 and the iPhone 18 Pro Max at 0.");
+    expect(t).toContain("The 30-day ledger shows no return in Alabama; not enough completed listings to measure shelf time.");
+    expect(t).toContain("Across Alabama (2 Apple Stores), the iPhone Duo is on the shelf at 0, the iPhone 18 Pro at 0 and the iPhone 18 Pro Max at 0.");
     expect(t.split(/(?<=\.) /)).toHaveLength(2);
     expect(t).not.toMatch(/undefined|NaN|\b0 of 0\b/);
     const store = narrative({ kind: "store", place: "Apple The Summit", stores: 1, stockNow: zeroStock, configs: { duo: 8, "18-pro": 16, "18-pro-max": 16 }, stats: zeroStats });
-    expect(store).toContain("No restock logged at Apple The Summit in the last 30 days");
-    expect(store).toContain("Right now Apple The Summit lists 0 of 8 iPhone Duo configurations, 0 of 16 iPhone 18 Pro and 0 of 16 iPhone 18 Pro Max for pickup.");
+    expect(store).toContain("The 30-day ledger shows no return at Apple The Summit");
+    expect(store).toContain("Shelf count at Apple The Summit: iPhone Duo 0/8, iPhone 18 Pro 0/16 and iPhone 18 Pro Max 0/16 configurations.");
     const model = narrative({ kind: "model", place: "iPhone Duo", stores: 269, stockNow: zeroStock, stats: zeroStats });
-    expect(model).toContain("No US Apple Store lists the iPhone Duo for pickup right now.");
-    expect(model).toContain("No restock logged for the iPhone Duo in the last 30 days");
+    expect(model).toContain("The iPhone Duo is off the shelf at every US Apple Store at this observation.");
+    expect(model).toContain("The 30-day ledger shows no return for the iPhone Duo");
   });
   it("uses the real numbers when there are some", () => {
     const t = narrative({ kind: "city", place: "Birmingham", stores: 1, stockNow: { duo: 1, "18-pro": 0, "18-pro-max": 1 }, stats: someStats });
-    expect(t).toContain("31 restocks and 28 sell-outs in Birmingham in the last 30 days; restocked configurations stay available about 2 h 15 min.");
-    expect(t).toContain("Right now the one Apple Store in Birmingham lists the iPhone Duo and the iPhone 18 Pro Max for pickup, but not the iPhone 18 Pro.");
+    expect(t).toContain("The 30-day ledger shows 31 returns and 28 sell-outs in Birmingham; median shelf time about 2 h 15 min.");
+    expect(t).toContain("The single Apple Store in Birmingham has the iPhone Duo and the iPhone 18 Pro Max on the shelf; the iPhone 18 Pro is off it.");
     const one = narrative({ kind: "state", place: "Texas", stores: 20, stockNow: { duo: 3, "18-pro": 20, "18-pro-max": 1 }, stats: { ...someStats, month: 1, soldouts: 0 } });
-    expect(one).toContain("1 restock and 0 sell-outs in Texas in the last 30 days");
-    expect(one).toContain("Right now the iPhone Duo is listed for pickup at 3 of the 20 Apple Stores in Texas, the iPhone 18 Pro at 20 and the iPhone 18 Pro Max at 1.");
+    expect(one).toContain("The 30-day ledger shows 1 return and 0 sell-outs in Texas");
+    expect(one).toContain("Across Texas (20 Apple Stores), the iPhone Duo is on the shelf at 3, the iPhone 18 Pro at 20 and the iPhone 18 Pro Max at 1.");
   });
 });
 
@@ -153,8 +153,8 @@ describe("explainer and FAQ", () => {
     const state = faq({ kind: "state", place: "Alabama", stores: al, stockNow: zeroStock, duoStores: [], stats: zeroStats, peak: null, nearest: nearestOutsideState(al[0], 3) });
     expect(state.length).toBeGreaterThanOrEqual(4);
     expect(state.length).toBeLessThanOrEqual(5);
-    expect(state[0].a).toContain("None at the last check");
-    expect(state.find((q) => q.q.startsWith("How many"))!.a).toContain("2 Apple Stores, including Apple The Summit in Birmingham");
+    expect(state[0].a).toContain("None in the latest observation");
+    expect(state.find((q) => q.q.startsWith("How many"))!.a).toContain("2 Apple Stores; among them Apple The Summit · Birmingham");
     const store = faq({ kind: "store", place: "Apple The Summit", stores: [al[0]], stockNow: zeroStock, stats: zeroStats, peak: null, nearest: nearestOutsideState(al[0], 3), hours: "Mon–Sat 10:00–21:00 · Sun 11:00–18:00", todayText: "10:00–21:00 (open now)" });
     expect(store.length).toBe(5);
     expect(store[1].a).toContain("Mon–Sat 10:00–21:00");
@@ -162,7 +162,7 @@ describe("explainer and FAQ", () => {
     const model = faq({ kind: "model", place: "iPhone Duo", stores: STORES, stockNow: zeroStock, stats: someStats, peak: { hour: "10 AM", day: "Tuesday", total: 31 }, prices: { low: 1999, high: 2499, storages: ["256GB", "512GB", "1TB"], colors: ["Night Sky", "Star White"] } });
     expect(model.length).toBe(5);
     expect(model[1].a).toContain("$1,999 to $2,499");
-    expect(model[2].a).toContain("around 10 AM local time");
+    expect(model[2].a).toContain("near 10 AM local time");
     for (const q of [...state, ...store, ...model]) { expect(q.a).not.toMatch(/undefined|NaN/); expect(q.a).not.toContain("free alert"); expect(q.a.split(/(?<=[a-z)])\. [A-Z]/)).toHaveLength(1); }
     const ld = faqJsonLd(state);
     expect(ld["@type"]).toBe("FAQPage");

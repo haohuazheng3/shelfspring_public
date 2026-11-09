@@ -89,6 +89,12 @@ export function QuickCheck({ data, initialModel }: { data: QuickCheckData; initi
 
   return (
     <div className="pane p-4 sm:p-5" data-tool="quick-check">
+      {/* The count first, then the controls that narrow it. */}
+      <p className="mb-3 text-sm text-ink-2" aria-live="polite">
+        <span className={`dot ${storesNow > 0 ? "dot-ok" : "dot-bad"} me-1.5 align-middle`} />
+        <Md text={fill(d.storesNow, { n: n(storesNow), total: n(STORES.length), what })} b="text-ink" tag="strong" />
+        {anchor ? fill(d.nearestTo, { place: anchor.label }) : null}
+      </p>
       {data.models.length > 1 && (
         <div className="seg mb-3" role="tablist" aria-label={d.model}>
           {data.models.map((m) => (
@@ -102,11 +108,6 @@ export function QuickCheck({ data, initialModel }: { data: QuickCheckData; initi
         <button type="button" className="btn btn-ghost shrink-0 px-4" onClick={locate} aria-label={d.useLocation}>{loc === "asking" ? "…" : d.nearMe}</button>
       </div>
       {loc === "denied" && <p className="mt-2 text-xs text-ink-3">{d.locationOff}</p>}
-      <p className="mt-3 text-sm text-ink-2" aria-live="polite">
-        <span className={`dot ${storesNow > 0 ? "dot-ok" : "dot-bad"} me-1.5 align-middle`} />
-        <Md text={fill(d.storesNow, { n: n(storesNow), total: n(STORES.length), what })} b="text-ink" tag="strong" />
-        {anchor ? fill(d.nearestTo, { place: anchor.label }) : null}
-      </p>
       {q.trim() && !anchor && <p className="mt-2 text-sm text-ink-3">{d.noMatch}</p>}
       {rows.length > 0 && (
         <ul className="mt-3 divide-y divide-line">

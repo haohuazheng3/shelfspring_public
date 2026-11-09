@@ -313,7 +313,7 @@ export default async function StockCheckerPage() {
                   <td className={`${td} ${now > 0 ? "font-semibold text-accent" : ""}`}>{live ? `${now} of ${STORES.length}` : "–"}</td>
                   <td className={td}>{recent.unknown ? "–" : day}</td>
                   <td className={td}>{t.unknown ? "–" : n(all)}</td>
-                  <td className="py-2 pe-3 align-top"><a href={appleBuyUrl(i)} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap underline underline-offset-2 hover:text-ink">Buy on apple.com</a></td>
+                  <td className="py-2 pe-3 align-top"><a href={appleBuyUrl(i)} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap underline underline-offset-2 hover:text-ink">Order at apple.com</a></td>
                 </tr>
               );
             })}
@@ -385,8 +385,8 @@ export default async function StockCheckerPage() {
       </div>
       <RelatedBlock title="Keep exploring">
         <LinkRow title="More evidence for your shortlist" links={[
-          { href: "/iphone-duo-restock-times", label: "When does Apple restock the iPhone Duo?" },
-          { href: "/iphone-duo-sell-out-times", label: "How fast does a restock sell out?" },
+          { href: "/iphone-duo-restock-times", label: "The iPhone Duo return study, hour by hour" },
+          { href: "/iphone-duo-sell-out-times", label: "How long a return stays listed" },
           { href: "/iphone-duo-stock-alerts", label: "iPhone Duo stock alerts" },
           { href: "/iphone-duo-near-me", label: "iPhone Duo near me" },
           { href: "/how-to-get-an-iphone-duo", label: "How to get an iPhone Duo" },
@@ -396,8 +396,8 @@ export default async function StockCheckerPage() {
         ]} />
         <LinkRow title="Live pages" links={[
           { href: "/stock/iphone-duo", label: "iPhone Duo stock, every store" },
-          { href: "/restocks", label: "Restock log" },
-          { href: "/map", label: "Live map" },
+          { href: "/restocks", label: "Return record" },
+          { href: "/map", label: "Pickup map" },
           { href: "/stores", label: "Apple Stores by state" },
         ]} />
         <LinkRow title="Continue the purchase plan" links={[

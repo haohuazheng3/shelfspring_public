@@ -1,18 +1,18 @@
-/** Chaînes client françaises : modules (mini-carte, note sur les signalements d’autres sites de suivi). */
+/** Chaînes client françaises : modules (mini-carte, note sur les signalements extérieurs au registre). */
 import type { CDict } from "../en";
 
 export const modules: CDict["modules"] = {
   minimap: {
-    aria: "Ouvrir {label} sur la carte en direct",
-    cta: "Ouvrir sur la carte en direct →",
+    aria: "Situer {label} sur l’atlas du retrait",
+    cta: "Situer ce magasin sur l’atlas →",
   },
   reports: {
-    legend: "Signalés par d’autres sites de suivi ({sources}), {range}",
-    note: "{mark} : {what} publiés par {links} pour la période {range}. Ce sont les observations de ces sites, pas des retours en stock confirmés par ShelfSpring, et aucun de nos chiffres ne les compte.",
-    what: "retours en stock d’{models}",
-    whatAny: "retours en stock",
-    markDashed: "En pointillés",
-    markDashedRings: "Cercles en pointillés",
-    markHollowDots: "Points creux",
+    legend: "Signalements extérieurs · {sources} · {range}",
+    note: "{mark} = {what} mis en ligne par {links} ({range}). ShelfSpring ne les a pas constatés lui-même : ils restent en marge du registre, et aucun chiffre de cette page ne les intègre.",
+    what: "signalements de retour ({models})",
+    whatAny: "signalements de retour",
+    markDashed: "Contour en tirets",
+    markDashedRings: "Cercles en tirets",
+    markHollowDots: "Cercles vides",
   },
 };

@@ -120,6 +120,18 @@ export function StockMap({ stores, initial, focus, country }: { stores: MapStore
     return true;
   }, [filter, decode]);
 
+  /** Stores listing anything of each model right now (the model chips carry it); "all" = any model. */
+  const perModel = useMemo(() => {
+    const out: Record<string, number> = { all: 0 };
+    for (const s of stores) {
+      const models = new Set<string>();
+      for (const p of snap.stores[s.n]?.a ?? []) { const x = decode(p); if (x) models.add(x.model); }
+      for (const m of models) out[m] = (out[m] ?? 0) + 1;
+      if (models.size) out.all++;
+    }
+    return out;
+  }, [stores, snap, decode]);
+
   const views = useMemo<StoreView[]>(() => stores.map((s) => {
     const row = snap.stores[s.n];
     return { ...s, parts: (row?.a ?? []).filter(matches), checked: row?.c ?? null };
@@ -301,8 +313,8 @@ export function StockMap({ stores, initial, focus, country }: { stores: MapStore
       <aside className="map-filter-dock pane" aria-label={F.model}>
         <h2 className="field-kicker">{F.model}</h2>
         <div className="map-model-options">
-        {MODELS.map((m) => <button key={m.key} type="button" className="chip" aria-pressed={filter.model === m.key} onClick={() => setFilter({ model: m.key, storage: "", color: "" })}>{m.name}</button>)}
-        <button type="button" className="chip" aria-pressed={filter.model === "all"} onClick={() => setFilter({ model: "all", storage: "", color: "" })}>{d.allModels}</button>
+        {MODELS.map((m) => <button key={m.key} type="button" className="chip" aria-pressed={filter.model === m.key} onClick={() => setFilter({ model: m.key, storage: "", color: "" })}>{m.name} <span className="tabular-nums opacity-70">{L.n(perModel[m.key] ?? 0)}</span></button>)}
+        <button type="button" className="chip" aria-pressed={filter.model === "all"} onClick={() => setFilter({ model: "all", storage: "", color: "" })}>{d.allModels} <span className="tabular-nums opacity-70">{L.n(perModel.all)}</span></button>
         </div>
         {modelMeta && (
           <>

@@ -10,18 +10,18 @@ import { Dot } from "@/components/stock/StatusBits";
 
 export interface Stat { label: string; value: ReactNode; hint?: ReactNode; live?: boolean }
 
-/** A row of small numeric tiles. Two per row on phones, up to six on desktop; every tile is real data. */
+/** A row of small numeric tiles, each reading figure, then label, then note. Two per row on phones, up to six on desktop; every tile is real data. */
 export function StatStrip({ items, className = "", cols = 6 }: { items: Stat[]; className?: string; cols?: 4 | 6 }) {
   return (
-    <dl className={`grid grid-cols-2 gap-2 ${cols === 4 ? "sm:grid-cols-4" : "sm:grid-cols-3 lg:grid-cols-6"} ${className}`}>
+    <div className={`grid grid-cols-2 gap-2 ${cols === 4 ? "sm:grid-cols-4" : "sm:grid-cols-3 lg:grid-cols-6"} ${className}`}>
       {items.map((s, i) => (
-        <div key={i} className="pane-2 min-w-0 p-3">
-          <dt className="eyebrow break-words text-[0.65rem] leading-tight">{s.label}</dt>
-          <dd className="mt-1 flex items-center gap-1.5 text-xl font-semibold tabular-nums text-ink">{s.live && <Dot state="ok" live />}<span className="truncate">{s.value}</span></dd>
-          {s.hint && <dd className="mt-0.5 truncate text-xs text-ink-3">{s.hint}</dd>}
+        <div key={i} className="pane-2 min-w-0 p-3" role="group">
+          <p className="flex items-center gap-1.5 text-xl font-semibold tabular-nums text-ink">{s.live && <Dot state="ok" live />}<span className="truncate">{s.value}</span></p>
+          <p className="eyebrow mt-1 break-words text-[0.65rem] leading-tight">{s.label}</p>
+          {s.hint && <p className="mt-0.5 truncate text-xs text-ink-3">{s.hint}</p>}
         </div>
       ))}
-    </dl>
+    </div>
   );
 }
 

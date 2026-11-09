@@ -71,13 +71,13 @@ export default async function HowItWorks() {
 
   const cycleTable: Block = { t: "table", head: ["What happens", "How long"], rows: [
     ["Source inventory is collected", "frequently, across the tracked stores and configurations"],
-    ["A first \"available\" is asked again before it counts", "about 1 second later"],
+    ["An unconfirmed first sighting gets a second look", "about 1 second later"],
     ["Confirmed source records are synchronized", "collection and synchronization both add delay"],
     ["A newly detected restock can trigger an alert", "delivery depends on synchronization, network and device settings"],
     ["Paid plans use the same stock feed", "the plan changes your alert limit, not collection speed"],
     ["Median iPhone Duo listing in the recent sample", typical],
     ], caption: "From an inventory observation to a notification", source: "ShelfSpring inventory import and alert workflow; check each page’s displayed observation time" };
-  const dataTable: Block = { t: "table", head: ["What we record", "Where you see it"], rows: [
+  const dataTable: Block = { t: "table", head: ["Logged item", "Shown on"], rows: [
     ["Latest known store–configuration status", "the pickup board, with its observation timestamp"],
     ["Recorded changes to available or unavailable", "the chronological [event journal](/restocks) and local detail pages"],
     ["Distribution of past events by local hour or weekday", "historical charts where the sample meets the minimum evidence requirements"],
@@ -91,14 +91,14 @@ export default async function HowItWorks() {
   const realLead = "The source confirms a return using **two matching pickup-availability responses**. ShelfSpring imports those recorded events; a matching pair reduces transient errors but does not reserve inventory or guarantee the listing remains available.";
   const dataLead = `The record connects a store, a device configuration and an observation time.${f.restocks ? ` It currently contains **${n(f.restocks)}** confirmed returns across ${n(f.restockStores)} stores.` : ""} Pages summarize those events over explicit windows so that recent activity, local timing and listing duration remain separate comparisons.`;
   const yourStoreLead = `Use the local-hour and weekday summaries as **historical context** for your shortlist. The last ${PATTERN_DAYS} days show when recorded returns occurred; Apple publishes no pickup-restock schedule.`;
-  const coverageLead = `Choose a market before comparing availability. The catalog covers **${n(ALL_STORES.length)}** Apple Stores across ${INTL_CODES.length + 1} countries and the tracked configurations of Duo, 18 Pro and 18 Pro Max.`;
+  const coverageLead = `Choose a market before comparing availability. The catalog covers **${n(ALL_STORES.length)}** Apple Stores across ${INTL_CODES.length + 1} countries and every tracked configuration of the Duo, the 18 Pro and the 18 Pro Max.`;
   const costLead = `Explore the public record without a subscription. A paid plan supplies an alert allowance, beginning at **$${PLANS.plus.priceUsd} USD per month**, for the combinations you choose to follow.`;
 
   const nav = [
     { id: "speed", label: "Collection and delivery" },
     { id: "confirmed", label: "Confirmed restocks" },
     { id: "data", label: "What we record" },
-    { id: "your-store", label: "Your store's restock times" },
+    { id: "your-store", label: "Hours at a single store" },
     { id: "coverage", label: "Stores and iPhones" },
     { id: "cost", label: "Price" },
     { id: "limits", label: "Limits" },
@@ -106,14 +106,14 @@ export default async function HowItWorks() {
 
   const faq: Faq[] = [
     { q: "Does a subscription make stock checks faster?", a: "No. Every plan uses the same synchronized stock feed. A plan changes how many store–configuration alerts you can save. Collection, synchronization and delivery can delay a notification, and Apple may sell out before you open it." },
-    { q: "Where does the restock data come from?", a: `The dataset contains recorded apple.com pickup observations, including imported history covering US stores from ${TRACKING_SINCE_US} and other countries from ${TRACKING_SINCE_INTL}. Those dates describe the data, not how long ShelfSpring has operated. Recorded returns require matching responses ([restock log](/restocks)).` },
-    { q: "Does Apple publish a restock schedule?", a: "A past concentration of returns is not a published timetable. Use Apple’s current pickup listing to check a device and store; ShelfSpring’s local charts describe only the recorded sample ([Apple pickup information](https://www.apple.com/shop/shipping-pickup))." },
-    { q: "Can ShelfSpring reserve a phone for me?", a: "No. An alert identifies a newly detected listing for your chosen configuration. Confirm its current availability on apple.com and complete Apple’s order process; ShelfSpring cannot hold it." },
+    { q: "What is the return record built from?", a: `The dataset contains recorded apple.com pickup observations, including imported history covering US stores from ${TRACKING_SINCE_US} and other countries from ${TRACKING_SINCE_INTL}. Those dates describe the data, not how long ShelfSpring has operated. Recorded returns require matching responses ([restock log](/restocks)).` },
+    { q: "Is there an official Apple timetable for pickup returns?", a: "A past concentration of returns is not a published timetable. Use Apple’s current pickup listing to check a device and store; ShelfSpring’s local charts describe only the recorded sample ([Apple pickup information](https://www.apple.com/shop/shipping-pickup))." },
+    { q: "Will ShelfSpring hold a phone for me?", a: "No. An alert identifies a newly detected listing for your chosen configuration. Confirm its current availability on apple.com and complete Apple’s order process; ShelfSpring cannot hold it." },
     { q: "Is ShelfSpring affiliated with Apple?", a: "No. ShelfSpring is an independent pickup-planning service using recorded public pickup availability. Apple controls listings, orders and collection." },
   ];
   const sources: Source[] = [
-    { label: "Apple: Delivery and Pickup (how pickup availability works)", url: "https://www.apple.com/shop/shipping-pickup" },
-    { label: "Apple: Shipping & Pickup help (what to bring to a pickup)", url: "https://www.apple.com/shop/help/shipping_delivery" },
+    { label: "Apple’s “Delivery and Pickup” page, on how store pickup is offered", url: "https://www.apple.com/shop/shipping-pickup" },
+    { label: "Apple’s “Shipping & Pickup” help, including the documents to bring", url: "https://www.apple.com/shop/help/shipping_delivery" },
   ];
 
   const site = "https://shelfspring.com";
@@ -160,7 +160,7 @@ export default async function HowItWorks() {
           <Stat value={n(ALL_STORES.length)} label="Apple Stores in the inventory coverage" tone="accent" />
           <Stat value={INTL_CODES.length + 1} label="countries with local store pages" />
           <Stat value="Same feed" label="across all subscription plans" />
-          <Stat value={f.restocks ? n(f.restocks) : "—"} label={f.restocks ? <>confirmed restocks logged · {n(f.soldouts)} sell-outs</> : "confirmed restocks logged since tracking began"} live={!!f.restocks} />
+          <Stat value={f.restocks ? n(f.restocks) : "—"} label={f.restocks ? <>returns in the record · {n(f.soldouts)} sell-outs beside them</> : "returns in the record since observation began"} live={!!f.restocks} />
         </StatGrid>
       </section>
 
@@ -198,8 +198,8 @@ export default async function HowItWorks() {
         <Section id="data" h2="Match each measurement to its question" lead={dataLead} facts={facts}>
           <StatGrid cols={3} className="mt-5">
             <Stat value={f.restocks ? n(f.restocks) : "—"} label="confirmed restocks" tone="accent" />
-            <Stat value={f.soldouts ? n(f.soldouts) : "—"} label="confirmed sell-outs" />
-            <Stat value={f.restockStores ? n(f.restockStores) : "—"} label="stores with at least one restock" />
+            <Stat value={f.soldouts ? n(f.soldouts) : "—"} label="sell-outs in the record" />
+            <Stat value={f.restockStores ? n(f.restockStores) : "—"} label="stores with one or more returns" />
           </StatGrid>
           <BlockView b={dataTable} facts={facts} />
           <Measured>
@@ -217,12 +217,12 @@ export default async function HowItWorks() {
           ]} />
           {ex ? (
             <>
-              <div className="eyebrow mt-6">For example: <Link href={ex.path} className="normal-case tracking-normal text-ink underline underline-offset-2">{ex.name}</Link>, last {PATTERN_DAYS} days</div>
+              <div className="eyebrow mt-6">Worked example: <Link href={ex.path} className="normal-case tracking-normal text-ink underline underline-offset-2">{ex.name}</Link>, last {PATTERN_DAYS} days</div>
               <StatGrid cols={4} className="mt-3">
                 <Stat value={n(ex.p.restocks)} label="confirmed restocks" />
                 <Stat value={hourLabel(ex.p.peakHour!)} label="hour with the largest recorded count, local time" tone="accent" />
-                <Stat value={ex.p.peakWeekday != null ? WEEKDAYS[ex.p.peakWeekday] : "—"} label={ex.p.peakWeekday != null ? "the busiest day" : "busiest day: needs two weeks of data"} tone={ex.p.peakWeekday != null ? "plain" : "muted"} />
-                <Stat value={ex.p.medianStayMin != null ? `~${ex.p.medianStayMin}` : "—"} unit={ex.p.medianStayMin != null ? "min" : undefined} label="a typical restock stayed listed" />
+                <Stat value={ex.p.peakWeekday != null ? WEEKDAYS[ex.p.peakWeekday] : "—"} label={ex.p.peakWeekday != null ? "peak weekday" : "peak weekday: waits for two weeks of data"} tone={ex.p.peakWeekday != null ? "plain" : "muted"} />
+                <Stat value={ex.p.medianStayMin != null ? `~${ex.p.medianStayMin}` : "—"} unit={ex.p.medianStayMin != null ? "min" : undefined} label="median stay on the shelf" />
               </StatGrid>
             </>
           ) : (
@@ -232,16 +232,16 @@ export default async function HowItWorks() {
             { text: <><b className="text-ink">Keep the observation window attached</b>: an hourly concentration describes the recorded dates and may not repeat</>, no: true },
             { text: <>A chart helps you compare stores; a notification helps you notice a new listing. Neither guarantees a purchase</>, step: true },
           ]} />
-          <LinkRow links={[{ label: "When does Apple restock the iPhone Duo? Country-wide, hour by hour", href: "/iphone-duo-restock-times" }, { label: "How fast does an iPhone Duo restock sell out?", href: "/iphone-duo-sell-out-times" }]} />
+          <LinkRow links={[{ label: "The nationwide iPhone Duo return study, hour by hour", href: "/iphone-duo-restock-times" }, { label: "How long an iPhone Duo return stays listed", href: "/iphone-duo-sell-out-times" }]} />
 
         </Section>
 
         {/* coverage */}
         <Section id="coverage" h2="Keep the market and model in view" lead={coverageLead} facts={facts}>
           <StatGrid cols={3} className="mt-5">
-            <Stat value={STORES.length} label="Apple Stores in the US" tone="accent" />
-            <Stat value={n(intl)} label={<>more in {INTL_CODES.length} other countries</>} />
-            <Stat value="3" label="iPhones: Duo, 18 Pro and 18 Pro Max, every storage and color, with Apple's local prices" />
+            <Stat value={STORES.length} label="US Apple Stores in the ledger" tone="accent" />
+            <Stat value={n(intl)} label={<>outside the US, across {INTL_CODES.length} more countries</>} />
+            <Stat value="3" label="models followed (Duo, 18 Pro, 18 Pro Max) in every storage size and color, priced as Apple lists them locally" />
           </StatGrid>
           <Chips className="mt-4" items={COUNTRIES_COVERED} />
           <LinkRow links={[{ label: "The US stores", href: "/stores" }, { label: "The UK", href: "/uk" }, { label: "Japan", href: "/jp" }]} />
@@ -250,9 +250,9 @@ export default async function HowItWorks() {
         {/* cost */}
         <Section id="cost" h2="Choose an allowance for a useful shortlist" lead={costLead} facts={facts}>
           <StatGrid cols={3} className="mt-5">
-            <Stat value={`$${PLANS.plus.priceUsd}`} unit="/ month" label={<>Plus · {PLANS.plus.limit} alerts</>} tone="accent" />
-            <Stat value={`$${PLANS.pro.priceUsd}`} unit="/ month" label={<>Pro · {PLANS.pro.limit} alerts</>} />
-            <Stat value={`$${PLANS.max.priceUsd}`} unit="/ month" label={<>Max · {PLANS.max.limit} alerts</>} />
+            <Stat value={`$${PLANS.plus.priceUsd}`} unit="/ month" label={<>{PLANS.plus.limit} watchlist alerts on Plus</>} tone="accent" />
+            <Stat value={`$${PLANS.pro.priceUsd}`} unit="/ month" label={<>{PLANS.pro.limit} watchlist alerts on Pro</>} />
+            <Stat value={`$${PLANS.max.priceUsd}`} unit="/ month" label={<>{PLANS.max.limit} watchlist alerts on Max</>} />
           </StatGrid>
           <Points className="mt-5" items={[
             { text: <>The public boards and historical comparisons remain <b className="text-ink">available without a paid plan</b></> },

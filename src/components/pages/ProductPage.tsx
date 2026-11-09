@@ -174,7 +174,8 @@ export async function ProductPage({ country: c, params: p }: { country: Country;
   const label = top && !us ? inCountry : where;
   // The whole country: the stores that have it, or — when none do — the ones that had it most recently.
   const usNone = top && inStock === 0;
-  const shownLines = !top ? lines : usNone ? lines.filter((l) => l.lastAvailableAt).slice(0, 12) : lines.filter((l) => l.available.length > 0).slice(0, 40);
+  // A country page lists the first sixteen stores that have it; the store directory (every store × model) holds the rest.
+  const shownLines = !top ? lines : usNone ? lines.filter((l) => l.lastAvailableAt).slice(0, 12) : lines.filter((l) => l.available.length > 0).slice(0, 16);
   const faq = fieldGuideQuestions({place:placeName(place,lang),stores:place.stores.length,kind:"product",model:product.name,lang});
   const countryName = lang === "en" ? theName(c) : countryLabel(c.cc,lang);
   const intlFaq = !us && top ? modelFaq(c,product,inStock,D,countryName) : [];
@@ -205,19 +206,20 @@ export async function ProductPage({ country: c, params: p }: { country: Country;
           <FieldSection id="configuration" title={V.byStorageColor} caption={Guide.next}><div className="pane p-4 sm:p-6"><ProductNav facets={facets} place={place} unit={atStore ? V.unitConfigs : V.unitStores} /><div className="mt-5 border-t border-line pt-4"><ProductGrid grid={grid} place={place} current={product} /></div></div>{us && top && <div className="mt-5"><QuickCheckServer model={product.model} product={product} /></div>}</FieldSection>
           <FieldSection id="pickup-options" title={atStore ? V.inStockNow : usNone ? V.mostRecentlyInStock : Guide.compare}>
             {atStore && one && line ? <StatusCard line={line} /> : <ProductStoreList product={product} lines={shownLines} showCity={place.level!=="city"} emptyText={checked ? top ? V.noStoreHasIt : V.noStoreHereHasIt : Guide.unknown} />}
-            {top && !usNone && inStock>shownLines.length && <p className="mt-3 text-sm text-ink-3">{V.moreStores(inStock-shownLines.length)}</p>}
+            {top && !usNone && inStock>shownLines.length && <p className="mt-3 text-sm text-ink-3"><Link href={placePagePath(place)} className="underline underline-offset-4">{V.moreStores(inStock-shownLines.length)}</Link></p>}
           </FieldSection>
+          {/* ShelfSpring's order: shelf today, the record's measures, which configurations came back, then hour, calendar, duration and the raw entries. */}
           <FieldSection id="history" title={Guide.history} caption={`${stats.days}d`}><StatStrip items={stat} cols={4} /><PickupPattern data={{restocks:stats.month,stores:stats.restockStores,byPart:stats.byPart,unknown:stats.unknown}} storeCount={place.stores.length} country={c.cc} model={product.model} window={`${stats.days}d`} parts={product.parts} /></FieldSection>
-          <FieldSection title={V.latestChanges}><RestockFeed rows={feed} showModel={product.kind==="model"} emptyText={V.nothingLogged} /></FieldSection>
-          <FieldSection title={V.whenRestocks}><RestockClock stats={clock} label={label} reports={reports} /></FieldSection>
-          <FieldSection title={V.howFast}><SellOutTimes data={sell} label={label} showStore={place.stores.length>1} /></FieldSection>
-          {stats.month>0 && <FieldSection title={C.lastDays(stats.days)}><DailyBars stats={stats} label={label} /></FieldSection>}
-          {stats.month>0 && !one && <FieldSection title={V.restocksByConfig}><RestocksByConfig stats={stats} label={label} store={place.store?.storeNumber} country={us ? undefined : c.cc} /></FieldSection>}
+          {stats.month>0 && !one && <FieldSection id="returned" title={V.restocksByConfig}><RestocksByConfig stats={stats} label={label} store={place.store?.storeNumber} country={us ? undefined : c.cc} /></FieldSection>}
+          <FieldSection id="timing" title={V.whenRestocks}><RestockClock stats={clock} label={label} reports={reports} /></FieldSection>
+          {stats.month>0 && <FieldSection id="calendar" title={C.lastDays(stats.days)}><DailyBars stats={stats} label={label} /></FieldSection>}
+          <FieldSection id="duration" title={V.howFast}><SellOutTimes data={sell} label={label} showStore={place.stores.length>1} /></FieldSection>
+          <FieldSection id="log" title={V.latestChanges}><RestockFeed rows={feed} showModel={product.kind==="model"} emptyText={V.nothingLogged} /></FieldSection>
         </div>
         <aside className="field-aside space-y-6">
           <AlertPanelFor href={placeAlert(product,place)} summary={V.panel(product.name,top ? us ? null : inCountry : where)} country={c.cc} />
-          {children.length>0 && <section className="field-callout"><h2 className="text-xl font-semibold">{top ? V.byRegion(c) : V.byCity}</h2><div className="mt-4"><PlaceCountList product={product} items={children} /></div></section>}
           {siblings.length>0 && <section className="field-callout"><h2 className="text-xl font-semibold">{Guide.alternatives}</h2>{nearest && <p className="mt-3 text-sm">{V.closest(<Link href={productPath(product,storePlace(nearest.store))} className="underline">{storeLabel(nearest.store,lang)}</Link>,dist(nearest.distance))}</p>}<div className="mt-4"><PlaceCountList product={product} items={siblings} /></div></section>}
+          {children.length>0 && <section className="field-callout"><h2 className="text-xl font-semibold">{top ? V.byRegion(c) : V.byCity}</h2><div className="mt-4"><PlaceCountList product={product} items={children} /></div></section>}
           <FieldMethod />
           <SourceList sources={[pickupHelp(c.cc),{label:V.buySource(product.name,c),url:appleBuyUrl({model:product.name,storage:"256GB",color:""},c.cc)}]} facts={emptyFacts(c.cc)} />
         </aside>
@@ -225,19 +227,19 @@ export async function ProductPage({ country: c, params: p }: { country: Country;
       <div className="field-section"><Faq items={[...faq,...intlFaq]} title={V.faqTitle(bidi(product.short,lang),label)} /></div>
 
       <RelatedBlock title={V.nearby}>
-        {place.level === "state" && siblings.length > 0 && <LinkRow curated title={us ? "Neighboring states" : V.otherRegions(c)} links={siblings.map((s) => ({ href: productPath(product, s.place), label: placeName(s.place, lang), meta: `${s.inStock}/${s.stores}` }))} />}
-        {(place.level === "city" || place.level === "store") && place.state && t.regionPlace(place.state) && (
-          <LinkRow title={V.elsewhereIn(regionLabel(c.cc, place.state, lang))} links={[t.regionPlace(place.state)!, ...(place.level === "store" && place.city ? [t.cityPlace(place.state, place.city)].filter((x): x is Place => Boolean(x)) : [])].map((x) => ({ href: productPath(product, x), label: placeName(x, lang) }))} />
-        )}
         <LinkRow title={C.more} links={[
-          { href: placePagePath(place), label: top ? (us ? "Every Apple Store" : V.everyAppleStoreIn(c)) : V.everyIphone(where) },
           { href: `${restocksPath(c.cc)}?model=${product.model}`, label: C.restockLog },
           { href: `${mapPath(c.cc)}?model=${product.model}${place.store ? `&store=${place.store.storeNumber}` : ""}`, label: C.liveMap },
+          { href: placePagePath(place), label: top ? (us ? "Full store directory" : V.everyAppleStoreIn(c)) : V.everyIphone(where) },
           ...(top ? [] : [{ href: productPath(product, t.root), label: V.across(bidi(product.short, lang), c) }]),
           ...(intlTop ? [{ href: prefixOf(c.cc), label: C.checker(c) }, ...(placeTarget(c.cc)?.indexable ? [{ href: storesIndexPath(c.cc), label: C.appleStoresIn(c) }] : [])] : []),
           // Native versions only (English pages keep their links): the Duo page leads to the restock-times page.
           ...(intlTop && loc.native && product.model === "duo" ? [{ href: `${prefixOf(c.cc)}/iphone-duo-restock-times`, label: dictT().place.home.restockTimesChip }] : []),
         ]} />
+        {(place.level === "city" || place.level === "store") && place.state && t.regionPlace(place.state) && (
+          <LinkRow title={V.elsewhereIn(regionLabel(c.cc, place.state, lang))} links={[t.regionPlace(place.state)!, ...(place.level === "store" && place.city ? [t.cityPlace(place.state, place.city)].filter((x): x is Place => Boolean(x)) : [])].map((x) => ({ href: productPath(product, x), label: placeName(x, lang) }))} />
+        )}
+        {place.level === "state" && siblings.length > 0 && <LinkRow curated title={us ? "Bordering states" : V.otherRegions(c)} links={siblings.map((s) => ({ href: productPath(product, s.place), label: placeName(s.place, lang), meta: `${s.inStock}/${s.stores}` }))} />}
       </RelatedBlock>
     </div>
   );

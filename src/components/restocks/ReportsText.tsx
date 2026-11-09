@@ -25,7 +25,7 @@ function range(lang: Lang, r: Pick<ReportText, "from" | "to">): string {
   return r.from === r.to ? d(r.from) : `${d(r.from)} – ${d(r.to)}`;
 }
 
-/** "Reported by other trackers (Apple Pickup Live, DuoReady), Oct 26 – Nov 1". */
+/** "Outside reports · Apple Pickup Live, DuoReady · Oct 26 – Nov 1". */
 export function ReportLegendText({ reports }: { reports: ReportText }) {
   const s = useT().modules.reports;
   const lang = useLang();
@@ -60,7 +60,7 @@ function linked(lang: Lang, sources: ReportText["sources"]): ReactNode[] {
   return out;
 }
 
-/** The footnote: what the marks are, who published them, and that none of our numbers count them. */
+/** The footnote: what the marks are, who posted them, and that no figure of ours includes them. */
 export function ReportsNoteText({ reports, mark }: { reports: ReportText; mark?: string }) {
   const s = useT().modules.reports;
   const lang = useLang();

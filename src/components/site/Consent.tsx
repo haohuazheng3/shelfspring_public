@@ -2,7 +2,7 @@
 /**
  * FlowGlance — the only analytics — and when it may run. /api/geo places the visitor: in the EU, the EEA,
  * the UK and Switzerland (or anywhere we can't place) a banner asks first and FlowGlance loads only after
- * "Accept"; everywhere else it loads straight away and the footer's "Do not track me" turns it off. The
+ * "Yes, count it"; everywhere else it loads straight away and the footer's "Pause analytics" turns it off. The
  * choice lives in a first-party cookie for 180 days; a Global Privacy Control signal counts as an opt-out.
  * The snippet only ever loads on the production host over https: local runs, Lighthouse builds and preview
  * deployments would otherwise count as visitors. identify() happens in the account area.
@@ -41,7 +41,7 @@ function apply(allowed: boolean) {
   if (allowed) { releaseAnalytics(); loadFlowGlance(); } else holdAnalytics();
 }
 
-/** Accept / Decline on the banner, and "Do not track me" / "Turn on" in the footer. */
+/** The banner's two answers, and the footer's pause / resume switch. */
 export function setAnalyticsChoice(choice: Choice) {
   writeCookie(CONSENT_COOKIE, choice);
   window.dispatchEvent(new CustomEvent<Choice>(CONSENT_EVENT, { detail: choice }));
@@ -120,7 +120,7 @@ export function Consent() {
   );
 }
 
-/** Footer control: "Do not track me" while analytics may run, "Analytics off · Turn on" after opting out. */
+/** Footer switch: "Pause analytics" while analytics may run; "Analytics paused · Resume" after opting out. */
 export function TrackingChoice() {
   const d = useT().chrome.consent;
   const [choice, setChoice] = useState<Choice | null>(null);

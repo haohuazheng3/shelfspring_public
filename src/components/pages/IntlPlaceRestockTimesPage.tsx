@@ -34,6 +34,7 @@ import { recentByConfig } from "@/lib/stock/recent";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { cache } from "react";
+import { slot24 } from "./shared";
 
 const SITE = "https://shelfspring.com";
 const APPLE_PICKUP = "https://www.apple.com/shop/shipping-pickup";
@@ -231,12 +232,12 @@ export async function IntlPlaceRestockTimesPage({ country: c, regionSlug, citySl
           </FieldSection>
           <FieldSection id="time-of-day" title={en ? "A distribution of hours, not a delivery schedule" : NAV["time-of-day"]} caption={en ? "03 / Timing" : undefined}>
             <p className="text-sm leading-relaxed text-ink-2">{t.unknown ? Guide.unknown : en ? pattern ? `The largest observed hour was ${F.range(t.peakHour!, t.peakHour! + 1)} in ${zone.word}, with ${n(t.byHour[t.peakHour!])} returns. ${pct(w.share)} fell inside the busiest two-hour window, ${F.range(w.from, w.to)}. Neither figure schedules a future delivery.` : `We have ${n(t.n)} returns across ${t.days} days. The threshold for naming an hour pattern is ${PATTERN_MIN} returns over ${PATTERN_MIN_DAYS} days, so a single burst is not presented as a habit.` : Narrative.hours}</p>
-            {hours.length > 0 && <Table caption={en ? V.hourCaption(x) : NAV["time-of-day"]} head={V.hourHead} min="20rem">{hours.map((h) => <tr key={h.hour} className="border-b border-line"><th scope="row" className={rowTh}>{F.range(h.hour, h.hour + 1)}</th><td className={td}>{F.n(h.count)}</td><td className={td}>{t.n ? F.pct(h.count / t.n) : "—"}</td></tr>)}</Table>}
+            {hours.length > 0 && <Table caption={en ? V.hourCaption(x) : NAV["time-of-day"]} head={V.hourHead} min="20rem">{hours.map((h) => <tr key={h.hour} className="border-b border-line"><th scope="row" className={rowTh}>{slot24(h.hour)}</th><td className={td}>{F.n(h.count)}</td><td className={td}>{t.n ? F.pct(h.count / t.n) : "—"}</td></tr>)}</Table>}
             {!nat.unknown && nat.n > 0 && <p className="mt-5 border-t border-line pt-4 text-sm text-ink-3">{en ? <>For comparison, the national sample for {countryName} contains {n(nat.n)} returns. This local sample represents {share}% of that total. </> : <>{countryName}: {F.n(nat.n)} · {F.pct(nat.n ? t.n / nat.n : 0)}. </>}<Link href={inLoc(countryHref)} className="underline underline-offset-4">{en ? "Read the nationwide study" : V.crumb}</Link>.</p>}
           </FieldSection>
           <FieldSection id="day-by-day" title={en ? "Trace the sample one day at a time" : NAV["day-by-day"]} caption={en ? "04 / The daily ledger" : undefined}>
             <p className="text-sm leading-relaxed text-ink-2">{en ? "Dates follow each store's local calendar. A zero means no confirmed return was recorded that day; it is not proof that a store received no phones. Today is an incomplete day." : Narrative.days}</p>
-            <Table caption={en ? V.dayCaption(x) : NAV["day-by-day"]} head={[V.dayHead.date, V.dayHead.restocks, V.dayHead.stores, V.dayHead.busiest]} min="26rem">{[...t.daily].reverse().map((dd) => <tr key={dd.date} className="border-b border-line"><th scope="row" className={rowTh}>{F.date(dd.date)}{today?.date === dd.date ? V.soFar : ""}</th><td className={td}>{F.n(dd.restocks)}</td><td className={td}>{dd.stores}</td><td className={td}>{dd.peakHour == null ? "—" : F.range(dd.peakHour, dd.peakHour + 1)}</td></tr>)}</Table>
+            <Table caption={en ? V.dayCaption(x) : NAV["day-by-day"]} head={[V.dayHead.date, V.dayHead.restocks, V.dayHead.stores, V.dayHead.busiest]} min="26rem">{[...t.daily].reverse().map((dd) => <tr key={dd.date} className="border-b border-line"><th scope="row" className={rowTh}>{F.date(dd.date)}{today?.date === dd.date ? V.soFar : ""}</th><td className={td}>{F.n(dd.restocks)}</td><td className={td}>{dd.stores}</td><td className={td}>{dd.peakHour == null ? "—" : slot24(dd.peakHour)}</td></tr>)}</Table>
           </FieldSection>
           <FieldSection id="how-long" title={en ? "How long did completed pickup windows remain listed?" : NAV["how-long"]} caption={en ? "05 / Listing duration" : undefined}>
             <p className="text-sm leading-relaxed text-ink-2">{en ? sell ? `The timing sample includes ${n(sell.n)} return-to-sellout intervals. Its median is ${secs(sell.medianSec)}: half of those measured intervals were no longer than that. Listings still open are excluded. The spacing between observations makes these upper bounds, not exact reservation deadlines.` : "Fewer than ten completed intervals are available, so this study does not publish a local median. Missing timing data is not a zero-second window." : Narrative.duration}</p>
@@ -251,7 +252,7 @@ export async function IntlPlaceRestockTimesPage({ country: c, regionSlug, citySl
         {cityPages.length > 0 && <LinkRow curated title={en ? (city ? `Other cities in ${regionName}` : `By city in ${name}`) : D.views.product.byCity} links={cityPages} />}
         {otherRegions.length > 0 && <LinkRow curated title={en ? `Other ${c.regionNounPlural ?? "areas"} ${c.inName}` : D.views.product.byRegion(c)} links={otherRegions} />}
         {otherCities.length > 0 && <LinkRow curated title={en ? `Cities elsewhere ${c.inName}` : D.views.product.byCity} links={otherCities} />}
-        <LinkRow curated title={countryName} links={[{ href: inLoc(countryHref), label: en ? `When does Apple restock the iPhone Duo ${c.inName}?` : V.crumb, meta: t.n && nat.n ? `${share}%` : undefined }]} />
+        <LinkRow curated title={countryName} links={[{ href: inLoc(countryHref), label: en ? `The iPhone Duo return study ${c.inName}` : V.crumb, meta: t.n && nat.n ? `${share}%` : undefined }]} />
         <LinkRow title={en ? `${name}, live` : name} links={[
           { href: inLoc(page.storesPath), label: en ? `Apple Stores in ${name}` : C.appleStoresIn(c) },
           { href: `${logHref}?model=duo`, label: C.restockLog },
@@ -259,7 +260,7 @@ export async function IntlPlaceRestockTimesPage({ country: c, regionSlug, citySl
         ]} />
       </RelatedBlock>
 
-      <div className="mt-10"><RichFaq items={faq} facts={facts} title={en ? `iPhone Duo restocks in ${name}: FAQ` : V.faqTitle} /></div>
+      <div className="mt-10"><RichFaq items={faq} facts={facts} title={en ? `Field questions · iPhone Duo returns in ${name}` : V.faqTitle} /></div>
     </div>
   );
 }

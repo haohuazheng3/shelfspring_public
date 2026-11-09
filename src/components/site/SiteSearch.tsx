@@ -18,9 +18,22 @@ import { useAppLocale, useLocale, useT } from "@/components/i18n/LangProvider";
 import { treePrefix } from "./HeaderNav";
 import { fill as fillIn } from "@/lib/i18n/format";
 
-const EXAMPLES = ["Texas", "Houston", "Fifth Avenue", "10001", "Duo"];
-/** Native versions: examples in the country's own names. */
-const NATIVE_EXAMPLES: Record<string, string[]> = { jp: ["東京", "銀座", "大阪", "Duo"], kr: ["서울", "가로수길", "명동", "Duo"], tw: ["台北", "信義", "Duo"], hk: ["銅鑼灣", "廣東道", "ifc", "Duo"], de: ["München", "Berlin", "Kurfürstendamm", "Duo"], at: ["Wien", "Kärntner Straße", "Duo"], ch: ["Zürich", "Genève", "Basel", "Duo"], fr: ["Paris", "Lyon", "Champs-Élysées", "Duo"], be: ["Bruxelles", "Duo"], ca: ["Montréal", "Québec", "Toronto", "Duo"], it: ["Milano", "Roma", "Via del Corso", "Duo"], es: ["Madrid", "Barcelona", "Puerta del Sol", "Duo"], nl: ["Amsterdam", "Den Haag", "Duo"], se: ["Stockholm", "Malmö", "Täby", "Duo"] };
+/**
+ * Sample searches under the shortcuts, in the reader's own market: English pages of a country use that country's
+ * English place names, a native version its own spelling (each resolves through the search index's aliases).
+ */
+const EXAMPLES: Record<string, string[]> = {
+  us: ["Ohio", "Seattle", "Michigan Avenue", "94108", "Duo 512GB"],
+  ca: ["Vancouver", "Eaton Centre", "Calgary", "18 Pro Max"], uk: ["Liverpool", "Covent Garden", "Edinburgh", "18 Pro Max"],
+  au: ["Chadstone", "Brisbane", "Sydney", "18 Pro Max"], de: ["Cologne", "Rosenstraße", "Hamburg", "18 Pro Max"],
+  fr: ["Bordeaux", "Opéra", "Lyon", "18 Pro Max"], it: ["Turin", "Piazza Liberty", "Rome", "18 Pro Max"],
+  es: ["Valencia", "Passeig de Gràcia", "Madrid", "18 Pro Max"], jp: ["Shibuya", "Kyoto", "Osaka", "18 Pro Max"],
+  kr: ["Gangnam", "Hanam", "18 Pro Max"], hk: ["Canton Road", "Sha Tin", "18 Pro Max"], sg: ["Orchard Road", "Marina Bay Sands", "18 Pro Max"],
+  ae: ["Dubai Mall", "Al Ain", "18 Pro Max"], ch: ["Geneva", "Glattzentrum", "18 Pro Max"], nl: ["Haarlem", "The Hague", "18 Pro Max"],
+  se: ["Solna", "Emporia", "18 Pro Max"], tw: ["Taipei 101", "18 Pro Max"], at: ["Vienna", "18 Pro Max"], be: ["Brussels", "18 Pro Max"],
+};
+/** Native versions: sample searches in the country's own names. */
+const NATIVE_EXAMPLES: Record<string, string[]> = { jp: ["渋谷", "京都", "梅田", "18 Pro"], kr: ["강남", "하남", "잠실", "18 Pro"], tw: ["台北 101", "A13", "18 Pro"], hk: ["尖沙咀", "又一城", "沙田", "18 Pro"], de: ["Hamburg", "Köln", "Jungfernstieg", "18 Pro"], at: ["Kärntner Straße", "18 Pro Max"], ch: ["Rennweg", "Glattzentrum", "Rue de Rive", "18 Pro"], fr: ["Marseille", "Bordeaux", "Opéra", "18 Pro"], be: ["18 Pro Max", "Bruxelles"], ca: ["Laval", "Ottawa", "Sainte-Catherine", "18 Pro"], it: ["Torino", "Firenze", "Piazza Liberty", "18 Pro"], es: ["Valencia", "Zaragoza", "Passeig de Gràcia", "18 Pro"], nl: ["Haarlem", "Den Haag", "18 Pro"], se: ["Solna", "Emporia", "18 Pro"], ae: ["دبي مول", "العين", "18 Pro"] };
 
 const SearchIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg viewBox="0 0 24 24" className={`${className} shrink-0`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
@@ -34,8 +47,9 @@ export function SiteSearch() {
   const pathname = usePathname() ?? "/";
   const p = treePrefix(pathname, app?.id ?? null);
   const KIND_LABEL: Record<SearchKind, string> = d.kinds;
-  const examples = loc.native ? NATIVE_EXAMPLES[loc.cc] ?? EXAMPLES : EXAMPLES;
-  const shortcuts: [string, string][] = p ? [[`${p}/stock/iphone-duo`, d.shortcuts.duo], [`${p}/restocks`, d.shortcuts.log], [`${p}/map`, d.shortcuts.map], [`${p}/stores`, d.shortcuts.storesHere]] : [["/stock/iphone-duo", d.shortcuts.duo], ["/restocks", d.shortcuts.log], ["/map", d.shortcuts.map], ["/stores", d.shortcuts.stores]];
+  const examples = (loc.native ? NATIVE_EXAMPLES[loc.cc] : undefined) ?? EXAMPLES[loc.cc] ?? EXAMPLES.us;
+  // Map and return log first: the two pages that answer "where is it now" and "when did it come back".
+  const shortcuts: [string, string][] = [[`${p}/map`, d.shortcuts.map], [`${p}/restocks`, d.shortcuts.log], [`${p}/stock/iphone-duo`, d.shortcuts.duo], [`${p}/stores`, p ? d.shortcuts.storesHere : d.shortcuts.stores]];
   const ref = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState("");
@@ -88,7 +102,7 @@ export function SiteSearch() {
 
   return (
     <>
-      <button type="button" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line-2 bg-ink/4 text-ink transition hover:bg-ink/10 active:scale-95" aria-label={d.open} title="Search (⌘K)" onClick={show}><SearchIcon /></button>
+      <button type="button" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line-2 bg-ink/4 text-ink transition hover:bg-ink/10 active:scale-95" aria-label={d.open} title="Find (⌘K)" onClick={show}><SearchIcon /></button>
       <dialog ref={ref} className="search-dialog" aria-label={d.label} onClose={onClose} onClick={(e) => { if (e.target === e.currentTarget) hide(); }}>
         <div className="flex items-center gap-2 border-b border-line px-3 py-3 sm:px-4">
           {/* Ink on the label: the global `input { color: inherit }` is unlayered and beats a text-* utility on the input. */}
@@ -105,16 +119,16 @@ export function SiteSearch() {
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {query === "" ? (
             <div className="px-4 py-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-ink-3">{d.try}</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {examples.map((x) => <button key={x} type="button" className="chip px-3 py-1.5 text-sm" onClick={() => fill(x)}>{x}</button>)}
-              </div>
-              <div className="mt-5 text-xs font-semibold uppercase tracking-wide text-ink-3">{d.goTo}</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-ink-3">{d.goTo}</div>
               <ul className="mt-1">
                 {shortcuts.map(([h, l]) => (
                   <li key={h}><Link href={h} onClick={hide} className="-mx-2 flex items-center justify-between rounded-xl px-2 py-3 text-[15px] text-ink hover:bg-ink/5">{l}<span aria-hidden className="text-ink-3">›</span></Link></li>
                 ))}
               </ul>
+              <div className="mt-5 text-xs font-semibold uppercase tracking-wide text-ink-3">{d.try}</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {examples.map((x) => <button key={x} type="button" className="chip px-3 py-1.5 text-sm" onClick={() => fill(x)}>{x}</button>)}
+              </div>
             </div>
           ) : !index ? (
             <p className="px-4 py-4 text-sm text-ink-3">{d.loading}</p>
