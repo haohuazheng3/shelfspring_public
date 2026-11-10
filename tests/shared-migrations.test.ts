@@ -94,9 +94,10 @@ it("pins verified TLS through the real driver and rejects shared role/search_pat
   });
   const client = new Client(config) as unknown as { connectionParameters: { ssl: unknown } };
   expect(client.connectionParameters.ssl).toEqual({ ca: "fixture-ca", rejectUnauthorized: true });
-  for (const url of ["postgres://poller:fixture@db.example/pickupchecker", "postgres://shelfspring:fixture@db.example/shelfspring",
+  for (const url of ["postgres://poller:fixture@db.example/pickupchecker", "postgres://shelfspring:fixture@db.example/postgres",
     "postgres://shelfspring:fixture@db.example/pickupchecker?options=-csearch_path%3Dpublic",
     "postgres://shelfspring:fixture@db.example/pickupchecker?host=other.example"]) {
     expect(() => migrationConnectionConfig(url, { DATABASE_SHARED_CLUSTER: "pickupchecker" })).toThrow();
   }
+  expect(() => migrationConnectionConfig("postgres://shelfspring:fixture@db.example/shelfspring", { DATABASE_SHARED_CLUSTER: "pickupchecker", DATABASE_CA: "fixture-ca" })).not.toThrow();
 });

@@ -5,6 +5,7 @@
  */
 import { unstable_cache } from "next/cache";
 import { doNotCacheReadFailure } from "../cache-read-failure";
+import { daysAgo } from "../stock/since";
 import { sql } from "drizzle-orm";
 import { db, hasDatabase } from "../db";
 import { ALL_STORES, PART_INDEX, countryOfStore, modelKeyFor, storePath, storeTimeZone, type Store } from "../apple/catalog";
@@ -113,14 +114,14 @@ const cached = unstable_cache(
       from availability_events where not first_seen`)).rows as { restocks: number; soldouts: number; stores: number }[];
     const recent = (await d.execute(sql`
       select store_number, at from availability_events
-      where not first_seen and kind = 'restock' and at > now() - make_interval(days => ${PATTERN_DAYS})`)).rows as { store_number: string; at: string | Date }[];
+      where not first_seen and kind = 'restock' and at > ${daysAgo(PATTERN_DAYS)}`)).rows as { store_number: string; at: string | Date }[];
     // How long each restock stayed listed: from it to the next event of the same store × part, when that is a sell-out.
     const pairs = (await d.execute(sql`
       select store_number, part_number, at, extract(epoch from next_at - at)::float8 as secs from (
         select store_number, part_number, at, kind,
                lead(at) over (partition by store_number, part_number order by at) as next_at,
                lead(kind) over (partition by store_number, part_number order by at) as next_kind
-        from availability_events where not first_seen and at > now() - make_interval(days => ${PATTERN_DAYS})
+        from availability_events where not first_seen and at > ${daysAgo(PATTERN_DAYS)}
       ) e where kind = 'restock' and next_kind = 'soldout'`)).rows as { store_number: string; part_number: string; at: string | Date; secs: number }[];
     const staysBy = new Map<string, number[]>();
     for (const p of pairs) staysBy.set(p.store_number, [...(staysBy.get(p.store_number) ?? []), Number(p.secs)]);

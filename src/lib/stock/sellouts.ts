@@ -16,6 +16,7 @@ import { MODELS, PART_INDEX, countryOfStore, modelKeyFor, partNumbersFor, type M
 import { countryScope } from "./queries";
 import type { CountryCode } from "../apple/countries";
 import { recordError, errorMessage } from "../errors";
+import { daysAgo } from "./since";
 
 /** The round every store gets: the bound used where a sell-out has no last sighting. */
 export const ROUND_SEC = 15;
@@ -96,7 +97,7 @@ const cached = unstable_cache(
       select id, store_number, part_number, at, kind,
              lead(kind) over w as next_kind, lead(at) over w as next_at, lead(seen_until) over w as next_seen
       from availability_events
-      where not first_seen and at > now() - make_interval(days => ${days}) ${storeCond} ${partCond}
+      where not first_seen and at > ${daysAgo(days)} ${storeCond} ${partCond}
       window w as (partition by store_number, part_number order by at)`;
     const life = sql`extract(epoch from next_at - at)`;
     const [lifeRows, recentRows] = await Promise.all([

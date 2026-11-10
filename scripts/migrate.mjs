@@ -19,7 +19,7 @@ export function migrationConnectionConfig(url, env = process.env) {
   const parsed = new URL(url);
   const shared = env.DATABASE_SHARED_CLUSTER || "";
   if (shared && shared !== "pickupchecker") throw new Error("Invalid shared database cluster");
-  if (shared && (!['postgres:', 'postgresql:'].includes(parsed.protocol) || parsed.pathname !== "/pickupchecker" || !roleSchemas.has(parsed.username) || parsed.hash)) {
+  if (shared && (!['postgres:', 'postgresql:'].includes(parsed.protocol) || !["/pickupchecker", "/shelfspring"].includes(parsed.pathname) || !roleSchemas.has(parsed.username) || parsed.hash)) {
     throw new Error("Shared migrations require an isolated ShelfSpring role");
   }
   const targets = new Set(["host", "hostaddr", "port", "user", "password", "database", "dbname"]);

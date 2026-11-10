@@ -5,7 +5,7 @@ import { previewInventoryMode } from "./inventory-mode";
 
 export interface LeaderStatus { using: DbTargetName | null; writable: boolean; probes: DbProbe[] }
 export function sharedLeaderTarget(status: LeaderStatus | null, host: string | undefined): { target: DbTargetName; epoch: number } | null {
-  if (!host || !["linode-1", "linode-2"].includes(host) || !status?.writable || !status.using) return null;
+  if (!host || !["linode-1", "linode-2", "linode-4"].includes(host) || !status?.writable || !status.using) return null;
   const probe = status.probes.find((p) => p.name === status.using);
   if (!probe?.ok || probe.recovery !== false || probe.host !== host || probe.owner !== host
     || !Number.isSafeInteger(probe.epoch) || probe.epoch < 0) return null;

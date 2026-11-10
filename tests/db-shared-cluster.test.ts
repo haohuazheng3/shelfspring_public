@@ -25,9 +25,11 @@ describe("shared cluster identity and isolated roles", () => {
   });
   it.each(["shelfspring", "shelfspring_preview", "shelfspring_poller", "shelfspring_preview_poller"])("allows only namespaced %s on the shared database", (role) => {
     expect(poolConfig(`postgres://${role}:fixture@127.0.0.1/pickupchecker`, shared).ssl).toBe(false);
+    // ShelfSpring's own database since 2026-11-10
+    expect(poolConfig(`postgres://${role}:fixture@127.0.0.1/shelfspring`, shared).ssl).toBe(false);
   });
   it.each(["postgres://poller:p@host.example/pickupchecker", "postgres://pickupchecker:p@host.example/pickupchecker",
-    "postgres://shelfspring:p@host.example/shelfspring", "postgres://shelfspring:p@host.example/pickupchecker?options=-csearch_path%3Dpublic"])("refuses unsafe shared connection %s", (url) => {
+    "postgres://shelfspring:p@host.example/postgres", "postgres://shelfspring:p@host.example/restockwire", "postgres://shelfspring:p@host.example/pickupchecker?options=-csearch_path%3Dpublic"])("refuses unsafe shared connection %s", (url) => {
     expect(() => poolConfig(url, shared)).toThrow();
   });
   it.each(["shelfspring", "shelfspring_preview", "shelfspring_poller", "shelfspring_preview_poller"])("probes original authority while %s keeps its private application schema", async (role) => {

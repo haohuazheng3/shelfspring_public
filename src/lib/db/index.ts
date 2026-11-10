@@ -47,7 +47,9 @@ export function db(): NodePgDatabase<typeof schema> {
 export function poolConfig(url: string, env: Record<string, string | undefined> = process.env): PoolConfig {
   const parsed = new URL(url);
   if (sharedClusterMode(env)) {
-    if (parsed.pathname !== "/pickupchecker" || !sharedRoleSchema(parsed.username)) throw new Error("Shared database requires an isolated ShelfSpring role");
+    // Its own database "shelfspring" since 2026-11-10 (stock tables there are read-only foreign tables over PickupChecker's);
+    // "pickupchecker" is the older layout with the private schemas inside the original database.
+    if (!["/pickupchecker", "/shelfspring"].includes(parsed.pathname) || !sharedRoleSchema(parsed.username)) throw new Error("Shared database requires an isolated ShelfSpring role");
     // The role owns the search_path. Do not let URL options silently replace it with public.
     if ([...parsed.searchParams.keys()].some((key) => key.toLowerCase() === "options")) throw new Error("Shared database URL must use its role's schema settings");
   }

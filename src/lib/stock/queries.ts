@@ -7,6 +7,7 @@ import { recordError, errorMessage } from "../errors";
 import { reportSeries, type ReportInput, type ReportSeries } from "../restockReports";
 import { NOT_OFFERED_KEY, parseNotOffered, type PickupOffEntry } from "./notOffered";
 import { doNotCacheReadFailure } from "../cache-read-failure";
+import { daysAgo } from "./since";
 
 /*
  * Every read here is confined to one country (default the US): the database holds every country's stores and
@@ -440,7 +441,7 @@ const cachedPlaceStats = unstable_cache(
   async (storeNumbers: string[] | null, parts: string[] | null, tz: string, days: number, cc: CountryCode): Promise<PlaceStats> => {
     const base = EMPTY_STATS(days, tz);
     const ev = schema.availabilityEvents;
-    const scope = [eq(ev.firstSeen, false), sql`${ev.at} > now() - interval '1 day' * ${days}`, ...scopeConds(countryScope(cc, storeNumbers, parts), EV)];
+    const scope = [eq(ev.firstSeen, false), gt(ev.at, daysAgo(days)), ...scopeConds(countryScope(cc, storeNumbers, parts), EV)];
     const where = and(...scope);
     const [totals, median, series] = await Promise.all([
       must("place stats totals", async () => {
@@ -618,7 +619,7 @@ const cachedActivePairs = unstable_cache(
     must("active pairs", () =>
       db().selectDistinct({ storeNumber: schema.availabilityEvents.storeNumber, partNumber: schema.availabilityEvents.partNumber })
         .from(schema.availabilityEvents)
-        .where(and(eq(schema.availabilityEvents.firstSeen, false), eq(schema.availabilityEvents.kind, "restock"), gt(schema.availabilityEvents.at, sql`now() - interval '1 day' * ${days}`), ...scopeConds(countryScope(cc, null, null), EV))),
+        .where(and(eq(schema.availabilityEvents.firstSeen, false), eq(schema.availabilityEvents.kind, "restock"), gt(schema.availabilityEvents.at, daysAgo(days)), ...scopeConds(countryScope(cc, null, null), EV))),
     ),
   ["seo-active-pairs"],
   { revalidate: 3600 },
@@ -641,7 +642,7 @@ const cachedReports = unstable_cache(
     const rr = schema.restockReports;
     const rows = await must("restock reports", () =>
       db().select({ s: rr.storeNumber, p: rr.partNumber, at: rr.at, src: rr.source }).from(rr)
-        .where(and(gt(rr.at, sql`now() - interval '1 day' * ${days}`), ...scopeConds(countryScope(cc, null, null), RR))),
+        .where(and(gt(rr.at, daysAgo(days)), ...scopeConds(countryScope(cc, null, null), RR))),
     );
     return rows.map((r) => [r.s, r.p, sec(r.at), r.src]);
   },
