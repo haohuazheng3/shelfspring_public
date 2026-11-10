@@ -50,6 +50,8 @@ export const account: Dict["account"] = {
   },
 
   restock: {
+    /** "Restock by restock" on the dashboard: each restock against the member's alerts (lib/alertMarks.ts). */
+    mark: { delivered: "通知が到着", sent: "通知を送信", other: "通知の対象外", before: "通知の設定前" },
     title: "あなたの店舗で再入荷が記録される時間帯",
     anyIphone: "iPhone",
     and: "と",

@@ -18,6 +18,7 @@ import { sendPlainEmail } from "../mail/resend";
 import { assertNotificationDeliveryEnabled, notificationsDisabled } from "../notifications/delivery";
 import type { PushPayload } from "./payload";
 import { classifyPushFailure, pushTopic, sendWithRetry, shouldDisableAfterFailures, type PushError } from "./policy";
+import { receiptToken } from "./receipt";
 
 export type PushRow = typeof schema.pushSubscriptions.$inferSelect;
 
@@ -62,6 +63,8 @@ export interface SendOptions {
   ttlSec?: number;
   /** Where to file errors and ops lines (poller for alerts, web for the account-page test). */
   source?: OpsSource & ("poller" | "web" | "worker");
+  /** The restock events this push reports: each device\'s receipt (sw.js) marks those notifications delivered. */
+  events?: number[];
 }
 
 /**
@@ -80,7 +83,9 @@ export async function sendPushToRows(rows: PushRow[], payload: PushPayload, opts
     await recordError(source, "push: VAPID keys are not configured", { rows: rows.length });
     return result;
   }
-  const body = JSON.stringify(payload);
+  // Each device gets its own signed receipt token (lib/push/receipt.ts); the service worker posts it back on arrival.
+  const sentAt = Date.now();
+  const bodyFor = (row: PushRow) => JSON.stringify({ ...payload, r: receiptToken(row.id, opts.events ?? [], sentAt, env.vapidPrivateKey()) });
   const vapidDetails = { subject: env.vapidSubject(), publicKey: env.vapidPublicKey(), privateKey: env.vapidPrivateKey() };
   const topic = pushTopic(payload.collapse ?? payload.tag);
   const ttl = opts.ttlSec ?? 600;
@@ -93,7 +98,7 @@ export async function sendPushToRows(rows: PushRow[], payload: PushPayload, opts
       const r = await sendWithRetry(() =>
         webpush.sendNotification(
           { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } },
-          body,
+          bodyFor(row),
           { TTL: ttl, urgency: "high", topic, vapidDetails, timeout: 10_000 },
         ),
       );

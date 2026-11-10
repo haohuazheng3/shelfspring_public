@@ -47,6 +47,8 @@ export const account: Dict["account"] = {
   },
 
   restock: {
+    /** "Restock by restock" on the dashboard: each restock against the member's alerts (lib/alertMarks.ts). */
+    mark: { delivered: "Avviso consegnato", sent: "Avviso inviato", other: "Non tra i tuoi avvisi", before: "Prima del tuo avviso" },
     title: "Gli orari di rientro nei tuoi negozi",
     anyIphone: "iPhone",
     and: " e ",
