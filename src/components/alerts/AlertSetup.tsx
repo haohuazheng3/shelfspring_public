@@ -18,7 +18,9 @@ import "@/components/pages/Workspace.css";
 function useAnnounce() {
   useEffect(() => {
     window.dispatchEvent(new CustomEvent("pc:wizard", { detail: true }));
-    if (window.location.hash === "#notify") document.getElementById("notify")?.scrollIntoView({ block: "start" });
+    // The sign-in page (?signin=1, the header's "Sign in") shows its form in this block: bring it into view, or the
+    // click looks like it did nothing (the block sits below the fold on most screens).
+    if (window.location.hash === "#notify" || new URLSearchParams(window.location.search).get("signin") === "1") document.getElementById("notify")?.scrollIntoView({ block: "start" });
     return () => { window.dispatchEvent(new CustomEvent("pc:wizard", { detail: false })); };
   }, []);
 }
