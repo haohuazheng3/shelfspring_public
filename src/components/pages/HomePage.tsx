@@ -54,14 +54,14 @@ export async function HomePage({ country: c, searchParams: sp }: { country: Coun
   const catalog = buildPhoneCatalog(cc, lang);
   const get = (k: string) => typeof sp[k] === "string" ? sp[k] as string : undefined;
   const start = us ? startFrom(get) : startFromPool(get, catalog.stores ?? [], catalog.configs);
-  const model = start.model ?? "duo", next = get("next");
+  const model = start.model ?? "duo";
   const p = prefixOf(cc), stores = storesOf(cc);
 
   // Keep the email field first and avoid loading inventory for a focused sign-in journey.
   if (sp.signin === "1") return (
     <div className="field-page">
       <section className="field-intro"><div><p className="field-kicker">ShelfSpring</p><h1 className="field-title">{F.alert}</h1><p className="field-lead">{F.alertNote}</p></div></section>
-      <div className="mx-auto max-w-xl pb-10"><HomeAlertSetup catalog={catalog} start={start} signInOnly next={next} /></div>
+      <div className="mx-auto max-w-xl pb-10"><HomeAlertSetup /></div>
     </div>
   );
 
@@ -99,7 +99,7 @@ export async function HomePage({ country: c, searchParams: sp }: { country: Coun
       </section>
       <section className="field-section home-alert-workspace" aria-labelledby="watchlist-heading">
         <div><p className="field-kicker">03 / ShelfSpring</p><h2 id="watchlist-heading" className="display mt-3 text-3xl sm:text-4xl">{F.alert}</h2><p className="mt-4 max-w-sm leading-relaxed text-ink-2">{F.alertNote}</p><p className="mt-5 max-w-sm text-sm text-ink-3">{F.nowNote}</p><Link href="/pricing" className="btn btn-ghost btn-sm mt-6">{t().chrome.footer.pricing} ↗</Link></div>
-        <HomeAlertSetup catalog={catalog} start={start} next={next} />
+        <HomeAlertSetup />
       </section>
       <div className="field-section"><RelatedBlock title={F.browse}>{us ? <><BrowsePopular /><BrowseModels /></> : <><BrowseCountryPopular country={c} /><BrowseCountryModels country={c} /></>}</RelatedBlock></div>
       <div className="field-layout field-section"><div className="field-main"><RichFaq items={faq} facts={facts} title={H.questions} /></div><aside className="field-aside"><section className="pane p-5"><p className="field-kicker">{F.history}</p><h2 className="mt-2 text-xl font-semibold">{us ? "How long did the opportunity last?" : P.home.selloutH2(cc)}</h2><div className="mt-4"><SellOutTimes data={sell} label={us ? "at US Apple Stores" : P.home.selloutLabel(cc)} showStore={stores.length > 1} /></div></section></aside></div>

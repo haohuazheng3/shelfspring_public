@@ -11,6 +11,7 @@ export const alerts: CDict["alerts"] = {
     title: "Bygg din bevakningslista",
     lead: "Börja med telefonerna du faktiskt skulle köpa. Lägg till butiker inom räckhåll och se hur många aviseringar det blir innan du väljer plan.",
   },
+  steps: { of: "Steg {n} av {total}", next: "Nästa", back: "Tillbaka", finish: "Slå på" },
 
   editor: {
     listSep: ", ",

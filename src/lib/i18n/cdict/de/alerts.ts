@@ -12,6 +12,7 @@ export const alerts: CDict["alerts"] = {
     title: "Merkliste anlegen",
     lead: "Fang mit den iPhones an, die du wirklich kaufen würdest. Nimm dann erreichbare Stores dazu und sieh dir die Zahl der Einträge an, bevor du einen Tarif wählst.",
   },
+  steps: { of: "Schritt {n} von {total}", next: "Weiter", back: "Zurück", finish: "Aktivieren" },
 
   editor: {
     listSep: ", ",

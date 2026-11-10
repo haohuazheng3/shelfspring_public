@@ -11,6 +11,7 @@ export const alerts: CDict["alerts"] = {
     title: "建立你的監察清單",
     lead: "先揀你真會買的手機，再加上去得到的店，看清楚監察項目的數目才選方案。",
   },
+  steps: { of: "第 {n} 步，共 {total} 步", next: "下一步", back: "返回", finish: "開啟提醒" },
 
   editor: {
     listSep: "、",

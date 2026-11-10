@@ -10,6 +10,7 @@ export const alerts: CDict["alerts"] = {
     title: "Componi la tua lista d'osservazione",
     lead: "Parti dai telefoni che compreresti davvero. Aggiungi i negozi alla tua portata, controlla quante notifiche ne escono e solo dopo scegli un piano.",
   },
+  steps: { of: "Passo {n} di {total}", next: "Avanti", back: "Indietro", finish: "Attiva" },
 
   editor: {
     listSep: ", ",

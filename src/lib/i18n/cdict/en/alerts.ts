@@ -15,6 +15,8 @@ export const alerts = {
     title: "Build your watchlist",
     lead: "Start with the phones you would buy. Add reachable stores, then review the number of rules before choosing a plan.",
   },
+  /** The lightbox's steps (phones → stores → turn on): the progress line and the buttons. */
+  steps: { of: "Step {n} of {total}", next: "Next", back: "Back", finish: "Turn on" },
 
   /** The editor: phones × stores, the sum line, turning alerts on (AlertEditor). */
   editor: {

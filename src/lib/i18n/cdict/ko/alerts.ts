@@ -9,6 +9,7 @@ export const alerts: CDict["alerts"] = {
     title: "관찰 목록 만들기",
     lead: "살 마음이 있는 휴대폰부터 넣으세요. 그다음 실제로 갈 수 있는 매장을 더하고, 규칙이 몇 개가 되는지 본 뒤에 플랜을 고르면 돼요.",
   },
+  steps: { of: "{total}단계 중 {n}단계", next: "다음", back: "이전", finish: "알림 켜기" },
 
   editor: {
     listSep: ", ",

@@ -11,6 +11,7 @@ export const alerts: CDict["alerts"] = {
     title: "Stel je volglijst samen",
     lead: "Begin bij de toestellen die je echt zou kopen. Voeg winkels toe die je kunt bereiken en kijk hoeveel meldingen dat oplevert voordat je een pakket kiest.",
   },
+  steps: { of: "Stap {n} van {total}", next: "Volgende", back: "Terug", finish: "Inschakelen" },
 
   editor: {
     listSep: ", ",

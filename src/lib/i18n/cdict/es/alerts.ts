@@ -7,6 +7,7 @@ export const alerts: CDict["alerts"] = {
     title: "Arma tu lista de seguimiento",
     lead: "Empieza por los teléfonos que comprarías. Añade tiendas a tu alcance y revisa cuántas reglas suman antes de elegir plan.",
   },
+  steps: { of: "Paso {n} de {total}", next: "Siguiente", back: "Atrás", finish: "Activar" },
 
   editor: {
     listSep: ", ",

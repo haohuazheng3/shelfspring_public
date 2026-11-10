@@ -11,6 +11,7 @@ export const alerts: CDict["alerts"] = {
     title: "Composer votre liste de veille",
     lead: "Partez des téléphones que vous achèteriez vraiment. Ajoutez les magasins à votre portée, puis vérifiez le nombre de règles avant de choisir une formule.",
   },
+  steps: { of: "Étape {n} sur {total}", next: "Suivant", back: "Retour", finish: "Activer" },
 
   editor: {
     listSep: ", ",

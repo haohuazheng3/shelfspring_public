@@ -7,6 +7,7 @@ export const alerts: CDict["alerts"] = {
     title: "見守りリストをつくる",
     lead: "まず買うつもりのiPhoneを入れ、次に実際に行ける店舗を足します。見守りの件数を確かめてから、プランを決めてください。",
   },
+  steps: { of: "ステップ {n}/{total}", next: "次へ", back: "戻る", finish: "通知をオン" },
 
   editor: {
     listSep: "、",
