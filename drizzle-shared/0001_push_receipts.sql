@@ -1,4 +1,4 @@
--- Push delivery receipts (2026-11-10). A push service answering 201 only means it queued the push; three paying
+-- Push delivery receipts (2026-11-10). First shared-schema migration: drizzle/ is the restored legacy ledger and must not grow (scripts/migrate.mjs); unqualified names resolve to the role's own schema. A push service answering 201 only means it queued the push; three paying
 -- members wrote that they never saw alerts we had sent. The service worker now posts a signed receipt the moment the
 -- phone receives a push (public/sw.js → /api/push/receipt): notifications.delivered_at = the first device that
 -- reported it, push_subscriptions.last_delivered_at = that device's latest. Null = sent but never confirmed (pushes

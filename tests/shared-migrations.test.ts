@@ -88,6 +88,16 @@ it("retains the existing standalone migration flow when shared mode is absent", 
   expect(client.calls.filter(({ sql }) => sql.startsWith("ALTER"))).toHaveLength(2);
 });
 
+it("a standalone database (a fresh clone) runs the legacy files, then the shared-era ones", async () => {
+  const client = connection({ ledger: [] });
+  await applyMigrations(client, { root: fixture(true), log: () => {} });
+  const alters = client.calls.filter(({ sql }) => sql.startsWith("ALTER")).map(({ sql }) => sql);
+  expect(alters).toHaveLength(3);
+  expect(alters[2]).toContain("private_note");
+  const recorded = client.calls.filter(({ sql }) => sql.startsWith("INSERT INTO _migrations")).map(({ args }) => args?.[0]);
+  expect(recorded).toEqual(["0000_init.sql", "0015_inventory_source.sql", "shared/0001_private.sql"]);
+});
+
 it("pins verified TLS through the real driver and rejects shared role/search_path overrides", () => {
   const config = migrationConnectionConfig("postgres://shelfspring:fixture@db.example/pickupchecker?sslmode=disable", {
     DATABASE_SHARED_CLUSTER: "pickupchecker", DATABASE_CA: "fixture-ca",

@@ -39,8 +39,10 @@ export async function applyMigrations(client, { root = repositoryRoot, sharedClu
   if (sharedCluster && sharedCluster !== "pickupchecker") throw new Error("Invalid shared database cluster");
   const legacy = sqlFiles(join(root, "drizzle"));
   let table = "_migrations";
-  let dir = join(root, "drizzle");
-  let prefix = "";
+  // Passes in order: a standalone database (a fresh clone, local development) runs the legacy files and then the
+  // shared-era ones; the shared cluster has the legacy ledger restored and runs only drizzle-shared/. New changes go in
+  // drizzle-shared/ only (unqualified names: they resolve to the role's own schema), so both kinds of database get them.
+  let passes = [{ dir: join(root, "drizzle"), prefix: "" }, { dir: join(root, "drizzle-shared"), prefix: "shared/" }];
   if (sharedCluster) {
     const row = (await client.query(`SELECT current_user AS role, current_schema() AS schema,
       current_setting('pickupchecker.host', true) AS host, pg_is_in_recovery() AS recovery,
@@ -57,34 +59,36 @@ export async function applyMigrations(client, { root = repositoryRoot, sharedClu
     if (!existing) throw new Error("Shared private schema must be restored before migrations");
     const restored = new Set((await client.query(`SELECT name FROM ${table}`)).rows.map((r) => r.name));
     if (legacy.length === 0 || legacy.some((file) => !restored.has(file))) throw new Error("Shared schema is missing the complete legacy migration ledger; refusing legacy DDL");
-    dir = join(root, "drizzle-shared");
-    prefix = "shared/";
+    passes = [{ dir: join(root, "drizzle-shared"), prefix: "shared/" }];
   } else {
     if (legacy.length === 0) { log("[migrate] no drizzle/ directory — skipped"); return; }
     await client.query("CREATE TABLE IF NOT EXISTS _migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())");
   }
-  const files = sqlFiles(dir);
   const done = new Set((await client.query(`SELECT name FROM ${table}`)).rows.map((r) => r.name));
-  let applied = 0;
-  for (const f of files) {
-    const name = prefix + f;
-    if (done.has(name)) continue;
-    const text = readFileSync(join(dir, f), "utf8");
-    // drizzle-kit separates statements with "--> statement-breakpoint"
-    const statements = text.split(/-->\s*statement-breakpoint/g).map((s) => s.trim()).filter(Boolean);
-    await client.query("BEGIN");
-    try {
-      for (const s of statements) await client.query(s);
-      await client.query(`INSERT INTO ${table} (name) VALUES ($1) ON CONFLICT DO NOTHING`, [name]);
-      await client.query("COMMIT");
-    } catch (e) {
-      await client.query("ROLLBACK");
-      throw e;
+  let applied = 0, total = 0;
+  for (const { dir, prefix } of passes) {
+    const files = sqlFiles(dir);
+    total += files.length;
+    for (const f of files) {
+      const name = prefix + f;
+      if (done.has(name)) continue;
+      const text = readFileSync(join(dir, f), "utf8");
+      // drizzle-kit separates statements with "--> statement-breakpoint"
+      const statements = text.split(/-->\s*statement-breakpoint/g).map((s) => s.trim()).filter(Boolean);
+      await client.query("BEGIN");
+      try {
+        for (const s of statements) await client.query(s);
+        await client.query(`INSERT INTO ${table} (name) VALUES ($1) ON CONFLICT DO NOTHING`, [name]);
+        await client.query("COMMIT");
+      } catch (e) {
+        await client.query("ROLLBACK");
+        throw e;
+      }
+      applied++;
+      log(`[migrate] applied ${name} (${statements.length} statements)`);
     }
-    applied++;
-    log(`[migrate] applied ${name} (${statements.length} statements)`);
   }
-  log(`[migrate] up to date (${applied} new, ${files.length} ${sharedCluster ? "shared-schema" : "total"})`);
+  log(`[migrate] up to date (${applied} new, ${total} ${sharedCluster ? "shared-schema" : "total"})`);
 }
 
 async function main() {
