@@ -5,7 +5,8 @@ import { db, schema } from "@/lib/db";
 import { activeSubscriptionsFor } from "@/lib/billing";
 import { effectivePlan, PAID_PLANS, PLANS } from "@/lib/plans";
 import { waitingPlan } from "@/lib/planTerm";
-import { STORE_INDEX, PART_INDEX } from "@/lib/apple/catalog";
+import { STORE_INDEX, PART_INDEX, countryOfStore } from "@/lib/apple/catalog";
+import { editorHomeCountry } from "@/lib/editorHome";
 import { alertSetOf } from "@/lib/alertSet";
 import { Identify } from "@/components/account/Identify";
 import { SignOutButton } from "@/components/account/SignOutButton";
@@ -63,9 +64,9 @@ export default async function Account() {
   // and every chosen store keeps its name (grouped by country) whatever list is showing.
   const set = alertSetOf(watches);
   const chosen = pickerStoresFor(set.stores, lang);
-  const counts = new Map<CountryCode, number>();
-  for (const s of chosen) counts.set(s.country, (counts.get(s.country) ?? 0) + 1);
-  const home = [...counts.entries()].sort((a, b) => b[1] - a[1] || (a[0] === "us" ? -1 : b[0] === "us" ? 1 : 0))[0]?.[0] ?? "us";
+  // With nothing active it no longer drops to the US: see editorHomeCountry (ops review 2026-11-11).
+  const past = watches.filter((w) => !w.active).map((w) => countryOfStore(w.storeNumbers[0] ?? "")).filter((c): c is CountryCode => Boolean(c));
+  const home = editorHomeCountry(chosen.map((s) => s.country), past, pageLocale().cc);
   return (
     <div id="account-root" className="field-page">
       <HydrationProbe />
