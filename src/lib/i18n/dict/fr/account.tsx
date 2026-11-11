@@ -123,7 +123,7 @@ export const account: Dict["account"] = {
     perks: ["Combinaisons capacité et finition au choix exact", "Magasins accessibles modifiables quand vos plans changent", "Push du navigateur, avec l’e-mail en secours"],
     cancel: "Le renouvellement s’arrête quand vous voulez",
     get: (plan) => `Démarrer ${plan}`,
-    billing: "Les paiements passent par Stripe, par carte ou via Link. Passer d’une formule à l’autre est calculé au prorata.",
+    billing: "Les paiements passent par Stripe, par carte ou via Link. Une formule supérieure est facturée pour les jours restants ; une formule inférieure s’applique au prochain renouvellement.",
     refund: "Conditions de remboursement : un paiement des 7 derniers jours, sans aucune alerte de retour remise depuis, peut être remboursé en totalité ([politique de remboursement](/refunds)).",
   },
 };

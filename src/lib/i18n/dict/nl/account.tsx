@@ -123,7 +123,7 @@ export const account: Dict["account"] = {
     perks: ["Kies precies welke capaciteit en afwerking", "Pas je bereikbare winkels aan als je plannen wijzigen", "Pushmelding in de browser, e-mail als vangnet"],
     cancel: "Verlenging op elk moment stop te zetten",
     get: (plan: string) => `Start met ${plan}`,
-    billing: "Betalen gaat via Stripe, met kaart of Link. Overstappen tussen pakketten wordt naar rato verrekend.",
+    billing: "Betalen gaat via Stripe, met kaart of Link. Upgraden wordt berekend voor de resterende dagen; downgraden gaat in bij de volgende verlenging.",
     refund: "Terugbetaling: een betaling van de voorbije 7 dagen waarna nog geen rentreemelding is bezorgd, krijg je volledig terug ([terugbetalingsbeleid](/refunds)).",
   },
 };

@@ -119,7 +119,7 @@ export const account: Dict["account"] = {
     perks: ["Combinazioni esatte di capacità e finitura", "Negozi raggiungibili da cambiare quando cambiano i tuoi piani", "Push del browser, con l'email come riserva"],
     cancel: "Il rinnovo si può fermare in qualsiasi momento",
     get: (plan: string) => `Inizia con ${plan}`,
-    billing: "I pagamenti passano da Stripe, con carta o Link. Il passaggio fra piani si calcola in proporzione.",
+    billing: "I pagamenti passano da Stripe, con carta o Link. Salire di piano si paga per i giorni rimasti; scendere vale dal prossimo rinnovo.",
     refund: "Condizioni di rimborso: un pagamento degli ultimi 7 giorni si rimborsa per intero se da allora non è stata recapitata nessuna notifica di rientro ([regole sui rimborsi](/refunds)).",
   },
 };

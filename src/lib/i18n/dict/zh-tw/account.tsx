@@ -118,7 +118,7 @@ export const account: Dict["account"] = {
     perks: ["指定確切的容量與機身色組合", "行程一變就能改你到得了的門市", "瀏覽器推播，Email 當備援"],
     cancel: "隨時可以停止續訂",
     get: (plan: string) => `開始 ${plan}`,
-    billing: "付款透過 Stripe，可用信用卡或 Link。換方案按比例計算。",
+    billing: "付款透過 Stripe，可用信用卡或 Link。升級依剩餘天數收費；降級從下次續訂起生效。",
     refund: "退款條件：最近 7 天內的付款，若之後沒有送達任何重新上架提醒，可以全額退款（[退款規則](/refunds)）。",
   },
 };

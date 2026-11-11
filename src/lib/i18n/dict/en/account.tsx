@@ -137,7 +137,7 @@ export const account = {
     perks: ["Choose exact storage and color combinations", "Edit your reachable stores as plans change", "Browser push with email fallback"],
     cancel: "Renewal can be stopped at any time",
     get: (plan: string) => `Start ${plan}`,
-    billing: "Payments run through Stripe, by card or Link. Moving between plans is prorated.",
+    billing: "Payments run through Stripe, by card or Link. Moving up is billed for the days left; moving down applies from the next renewal.",
     /** The refund policy line, as published (no other refund wording anywhere). */
     refund: "Refund terms: a payment made in the last 7 days with no restock alert delivered since can be refunded in full ([refund policy](/refunds)).",
   },

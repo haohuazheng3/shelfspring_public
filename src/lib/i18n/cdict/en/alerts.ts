@@ -193,10 +193,15 @@ export const alerts = {
     about: "roughly {amount}",
     aboutCap: "Roughly {amount}",
     daysLeft: { other: "covering the remaining # days of this billing period" } as Forms,
-    /** Before the credit in bold. */
-    noCharge: "Nothing to pay. ",
-    credit: "left on {plan} is credited against upcoming invoices",
     discount: "· covered by your discount",
+    /** A downgrade: what stays until the renewal it starts at ({plan}: the plan paid for). */
+    stays: "{plan} continues until {date}",
+    noRefund: "No refund or credit is issued for the remainder of this period.",
+    confirmSwitchOn: "Step down on {date}",
+    pending: "On **{date}** your plan becomes {plan}: {price}/month, {limit} alerts. {current} stays in place until then.",
+    keep: "Remain on {plan}",
+    fromBadge: "Begins {date}",
+    scheduled: "{plan} continues until {date}, when {next} with {limit} alerts begins.",
     then: "Afterwards",
     perMonth: "{price} per month",
     from: "starting {date}",
@@ -248,7 +253,7 @@ export const alerts = {
     nowOn: "{plan} is now active, with room for {limit} alerts.",
     cancelledUntil: "Renewal stopped. {plan} stays active through {date} with no further payment.",
     billing: "Invoices and payment method",
-    paidNote: "Stepping up bills the remaining days; stepping down leaves a credit.",
+    paidNote: "Stepping up bills the remaining days; stepping down takes effect at the next renewal.",
     checkoutNote: "Payment runs through Stripe: card or Link.",
   },
 

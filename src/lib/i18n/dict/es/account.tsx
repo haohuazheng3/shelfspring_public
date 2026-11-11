@@ -121,7 +121,7 @@ export const account: Dict["account"] = {
     perks: ["Elegir la capacidad y el color exactos","Cambiar las tiendas según tus desplazamientos","Notificaciones del navegador con correo como alternativa"],
     cancel: "La renovación se puede detener en cualquier momento",
     get: (plan: string) => `Empezar con ${plan}`,
-    billing: "Los pagos van por Stripe, con tarjeta o Link. Cambiar de plan se prorratea.",
+    billing: "Los pagos van por Stripe, con tarjeta o Link. Subir de plan se cobra por los días que quedan; bajar se aplica desde la próxima renovación.",
     refund: "Condiciones de reembolso: un pago de los últimos 7 días sin ningún aviso de reposición entregado desde entonces se reembolsa entero ([política de reembolsos](/refunds)).",
   },
 };

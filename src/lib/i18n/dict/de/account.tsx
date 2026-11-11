@@ -121,7 +121,7 @@ export const account: Dict["account"] = {
     perks: ["Kapazität und Finish genau festlegen","Beobachtete Stores an deine Wege anpassen","Browser-Benachrichtigungen, E-Mail als Ersatzweg"],
     cancel: "Die Verlängerung lässt sich jederzeit beenden",
     get: (plan: string) => `${plan} starten`,
-    billing: "Zahlungen laufen über Stripe, per Karte oder Link. Wechsel zwischen Tarifen werden anteilig verrechnet.",
+    billing: "Zahlungen laufen über Stripe, per Karte oder Link. Ein Wechsel nach oben wird für die Resttage berechnet, ein Wechsel nach unten gilt ab der nächsten Verlängerung.",
     refund: "Erstattung: Eine Zahlung der letzten 7 Tage wird voll zurückgezahlt, wenn seitdem keine Rückkehr-Benachrichtigung zugestellt wurde ([Erstattungsregeln](/refunds)).",
   },
 };

@@ -8,6 +8,7 @@ import { notifyText } from "./i18n/notify";
 import type { Lang } from "./i18n/locales";
 import { SPEED, PLANS, comparePlans, planFromPrice, priceIdFor, effectivePlan, isPaidPlan, type PaidPlanKey } from "./plans";
 import { acceptanceCheckoutParams, acceptanceCoupon, acceptanceOwner, assertAcceptanceTotal, validateAcceptanceAttempt } from "./billing-acceptance";
+import { planInForce } from "./planTerm";
 import { logOps } from "./ops";
 
 const BILLING_APP = "shelfspring";
@@ -18,7 +19,10 @@ export async function syncSubscription(sub: Stripe.Subscription, executor: Pick<
   if (!userId || sub.metadata?.app !== BILLING_APP) throw new Error("Subscription does not belong to ShelfSpring");
   const item = sub.items.data[0];
   const price = item?.price as (Stripe.Price & { metadata?: Record<string, string> }) | undefined;
-  const plan = planFromPrice(price ? { id: price.id, metadata: price.metadata, unit_amount: price.unit_amount } : { id: null });
+  const pricePlan = planFromPrice(price ? { id: price.id, metadata: price.metadata, unit_amount: price.unit_amount } : { id: null });
+  // A waiting downgrade: the price is already the lower plan (stored as price_id, read by planTerm.waitingPlan), and
+  // the plan paid for stays in force to the period's end.
+  const { plan } = planInForce(pricePlan, sub.metadata, item?.current_period_end);
   const alertLimit = PLANS[plan].limit;
   const periodEnd = item?.current_period_end ? new Date(item.current_period_end * 1000) : null;
   await executor
@@ -298,7 +302,9 @@ export class BillingPermissionError extends Error {
 /** What switching plans would do, shown before the user confirms. Money in cents (USD). */
 export interface PlanChangePreview {
   from: PaidPlanKey; to: PaidPlanKey; upgrade: boolean;
-  /** Charged today (upgrade) or credited to the account (downgrade, negative). */
+  /** A downgrade, or going back to the plan paid for: nothing changes today, `to` starts on `renewsAt`. */
+  atRenewal: boolean;
+  /** Charged today (an upgrade); 0 for a downgrade, which is never refunded or credited. */
   nowCents: number;
   /** Stripe's own figure (invoice preview) or our estimate from the days left in the period. */
   exact: boolean;
@@ -334,22 +340,31 @@ export async function previewPlanChange(subscriptionId: string, to: PaidPlanKey)
     .catch(() => s.subscriptions.retrieve(subscriptionId));
   const item = sub.items.data[0];
   if (!item) throw new Error("subscription has no item");
-  const from = planFromPrice({ id: item.price.id, metadata: item.price.metadata, unit_amount: item.price.unit_amount });
+  const pricePlan = planFromPrice({ id: item.price.id, metadata: item.price.metadata, unit_amount: item.price.unit_amount });
+  const { plan: from, nextPlan } = planInForce(pricePlan, sub.metadata, item.current_period_end);
   const now = Math.floor(Date.now() / 1000);
   const start = item.current_period_start, end = item.current_period_end;
   const left = Math.max(0, Math.min(1, (end - now) / Math.max(1, end - start)));
   const share = paidShare((sub.discounts ?? []) as unknown[]);
-  const oldCents = item.price.unit_amount ?? PLANS[from].priceUsd * 100, newCents = PLANS[to].priceUsd * 100;
-  let nowCents = Math.round((newCents - oldCents) * left * share), exact = false;
-  try {
-    // Exact, when the key may read invoices: the invoice Stripe would raise right now for the switch.
-    const inv = await s.invoices.createPreview({
-      customer: typeof sub.customer === "string" ? sub.customer : sub.customer.id,
-      subscription: sub.id,
-      subscription_details: { items: [{ id: item.id, price: priceIdFor(to) }], proration_behavior: "always_invoice", proration_date: now },
-    });
-    nowCents = inv.total; exact = true;
-  } catch { /* estimate stands */ }
+  const newCents = PLANS[to].priceUsd * 100;
+  const atRenewal = comparePlans(to, from) <= 0;
+  let nowCents = 0, exact = true;
+  if (!atRenewal) {
+    // An upgrade is priced from the plan paid for this period (a waiting downgrade is undone first, at no charge).
+    const oldCents = nextPlan ? PLANS[from].priceUsd * 100 : item.price.unit_amount ?? PLANS[from].priceUsd * 100;
+    nowCents = Math.round((newCents - oldCents) * left * share); exact = false;
+    if (!nextPlan) {
+      try {
+        // Exact, when the key may read invoices: the invoice Stripe would raise right now for the switch.
+        const inv = await s.invoices.createPreview({
+          customer: typeof sub.customer === "string" ? sub.customer : sub.customer.id,
+          subscription: sub.id,
+          subscription_details: { items: [{ id: item.id, price: priceIdFor(to) }], proration_behavior: "always_invoice", proration_date: now },
+        });
+        nowCents = inv.total; exact = true;
+      } catch { /* estimate stands */ }
+    }
+  }
   let card: string | null = null;
   const pm = sub.default_payment_method ?? null;
   if (pm) {
@@ -360,26 +375,32 @@ export async function previewPlanChange(subscriptionId: string, to: PaidPlanKey)
     } catch { /* not readable with this key */ }
   }
   return {
-    from, to, upgrade: comparePlans(to, from) > 0, nowCents, exact,
+    from, to, upgrade: comparePlans(to, from) > 0, atRenewal, nowCents, exact,
     monthlyCents: Math.round(newCents * share), renewsAt: end ? new Date(end * 1000).toISOString() : null,
     daysLeft: Math.round(((end - now) / 86400) * 10) / 10, card, prorationDate: now,
   };
 }
 
 /**
- * Move an existing subscription to another paid plan, after the user confirmed the preview. The difference
- * is invoiced at once (an upgrade is charged, a downgrade becomes account credit), and with
- * pending_if_incomplete the new plan only takes hold once that payment succeeds: a card that needs the
- * bank's confirmation (3-D Secure) or is declined leaves the old plan in place ({ pending: true }).
+ * Move an existing subscription to another paid plan, after the user confirmed the preview.
+ *  • Upgrade: the difference for the days left is invoiced at once, and with pending_if_incomplete the new plan only
+ *    takes hold once that payment succeeds: a card that needs the bank's confirmation (3-D Secure) or is declined
+ *    leaves the old plan in place ({ pending: true }). Its exact parameters are persisted first (an attempt) so a retry
+ *    never charges twice. A downgrade still waiting is undone first, at no charge, so the difference is counted from
+ *    the plan actually paid for.
+ *  • Downgrade: nothing is charged, refunded or credited (owner, 2026-11-11: no Stripe balance). The price moves to the
+ *    lower plan without proration, so the next renewal bills it; the plan paid for stays in force until then (metadata
+ *    paid_plan / paid_until, planTerm.planInForce). Repeating it is harmless, so it needs no attempt. Choosing the paid
+ *    plan again undoes it.
  */
-export async function changePlan(subscriptionId: string, plan: PaidPlanKey, prorationDate?: number): Promise<{ pending?: boolean }> {
+export async function changePlan(subscriptionId: string, plan: PaidPlanKey, prorationDate?: number): Promise<{ pending?: boolean; startsAt?: string | null }> {
   const s = stripe();
   try {
     const d = db(), key = `billing:plan:${subscriptionId}`;
     type ChangeAttempt = { attemptId: string; fromPrice: string; toPrice: string; periodStart: number; createdAt: number; completed?: boolean; params: Stripe.SubscriptionUpdateParams };
     await d.insert(schema.appState).values({ key, value: {} }).onConflictDoNothing();
     for (let pass = 0; pass < 4; pass++) {
-      const result = await d.transaction(async (tx): Promise<{ sub?: Stripe.Subscription; pending?: boolean } | null> => {
+      const result = await d.transaction(async (tx): Promise<{ sub?: Stripe.Subscription; pending?: boolean; startsAt?: string | null } | null> => {
         const [row] = await tx.select().from(schema.appState).where(eq(schema.appState.key, key)).for("update");
         if (!row) throw new Error("Plan change attempt is missing");
         // Serialize confirmation clicks across processes, then reread Stripe's actual current plan.
@@ -389,6 +410,28 @@ export async function changePlan(subscriptionId: string, plan: PaidPlanKey, pror
         if (!item) throw new Error("subscription has no item");
         if (sub.pending_update) return { pending: true };
         const old = row.value as Partial<ChangeAttempt>;
+        const pricePlan = planFromPrice({ id: item.price.id, metadata: item.price.metadata, unit_amount: item.price.unit_amount });
+        const { plan: paid, nextPlan } = planInForce(pricePlan, sub.metadata, item.current_period_end);
+        const periodEnd = new Date(item.current_period_end * 1000).toISOString();
+        if (comparePlans(plan, paid) <= 0) {
+          if (old.attemptId && !old.completed) await tx.update(schema.appState).set({ value: { ...old, completed: true }, updatedAt: new Date() }).where(eq(schema.appState.key, key));
+          // Already so: the plan it renews on (the paid one, or the downgrade already waiting).
+          if (item.price.id === priceIdFor(plan)) return { sub, startsAt: nextPlan ? periodEnd : null };
+          if (sub.cancel_at_period_end) await s.subscriptions.update(subscriptionId, { cancel_at_period_end: false });
+          const back = plan === paid;
+          const updated = await s.subscriptions.update(subscriptionId, {
+            items: [{ id: item.id, price: priceIdFor(plan) }],
+            proration_behavior: "none",
+            // The whole metadata, as the upgrade's tag step sends it: app/userId must survive any update.
+            metadata: back ? { ...sub.metadata, plan, paid_plan: "", paid_until: "" } : { ...sub.metadata, plan, paid_plan: paid, paid_until: String(item.current_period_end) },
+          });
+          return { sub: updated, startsAt: back ? null : periodEnd };
+        }
+        if (nextPlan) {
+          // Back to the price paid for this period first (nothing charged); the next pass prices the upgrade from it.
+          await s.subscriptions.update(subscriptionId, { items: [{ id: item.id, price: priceIdFor(paid) }], proration_behavior: "none", metadata: { ...sub.metadata, plan: paid, paid_plan: "", paid_until: "" } });
+          return null;
+        }
         if (item.price.id === priceIdFor(plan)) {
           if (old.attemptId && !old.completed) await tx.update(schema.appState).set({ value: { ...old, completed: true }, updatedAt: new Date() }).where(eq(schema.appState.key, key));
           return { sub };
@@ -421,7 +464,7 @@ export async function changePlan(subscriptionId: string, plan: PaidPlanKey, pror
       });
       if (!result) continue;
       if (result.pending) return { pending: true };
-      if (result.sub) { await syncSubscription(result.sub); return {}; }
+      if (result.sub) { await syncSubscription(result.sub); return { startsAt: result.startsAt ?? null }; }
     }
     throw new Error("Plan changed in another tab. Please try again.");
   } catch (e) {

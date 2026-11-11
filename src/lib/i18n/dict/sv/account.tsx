@@ -120,7 +120,7 @@ export const account: Dict["account"] = {
     perks: ["Välj exakta kombinationer av kapacitet och färg", "Ändra butikerna inom räckhåll när planerna ändras", "Webbläsarnotiser med e-post som reserv"],
     cancel: "Förnyelsen kan stoppas när som helst",
     get: (plan: string) => `Starta ${plan}`,
-    billing: "Betalningar går via Stripe, med kort eller Link. Byte mellan planer räknas om proportionellt.",
+    billing: "Betalningar går via Stripe, med kort eller Link. Uppgradering debiteras för dagarna som är kvar; nedgradering gäller från nästa förnyelse.",
     refund: "Återbetalning: en betalning från de senaste 7 dagarna återbetalas helt om ingen avisering om en återkomst har levererats sedan dess ([återbetalningsregler](/refunds)).",
   },
 };
