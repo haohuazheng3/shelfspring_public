@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  dispatchInventoryAlerts, expireSourceInventory, importInventoryHistory, notificationDecision, PgInventoryDestination, PgInventoryOutbox, safeSyncError, sourcePoolConfig, SOURCE_STATUS_STALE_MS,
+  CLAIM_PUSHDOWN_SKEW_MS, claimScanWindow, dispatchInventoryAlerts, expireSourceInventory, importInventoryHistory, notificationDecision, PgInventoryDestination, PgInventoryOutbox, safeSyncError, sourcePoolConfig, SOURCE_STATUS_STALE_MS,
   syncInventoryOnce, syncOptions, type ClaimedAlert, type EventPolicy, type InventoryDestination,
   type InventoryReader, type InventorySnapshot, type InventoryWriter, type NotificationOutbox,
   type SourceEvent, type SourceReport, type SourceStatus, type SyncState,
@@ -403,6 +403,25 @@ describe("destination SQL freshness boundaries", () => {
     expect(query.sql).toContain("e.at >= (s.value->>'cutoverAt')::timestamptz");
     expect(query.sql).toContain("FOR UPDATE OF o SKIP LOCKED");
     expect(query.params.filter((p) => p === options.maxAlertAgeMs)).toHaveLength(3);
+  });
+  it("bounds both inventory scans with literal parameters so postgres_fdw filters at the source", async () => {
+    const before = Date.now();
+    await new PgInventoryOutbox().claim(options);
+    const after = Date.now();
+    const query = sqlState.queries.find((q) => q.sql.includes("WITH candidates AS"))!;
+    // now() is not shippable; without these the source returned every restock and every available row.
+    expect(query.sql).toMatch(/e\.at >= \$\d+::timestamptz AND e\.at <= \$\d+::timestamptz/);
+    expect(query.sql).toMatch(/current_stock\.since >= \$\d+::timestamptz AND current_stock\.since <= \$\d+::timestamptz/);
+    expect(query.sql).toMatch(/current_stock\.last_checked_at >= \$\d+::timestamptz/);
+    const bounds = query.params.filter((p): p is string => typeof p === "string" && /^\d{4}-\d\d-\d\dT/.test(p)).map((p) => Date.parse(p));
+    expect(bounds).toHaveLength(5);
+    // Never narrower than the exact checks: from ≤ now − max age, to ≥ now + 5 s, with a minute of skew to spare.
+    expect(Math.max(...bounds.filter((b) => b < before))).toBeLessThanOrEqual(after - options.maxAlertAgeMs - CLAIM_PUSHDOWN_SKEW_MS);
+    expect(Math.min(...bounds.filter((b) => b > before))).toBeGreaterThanOrEqual(before + 5_000);
+  });
+  it("widens the claim scan window by the skew allowance on both sides", () => {
+    const w = claimScanWindow(120_000, Date.UTC(2026, 10, 12, 22, 0, 0));
+    expect(w).toEqual({ from: "2026-11-12T21:57:00.000Z", to: "2026-11-12T22:01:00.000Z" });
   });
   it("expires stale target statuses without rewriting observations or manufacturing events", async () => {
     expect(await expireSourceInventory()).toBe(0);

@@ -472,9 +472,23 @@ export async function dispatchInventoryAlerts(outbox: NotificationOutbox, option
   }
 }
 
+/**
+ * Literal bounds for the claim's inventory scans. In shared mode availability_events and store_sku_status are
+ * postgres_fdw tables, and now() is not immutable, so the exact now() checks below never reach the source:
+ * every claim pulled every restock and every available row across, every few seconds (2026-11-12: 3.5–7 s per
+ * claim and about 15 % of the database host). These bounds are plain parameters, so they run at the source on its
+ * indexes. They only widen the exact checks (a minute of clock skew either way); the now() checks still decide.
+ */
+export const CLAIM_PUSHDOWN_SKEW_MS = 60_000;
+export function claimScanWindow(maxAlertAgeMs: number, nowMs = Date.now()) {
+  return { from: new Date(nowMs - maxAlertAgeMs - CLAIM_PUSHDOWN_SKEW_MS).toISOString(),
+    to: new Date(nowMs + CLAIM_PUSHDOWN_SKEW_MS).toISOString() };
+}
+
 export class PgInventoryOutbox implements NotificationOutbox {
   async claim(options: SyncOptions) {
     const token = randomUUID();
+    const scan = claimScanWindow(options.maxAlertAgeMs);
     const alerts = await db().transaction(async (tx) => {
       // Re-check the current interval at claim time: a restock followed by a soldout in one
       // sync batch must never send “available now”, nor may an older restock use a later cycle.
@@ -498,6 +512,9 @@ export class PgInventoryOutbox implements NotificationOutbox {
             AND e.at >= (s.value->>'lastSuccessAt')::timestamptz - ${options.maxAlertAgeMs} * interval '1 millisecond'
             AND e.at >= now() - ${options.maxAlertAgeMs} * interval '1 millisecond'
             AND e.at <= now() + interval '5 seconds'
+            AND e.at >= ${scan.from}::timestamptz AND e.at <= ${scan.to}::timestamptz
+            AND current_stock.since >= ${scan.from}::timestamptz AND current_stock.since <= ${scan.to}::timestamptz
+            AND current_stock.last_checked_at >= ${scan.from}::timestamptz
           ORDER BY o.created_at, o.event_id LIMIT ${options.batchSize} FOR UPDATE OF o SKIP LOCKED
         ), claimed AS (
           UPDATE inventory_sync_outbox o SET status = 'delivering', claim = ${token}, claimed_at = now()
