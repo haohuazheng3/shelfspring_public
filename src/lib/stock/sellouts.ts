@@ -89,41 +89,84 @@ export function medianBand(medianSec: number): string {
   return `${Math.max(0, hi - 20)}–${hi} seconds`;
 }
 
-const cached = unstable_cache(
-  async (stores: string[] | null, parts: string[] | null, days: number, limit: number): Promise<Sellouts> => {
-    const storeCond = stores ? sql`and store_number in (${sql.join(stores.map((s) => sql`${s}`), sql`, `)})` : sql``;
-    const partCond = parts ? sql`and part_number in (${sql.join(parts.map((p) => sql`${p}`), sql`, `)})` : sql``;
-    const pairs = sql`
-      select id, store_number, part_number, at, kind,
-             lead(kind) over w as next_kind, lead(at) over w as next_at, lead(seen_until) over w as next_seen
-      from availability_events
-      where not first_seen and at > ${daysAgo(days)} ${storeCond} ${partCond}
-      window w as (partition by store_number, part_number order by at)`;
-    const life = sql`extract(epoch from next_at - at)`;
-    const [lifeRows, recentRows] = await Promise.all([
-      db().execute(sql`select part_number, ${life}::float8 as secs from (${pairs}) e where kind = 'restock' and next_kind = 'soldout'`),
-      db().execute(sql`
-        select id, store_number, part_number, at, next_kind, next_at, next_seen
-        from (${pairs}) e where kind = 'restock' and (next_kind = 'soldout' or next_kind is null)
-        order by at desc limit ${limit}`),
-    ]);
-    const lives = lifeRows.rows as { part_number: string; secs: number }[];
-    const byModel: Partial<Record<ModelKey, SelloutSummary>> = {};
-    for (const m of MODELS) {
-      const secs = lives.filter((r) => { const i = PART_INDEX.get(r.part_number); return i && modelKeyFor(i.model) === m.key; }).map((r) => Number(r.secs));
-      if (secs.length) byModel[m.key] = summarize(secs, days);
-    }
-    const now = Date.now();
-    const recent = (recentRows.rows as { id: number; store_number: string; part_number: string; at: string | Date; next_kind: string | null; next_at: string | Date | null; next_seen: string | Date | null }[]).map((r): SelloutRow => {
-      const at = new Date(r.at);
-      const b = lifeBounds(at, r.next_at ? new Date(r.next_at) : null, r.next_seen ? new Date(r.next_seen) : null);
-      return { id: Number(r.id), at, storeNumber: r.store_number, partNumber: r.part_number, ...b, listedSec: r.next_kind ? null : Math.round((now - at.getTime()) / 1000) };
-    });
-    return { summary: summarize(lives.map((r) => Number(r.secs)), days), byModel, recent };
+/** The scope conditions shared by the queries below. */
+function scopeSql(stores: string[] | null, parts: string[] | null) {
+  const storeCond = stores ? sql`and store_number in (${sql.join(stores.map((s) => sql`${s}`), sql`, `)})` : sql``;
+  const partCond = parts ? sql`and part_number in (${sql.join(parts.map((p) => sql`${p}`), sql`, `)})` : sql``;
+  return sql`${storeCond} ${partCond}`;
+}
+
+/**
+ * The 30-day "gone by" times: a lead() window over every event in scope (a whole country is tens of thousands of
+ * rows), the heaviest query on the shared primary. On 2026-11-12 PickupChecker's copy, recomputed on a 60-second
+ * cache, took about a third of linode-1's single core (the database host of all three sites); this site runs the same
+ * query. A 30-day median barely moves in 15 minutes, so it is cached that long; the recent list stays at 60 s.
+ */
+const cachedLives = unstable_cache(
+  async (stores: string[] | null, parts: string[] | null, days: number): Promise<{ part_number: string; secs: number }[]> => {
+    const r = await db().execute(sql`
+      select part_number, extract(epoch from next_at - at)::float8 as secs from (
+        select part_number, at, kind, lead(kind) over w as next_kind, lead(at) over w as next_at
+        from availability_events
+        where not first_seen and at > ${daysAgo(days)} ${scopeSql(stores, parts)}
+        window w as (partition by store_number, part_number order by at)
+      ) e where kind = 'restock' and next_kind = 'soldout'`);
+    return (r.rows as { part_number: string; secs: number | string }[]).map((x) => ({ part_number: x.part_number, secs: Number(x.secs) }));
   },
-  ["sellouts-v2"],
+  ["sellouts-lives-v1"],
+  { revalidate: 900 },
+);
+
+type EvRow = { id: number | string; store_number: string; part_number: string; at: string | Date; kind?: string; seen_until?: string | Date | null };
+
+/**
+ * The newest restocks in scope and the event that followed each, without a window over the whole month: the newest
+ * `limit` restocks (index on at), then the later events of just those store × part pairs since the oldest of them,
+ * matched here. Same answer as lead() over (store, part) within the window. Two plain filtered reads, so they also
+ * ship whole to a remote server where the table is a foreign one.
+ */
+const cachedRecent = unstable_cache(
+  async (stores: string[] | null, parts: string[] | null, days: number, limit: number) => {
+    const head = (await db().execute(sql`
+      select id, store_number, part_number, at from availability_events
+      where kind = 'restock' and not first_seen and at > ${daysAgo(days)} ${scopeSql(stores, parts)}
+      order by at desc limit ${limit}`)).rows as EvRow[];
+    if (head.length === 0) return [];
+    const oldest = new Date(Math.min(...head.map((r) => new Date(r.at).getTime())));
+    const st = [...new Set(head.map((r) => r.store_number))];
+    const pt = [...new Set(head.map((r) => r.part_number))];
+    const later = (await db().execute(sql`
+      select id, store_number, part_number, at, kind, seen_until from availability_events
+      where not first_seen and at >= ${oldest} ${scopeSql(st, pt)}
+      order by at, id`)).rows as EvRow[];
+    return head.map((r) => {
+      const t = new Date(r.at).getTime();
+      const n = later.find((e) => e.store_number === r.store_number && e.part_number === r.part_number && (new Date(e.at).getTime() > t || (new Date(e.at).getTime() === t && Number(e.id) > Number(r.id))));
+      return { id: Number(r.id), store_number: r.store_number, part_number: r.part_number, at: r.at, next_kind: n?.kind ?? null, next_at: n?.at ?? null, next_seen: n?.seen_until ?? null };
+    });
+  },
+  ["sellouts-recent-v1"],
   { revalidate: 60 },
 );
+
+async function load(stores: string[] | null, parts: string[] | null, days: number, limit: number): Promise<Sellouts> {
+  const [lives, recentRows] = await Promise.all([cachedLives(stores, parts, days), cachedRecent(stores, parts, days, limit)]);
+  const byModel: Partial<Record<ModelKey, SelloutSummary>> = {};
+  for (const m of MODELS) {
+    const secs = lives.filter((r) => { const i = PART_INDEX.get(r.part_number); return i && modelKeyFor(i.model) === m.key; }).map((r) => Number(r.secs));
+    if (secs.length) byModel[m.key] = summarize(secs, days);
+  }
+  const now = Date.now();
+  // As before: a restock followed by a sell-out (sold) or by nothing yet (still listed); a restock followed by
+  // another restock is a recording oddity and stays out of the list.
+  const recent = recentRows.filter((r) => r.next_kind == null || r.next_kind === "soldout").map((r): SelloutRow => {
+    // The data cache stores JSON: dates come back as ISO strings.
+    const at = new Date(r.at);
+    const b = lifeBounds(at, r.next_at ? new Date(r.next_at) : null, r.next_seen ? new Date(r.next_seen) : null);
+    return { id: r.id, at, storeNumber: r.store_number, partNumber: r.part_number, ...b, listedSec: r.next_kind ? null : Math.round((now - at.getTime()) / 1000) };
+  });
+  return { summary: summarize(lives.map((r) => Number(r.secs)), days), byModel, recent };
+}
 
 /**
  * Restocks and how fast they sold out, for a place (stores) and/or phones (model or parts) in one country.
@@ -139,9 +182,7 @@ export async function sellouts(opts: { storeNumbers?: string[]; model?: ModelKey
   // else by its store list (Germany and Austria share part numbers).
   const scope = countryScope(cc, opts.storeNumbers?.length ? opts.storeNumbers : null, parts);
   try {
-    const d = await cached(scope.stores ? [...scope.stores].sort() : null, scope.parts ? [...scope.parts].sort() : null, days, opts.limit ?? 12);
-    // The data cache stores JSON: dates come back as ISO strings. Callers get real Dates either way.
-    return { ...d, recent: d.recent.map((r) => ({ ...r, at: new Date(r.at) })) };
+    return await load(scope.stores ? [...scope.stores].sort() : null, scope.parts ? [...scope.parts].sort() : null, days, opts.limit ?? 12);
   } catch (e) {
     await recordError("web", `sellouts: ${errorMessage(e)}`).catch(() => undefined);
     doNotCacheReadFailure();
